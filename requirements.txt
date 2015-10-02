@@ -1,0 +1,7 @@
+Flask
+pony
+jsonschema
+pytz
+Flask-Babel
+mysqlclient
+python-memcached

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Смайлопак</title>
+    <link href="{{ url_for('static', filename='index.css') }}" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+<div class="main">
+    <h1>Да, это смайлопак!</h1>
+    <div class="stat">Смайликов в коллекции: {{ smiles_count }}, создано смайлопаков: {{ smilepacks_count }}</div>
+    <a href="{{ url_for('pages.generator') }}" class="generate-button">Создать свой смайлопак</a><br/>
+    {% if smilepacks %}
+    Или открыть существующий:
+    <ul class="smilepacks-list">
+    {%- for pack in smilepacks %}
+        <li><a href="{{ url_for('pages.generator', smp_id=pack.encoded_id) }}">{{pack.name or pack.encoded_id}}</a> <time class="smp-date" datetime="{{ pack.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">({{ pack.created_at|datetimeformat }})</time></li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+
+<div class="additional">
+    <div class="title">Что это?</div>
+    <div class="column">
+        Новый бэкенд смайлопака с классным API, написанный за полтора дня. Умеет в хранение смайлопаков и добавление новых смайликов пользователями, а также поиск по тегам!
+    </div><div class="column">
+        Новый фронтенд, написанный просто потому что как веб-приложение может быть без фронтенда?
+    </div><div class="column">
+        Оставленный без изменений юзерскрипт для встраивания смайлопака в веб-сайты. Пользуйтесь смайлопаком везде, где бы вы ни были!
+    </div>
+</div>
+
+</body>
+</html>
