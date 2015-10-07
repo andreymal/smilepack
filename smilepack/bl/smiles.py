@@ -54,10 +54,14 @@ class SectionBL(BaseBL):
     def search_by_tags(self, tags_list, preload=False):
         # TODO: sphinx?
         # TODO: pagination
-        from ..models import SmileTag, Smile, Category, SubSection
-        tags_list = set(str(x) for x in tags_list if x)
+        from ..models import Tag, TagSynonym, Smile, Category, SubSection
+
+        tags_list = set(str(x).lower() for x in tags_list if x)
+        synonym_tags = set(orm.select((x.name, x.tag_name) for x in TagSynonym if x.name in tags_list))
+        tags_list = (tags_list - set(x[0] for x in synonym_tags)) | set(x[1] for x in synonym_tags)
+
         section = self._model()
-        smiles = orm.select(x.smiles for x in SmileTag if x.section == section and x.name in tags_list)
+        smiles = orm.select(x.smiles for x in Tag if x.section == section and x.name in tags_list)
         if preload:
             smiles = smiles.prefetch(Smile.category, Category.subsection, SubSection.section)
         return smiles[:]
@@ -74,14 +78,13 @@ class CategoryBL(BaseBL):
             'tags': x.tags_list,
             'w': x.width,
             'h': x.height,
-            'source_description': x.source_description,
-            'source_url': x.source_url,
+            'description': x.description,
         } for x in sorted(self._model().smiles, key=lambda x: (x.order, x.id))]
 
 
 class SmileBL(BaseBL):
     def add_tag(self, tag):
-        from ..models import SmileTag
+        from ..models import Tag, TagSynonym
 
         tag = str(tag or '').strip().lower()  # TODO: recheck case sensitivity
         if not tag:
@@ -92,14 +95,18 @@ class SmileBL(BaseBL):
 
         smile = self._model()
 
+        synonym = orm.select(x.tag_name for x in TagSynonym if x.name == tag).first()
+        if synonym:
+            tag = synonym[0]
+
         tag_obj = smile.tags.select(lambda x: x.name == tag).first()
         if tag_obj:
             return tag_obj
 
         section = smile.category.subsection.section  # FIXME: длинноваты цепочки
-        tag_obj = SmileTag.select(lambda x: x.section == section and x.name == tag).first()
+        tag_obj = Tag.select(lambda x: x.section == section and x.name == tag).first()
         if not tag_obj:
-            tag_obj = SmileTag(section=section, name=tag)
+            tag_obj = Tag(section=section, name=tag)
 
         smile.tags.add(tag_obj)
 
@@ -115,12 +122,17 @@ class SmileBL(BaseBL):
         return tag_obj
 
     def remove_tag(self, tag):
+        from ..models import TagSynonym
+
         tag = str(tag or '').strip().lower()
         
         smile = self._model()
         tag_obj = smile.tags.select(lambda x: x.name == tag).first()
         if not tag_obj:
-            return False
+            tag_obj = orm.select(x.tag for x in TagSynonym if x.name == tag).first()
+            tag_obj = smile.tags.select(lambda x: x.id == tag_obj.id).first()
+            if not tag_obj:
+                return False
         smile.tags.remove(tag_obj)
 
         if not smile.tags_cache:
@@ -150,24 +162,3 @@ class SmileBL(BaseBL):
             result['subsection'] = [smile.category.subsection.id, smile.category.subsection.name]
             result['section'] = [smile.category.subsection.section.id, smile.category.subsection.section.name]
         return result
-
-
-class SmileSuggestionBL(BaseBL):
-    def create(self, session_id, smile):
-        # TODO: rewrite
-        raise NotImplementedError
-
-        from ..models import Category
-        jsonschema.validate(smile, schemas.smile_suggestion_schema)
-
-        category = Category.get(id=smile.get('category')) if smile.get('category') else None
-        
-        suggestion = self._model()(
-            user_cookie=session_id,
-            url=smile['url'],
-            description=smile.get('description') or '',
-            category=category
-        )
-
-        suggestion.flush()
-        return suggestion

@@ -19,7 +19,7 @@ def index(session_id, first_visit):
     # TODO: перенести это в bl
     smiles_count = current_app.cache.get('smiles_count')
     if smiles_count is None:
-        smiles_count = Smile.select().count()
+        smiles_count = Smile.select(lambda x: x.category is not None).count()
         current_app.cache.set('smiles_count', smiles_count, timeout=300)
 
     # TODO: переделать с учётом удаления старых смайлопаков
@@ -46,7 +46,7 @@ def index(session_id, first_visit):
 @db_session
 def generator(session_id, first_visit, smp_id):
     if smp_id:
-        pack = SmilePack.bl.get_by_encoded_id(smp_id)
+        pack = SmilePack.bl.get_by_hid(smp_id)
         if not pack:
             abort(404)
         deletion_date = pack.bl.get_deletion_date()

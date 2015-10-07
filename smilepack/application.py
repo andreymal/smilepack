@@ -39,11 +39,12 @@ def create_app(minimal=False):
         else:
             app.cache = cache.NullCache()
 
+        if app.config['USE_BUNDLER']:
+            from .views.bundler import bundle as bp_bundle
+            from .bundler import get_bundle_url
+            app.register_blueprint(bp_bundle, url_prefix='/bundle')
+            app.jinja_env.globals.update(get_bundle_url=get_bundle_url)
+
     app.babel = Babel(app)
 
     return app
-
-
-if __name__ == "__main__":
-    a = create_app()
-    a.run(host=a.config.get('HOST', '127.0.0.1'))

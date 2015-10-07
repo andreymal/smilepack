@@ -2,29 +2,30 @@
 
 var widgets = {};
 
+
 /*
  * Виджет с коллекцией смайликов с неограниченным уровнем вложенности.
  * Формат hierarchy: [[атрибут со списком элементов, атрибут с id элемента, человекочитаемое название уровня], ...]
  */
 widgets.Collection = function(hierarchy, options){
     this.hierarchy = hierarchy;
-    this._depth = this.hierarchy.length;
+    this._depth = hierarchy.length;
     this.options = options;
 
-    /* У всех элементов всех уровней общая внутренняя нумерация */
-    this._elements = {};
-    this._lastId = 0;
-    
-    /* У смайликов отдельная внутренняя нумерация */
-    this._smileLastId = 0;
+    /* Многоуровневые категории с отдельной нумерацией по уровням */
+    this._categories = [];
+    this._rootChildren = [];
+    this._lastIds = [];
 
-    /* Выбранные элементы на каждом из уровней */
-    this._selected = [];
+    /* Объекты со смайликами; нумерация общая для всех категорий */
+    this._smiles = {};
+    this._lastSmileId = 0;
 
-    /* Табличка соответствия внешней нумерации внутренней по уровням; для публичных методов */
-    this._ids = [];
+    /* Выбранные категории на каджом из уровней */
+    this._selectedIds = [];
 
     this._dom = {};
+
     this._dom.container = options.container || document.createElement('div');
     if(options.className && !this._dom.container.classList.contains(options.className)){
         this._dom.container.classList.add(options.className);
@@ -37,27 +38,25 @@ widgets.Collection = function(hierarchy, options){
     this._dom.container.innerHTML = '';
     this._dom.container.addEventListener('click', this._onclick.bind(this));
 
-    /* Здесь будут храниться кнопки для элементов */
+    /* Здесь будут храниться кнопки для категорий */
     this._dom.tabs_container = document.createElement('div');
     this._dom.tabs_container.className = 'tabs-wrapper';
     this._dom.container.appendChild(this._dom.tabs_container);
 
-    this._dom.title = document.createElement('div');
-    this._dom.title.className = 'collection-title';
-    this._dom.title.textContent = options.title || '';
-    this._dom.tabs_container.appendChild(this._dom.title);
-
-    /* Контейнеры для кнопок по уровням */
+    /* Контейнеры для кнопок по уровням, они и хранятся в контейнере выше */
     this._dom.tabs_containers = [];
 
-    /* А здесь группы кнопок, привязанные к элементам (0 это корень) */
-    this._dom.tabs = {};
+    /* Заголовок коллекции */
+    if(options.title){
+        this._dom.title = document.createElement('div');
+        this._dom.title.className = 'collection-title';
+        this._dom.title.textContent = options.title;
+        this._dom.tabs_container.appendChild(this._dom.title);
+    }else{
+        this._dom.title = null;
+    }
 
-    /* Теги img со смайликами по их id */
-    this._dom.smiles = {};
-    /* Блоки со смайликами */
-    this._dom.smiles_blocks = {};
-    /* А это текущий из них */
+    /* Категория, смайлики которой сейчас отображаются (из-за ajax может не совпадать с this._selectedIds[this._depth - 1]) */
     this._dom.smiles_current_id = null;
 
     /* Описание категории */
@@ -75,8 +74,9 @@ widgets.Collection = function(hierarchy, options){
     this._dom.container.appendChild(this._dom.additionalContainer);
 
     for(var i=0; i<this._depth; i++){
-        this._selected.push(null);
-        this._ids.push({});
+        this._categories.push({});
+        this._lastIds.push(0);
+        this._selectedIds.push(null);
 
         var tcont = document.createElement('div');
         tcont.className = 'tabs-level';
@@ -98,8 +98,8 @@ widgets.Collection = function(hierarchy, options){
     }
 
     /* Создаём контейнер для кнопок верхнего уровня */
-    this._buildDomTabs(0, 0);
-    this._dom.tabs[0].style.display = '';
+    this._dom.rootCategories = this._buildDomTabs(0, 0);
+    this._dom.rootCategories.style.display = '';
 
     /* Инициализируем перетаскивание смайликов */
     dragdrop.add(
@@ -107,252 +107,44 @@ widgets.Collection = function(hierarchy, options){
         {
             onstart: this._dragStart.bind(this),
             onmove: this._dragMove.bind(this),
-            // onmoveto: this._dragMoveTo.bind(this),
             ondropto: this._dragDropTo.bind(this),
-            ondrop: this._dragDrop.bind(this),
             ontransitionend: this._dragEnd.bind(this)
         }
     );
 };
 
-widgets.Collection.prototype._dragStart = function(options){
-    var e = options.element;
-    if(e === this._dom.container) return null;
-
-    do {
-        if(e.dataset.action) break;
-        if(e.classList.contains('smile') && !e.classList.contains('dragged')){
-            if(!this._dom.smiles[parseInt(e.dataset.localId)]) return null;
-            return e;
-        }
-        if(this.options.editable && e.classList.contains('tab-btn') && e.dataset.localId && this._elements[parseInt(e.dataset.localId)]){
-            return e;
-        }
-        e = e.parentNode;
-    }while(e && e !== this._dom.container);
-
-    return null;
-};
-
-widgets.Collection.prototype._dragMove = function(options){
-    if(options.starting){
-        if(!options.element.classList.contains('dragged')) options.element.classList.add('dragged');
-    }
-};
-
-widgets.Collection.prototype._dragMoveTo = function(container, element, clientX, clientY, target){
-    // console.log(container, clientX, clientY, target);
-};
-
-widgets.Collection.prototype._dragDropTo = function(options){
-    /* if(!this.options.editable || !this._selected[this._depth - 1]) return null;
-    if(options.element.classList.contains('smile')){
-        if(options.sourceContainer === this._dom.container){
-            return null;
-        }
-        return this._dom.container;
-    } */
-
-    if(!this.options.ondropto) return null;
-
-    if(options.sourceContainer === this._dom.container){
-        return null;
-    }
-
-    /* Что делать при перетаскивании смайликов между ними, решает владелец коллекции */
-    /* Коллекция руководит только сам собой, но не взаимодействием с другими коллекциями */
-    var dropAction = null;
-    if(this.options.ondropto){
-        dropAction = this.options.ondropto({
-            sourceContainerElement: options.sourceContainer,
-            targetContainer: this,
-            element: options.element,
-            overlay: options.overlay
-        });
-    }
-    if(dropAction && dropAction.name == 'animateToSmile'){
-        return {name: 'animate', targetElement: this._dom.smiles[dropAction.id]}
-    }
-    return dropAction;
-};
-
-widgets.Collection.prototype._dragDrop = function(options){
-}
-
-widgets.Collection.prototype._dragEnd = function(options){
-    if(!options.element) return;
-    if(options.element.classList.contains('dragged')) options.element.classList.remove('dragged');
-}
-
-widgets.Collection.prototype.getLevelSelectedElement = function(level){
-    if(level < 0 || level >= this._depth) return null;
-    return this._selected[level] !== null ? this._elements[this._selected[level]].origId : null;
-}
-
-widgets.Collection.prototype.typeOfElement = function(element){
-    if(!element){
-        return null;
-    }
-    if(element.classList.contains('smile') && this._dom.smiles[parseInt(element.dataset.localId)] === element){
-        return {
-            type: 'smile',
-            localId: parseInt(element.dataset.localId),
-            categoryId: this._elements[parseInt(element.dataset.localItemId)].origId
-        };
-    }
-    return null;
-};
-
-widgets.Collection.prototype.childOf = function(elem_id, parent_id){
-    if(elem_id == parent_id || !this._elements[elem_id] || !this._elements[parent_id]){
-        return false;
-    }
-
-    var tmp_id = elem_id;
-    while(this._elements[tmp_id].parent_id != 0){
-        tmp_id = this._elements[tmp_id].parent_id;
-        if(tmp_id == parent_id) return true;
-    }
-    return false;
-}
 
 widgets.Collection.prototype.getDOM = function(){
     return this._dom.container;
 };
 
-widgets.Collection.prototype.set = function(level, elem_id){
-    if(level < 0 || level >= this._depth) return false;
-    if(elem_id !== null && !this._ids[level][elem_id]) return false;
-    return this._setLocal(elem_id === null ? null : this._ids[level][elem_id], level);
-}
 
-widgets.Collection.prototype.setSmiles = function(elem_id, force){
-    if(elem_id === null){
-        if(this._dom.smiles_current_id !== null){
-            this._dom.container.removeChild(this._dom.smiles_blocks[this._dom.smiles_current_id]);
-            this._dom.smiles_current_id = null;
-            this._dom.category_description.textContent = '';
-            this._dom.additionalContainer.style.display = 'none';
-        }
-        return true;
-    }
-
-    var smiles_current = this._dom.smiles_current_id === null ? null : this._dom.smiles_blocks[this._dom.smiles_current_id];
-
-    var item_id = this._ids[this._depth - 1][elem_id];
-    if(!item_id) return false;
-    var item = this._elements[item_id];
-    this._dom.category_description.textContent = item.description || '';
-
-    if(!this._dom.smiles_blocks[item_id]){
-        if(force || !this.options.get_smiles_func){
-            /* В кэше нет, но надобно отобразить пустоту */
-            this._addSmileLocal(item_id, null);
-        }else{
-            /* В кэше нет — запрашиваем смайлики */
-            if(smiles_current) smiles_current.classList.add('processing');
-            this.options.get_smiles_func(this, elem_id);
-        }
-    }
-
-    if(this._dom.smiles_blocks[item_id] && item_id !== this._dom.smiles_current_id){
-        if(smiles_current){
-            if(smiles_current.classList.contains('processing')){
-                smiles_current.classList.remove('processing');
-            }
-            smiles_current.style.display = 'none';
-        }
-        smiles_current = this._dom.smiles_blocks[item_id];
-        this._dom.smiles_current_id = item_id;
-        smiles_current.style.display = '';
-
-        if(this.options.onchange) this.options.onchange(elem_id);
-        this._dom.additionalContainer.style.display = '';
-    }
-
-    return true;
+widgets.Collection.prototype.getAdditionalContainer = function(){
+    return this._dom.additionalContainer;
 };
 
-widgets.Collection.prototype.setDragged = function(smile_id, dragged){
-    if(!this._dom.smiles[smile_id]) return false;
-    if(this._dom.smiles[smile_id].classList.contains('dragged') != dragged){
-        this._dom.smiles[smile_id].classList.toggle('dragged');
-    }
-    return true;
+
+widgets.Collection.prototype.loadData = function(items){
+    this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
 };
 
-widgets.Collection.prototype.removeSmile = function(smile_id){
-    if(!this._dom.smiles[smile_id]) return false;
-    this._dom.smiles[smile_id].parentNode.removeChild(this._dom.smiles[smile_id]);
-    delete this._dom.smiles[smile_id];
-    return true;
-};
 
-widgets.Collection.prototype.addSmile = function(elem_id, data){
-    var item_id = this._ids[this._depth - 1][elem_id];
-    if(!item_id) return null;
-    return this._addSmileLocal(item_id, data);
-}
+widgets.Collection.prototype.addCategory = function(level, parentId, item){
+    var parentLevel = level - 1;
+    var parent = level > 0 ? this._categories[parentLevel][parentId] : null;
 
-widgets.Collection.prototype.addSmileFromElement = function(elem_id, element){
-    var item_id = this._ids[this._depth - 1][elem_id];
-    if(!item_id) return null;
-    return this._addSmileLocal(item_id, null, element);
-}
-
-widgets.Collection.prototype._addSmileLocal = function(item_id, data, element){
-    if(!this._dom.smiles_blocks[item_id]){
-        var dom_smiles = document.createElement('div');
-        dom_smiles.className = 'smiles-list';
-        dom_smiles.style.display = 'none';
-        this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
-        this._dom.smiles_blocks[item_id] = dom_smiles;
+    var id = item.id;
+    if(id == null){
+        this._lastIds[level]--;
+        id = this._lastIds[level];
     }
-    if(!data && !element) return null;
-
-    this._smileLastId = this._smileLastId + 1;
-    var smileId = this._smileLastId;
-    var img;
-
-    if(element){
-        img = element.cloneNode();
-    }else{
-        img = document.createElement("img");
-        img.alt = "";
-        img.title = (data.tags || []).join(", ") || data.source_description || data.source_url || data.url;
-        img.src = data.url;
-        img.width = data.w;
-        img.height = data.h;
-        img.className = "smile";
-        img.dataset.id = data.id || "";
-    }
-    img.dataset.localId = smileId.toString();
-    img.dataset.localItemId = item_id.toString();
-    this._dom.smiles_blocks[item_id].appendChild(img);
-    this._dom.smiles[smileId] = img;
-    return smileId;
-};
-
-widgets.Collection.prototype.addElement = function(level, parent_id, item){
-    if(level < 0 || level >= this._depth || (level != 0 && !this._ids[level - 1][parent_id])){
-        return null;
-    }
-    if(level > 0) parent_id = this._ids[level - 1][parent_id];
-    else parent_id = 0;
-    return this._addElementLocal(parent_id, item);
-}
-
-widgets.Collection.prototype._addElementLocal = function(parent_id, item){
-    this._lastId++;
-    var item_id = this._lastId;
-    var level = (parent_id == 0) ? 0 : this._elements[parent_id].level + 1;
 
     /* Создаём кнопку */
     var btn = document.createElement('a');
     btn.className = 'tab-btn';
-    btn.dataset.localId = item_id.toString();
-    btn.dataset.id = (item.id).toString();
-    btn.href = level < this._depth - 1 ? '#' : ('#' + btn.dataset.id);
+    btn.dataset.id = id.toString();
+    btn.dataset.level = level.toString();
+    btn.href = level < this._depth - 1 ? '#' : ('#' + id); // TODO: переключалку в options
     btn.title = item.description || '';
     if(item.icon && item.icon.url){
         var icon = document.createElement('img');
@@ -361,7 +153,7 @@ widgets.Collection.prototype._addElementLocal = function(parent_id, item){
         icon.dataset.id = item.icon.id;
         btn.appendChild(icon);
     }
-    btn.appendChild(document.createTextNode(item.name))
+    btn.appendChild(document.createTextNode(item.name));
 
     if(this.options.editable){
         var actions = document.createElement('span');
@@ -380,146 +172,402 @@ widgets.Collection.prototype._addElementLocal = function(parent_id, item){
         btn.appendChild(actions);
     }
 
-    this._dom.tabs[parent_id].appendChild(btn);
+    if(level > 0){
+        if(!parent.childrenDom){
+            parent.childrenDom = this._buildDomTabs(level, parentId);
+        }
+        parent.childrenIds.push(id);
+        parent.childrenDom.appendChild(btn);
+    }else{
+        this._rootChildren.push(id);
+        this._dom.rootCategories.appendChild(btn);
+    }
 
-    /* Сохраняем информацю о кнопке */
-    this._elements[item_id] = {
-        id: item_id,
-        origId: item.id,
-        parentId: parent_id,
+    /* Сохраняем информацию о категории */
+    this._categories[level][id] = {
+        id: id,
+        parentId: level > 0 ? parentId : null,
         level: level,
         name: item.name,
         description: item.description,
         dom: btn,
         iconId: item.icon ? item.icon.id : -1,
         iconUrl: item.icon ? item.icon.url : null,
-        children_ids: []
-    }
-    this._ids[level][item.id] = item_id;
-    if(parent_id != 0) this._elements[parent_id].children_ids.push(item_id);
+        smileIds: level + 1 == this._depth ? [] : null,
+        childrenIds: level + 1 < this._depth ? [] : null,
+        childrenDom: null,
+        smilesDom: null
+    };
 
-    /* Создаём контейнер для уровней ниже */
-    /* FIXME: при таком создании нет контейнера для корня */
-    if(level + 1 < this._depth){
-        this._buildDomTabs(level + 1, item_id)
-    }
-
-    return item_id;
+    return id;
 };
 
-widgets.Collection.prototype.getAllElementsInfo = function(options){
-    /* TODO: оптимизировать */
-    var items = [];
-    var items_dict = {};
-    var queue = [];
-    var i, item, out_item;
-    for(var localId in this._elements) queue.push(localId);
 
-    while(queue.length > 0){
-        for(i=0; i<queue.length; i++){
-            item = this._elements[queue[i]];
-            out_item = this.getElementInfo(item.level, item.origId, options);
-            if(item.level + 1 < this._depth){
-                out_item[this.hierarchy[item.level + 1][0]] = [];
-            }
+widgets.Collection.prototype.removeCategory = function(level, categoryId){
+    if(level < 0 || level >= this._depth) return null;
+    var category = this._categories[level][categoryId];
+    if(!category) return null;
 
-            if(item.level == 0){
-                items.push(out_item);
-                items_dict[queue[i]] = out_item;
-                queue.splice(0, 1);
-                i--;
-            }else if(items_dict[item.parentId]){
-                items_dict[item.parentId][this.hierarchy[item.level][0]].push(out_item);
-                items_dict[queue[i]] = out_item;
-                queue.splice(0, 1);
-                i--;
-            }
+    var deletedSmiles = [];
+
+    /* Первым делом снимаем выделение */
+    if(this._selectedIds[level] == categoryId){
+        this.set(level, null);
+    }
+
+    /* Потом удаляем все дочерние категории */
+    if(level + 1 >= this._depth){
+        if(this._dom.smiles_current_id == categoryId) this.setSmiles(null);
+    }else{
+        while(category.childrenIds.length > 0){
+            Array.prototype.push.apply(deletedSmiles, this.removeCategory(level + 1, category.childrenIds[0]));
         }
     }
-    items_dict = null;
-    return items;
+
+    /* И смайлики тоже, да */
+    if(category.smilesDom){
+        category.smilesDom.parentNode.removeChild(category.smilesDom);
+    }
+    for(var i=0; category.smileIds && i<category.smileIds.length; i++){
+        delete this._smiles[category.smileIds[i]];
+        deletedSmiles.push(category.smileIds[i]);
+    }
+
+    /* И только теперь можно прибрать всё за текущим элементом */
+    if(category.dom.parentNode){
+        category.dom.parentNode.removeChild(category.dom);
+    }
+    if(category.childrenDom && category.childrenDom.parentNode){
+        category.childrenDom.parentNode.removeChild(category.childrenDom);
+    }
+    delete this._categories[level][categoryId];
+
+    /* Убираем у родителя упоминание о потомке */
+    if(level > 0){
+        var index = this._categories[level - 1][category.parentId].childrenIds.indexOf(categoryId);
+        if(index > -1){
+            this._categories[level - 1][category.parentId].childrenIds.splice(index, 1);
+        }
+    }else{
+        var index = this._rootChildren.indexOf(categoryId);
+        if(index > -1){
+            this._rootChildren.splice(index, 1);
+        }
+    }
+
+    return deletedSmiles;
 };
 
-widgets.Collection.prototype.getElementInfo = function(level, elem_id, options){
-    if(level < 0 || level >= this._depth || !this._ids[level][elem_id]) return null;
-    var item = this._elements[this._ids[level][elem_id]];
-    var info = {
-        name: item.name,
+
+widgets.Collection.prototype.addSmile = function(categoryId, item){
+    var category = this._categories[this._depth - 1][categoryId];
+    if(!category) return null;
+
+    if(!category.smilesDom){
+        var dom_smiles = document.createElement('div');
+        dom_smiles.className = 'smiles-list';
+        dom_smiles.style.display = 'none';
+        this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
+        category.smilesDom = dom_smiles;
+    }
+    if(!item) return null;
+
+    var id = item.id;
+    if(id == null || isNaN(id)){
+        this._lastSmileId--;
+        id = this._lastSmileId;
+    }
+
+    var img = document.createElement('img');
+    img.alt = "";
+    img.title = (item.tags || []).join(", ") || item.description || item.url;
+    img.src = item.url;
+    img.width = item.w;
+    img.height = item.h;
+    img.className = "smile";
+    img.dataset.id = id.toString();
+    if(item.dragged) img.classList.add('dragged');
+
+    category.smileIds.push(id);
+    category.smilesDom.appendChild(img);
+
+    this._smiles[id] = {
+        id: id,
+        categoryId: categoryId,
+        url: item.url,
         description: item.description,
-        icon: !item.iconUrl ? null : {
-            id: item.iconId != null ? parseInt(item.iconId) : null,
-            url: item.iconUrl
+        tags: item.tags,
+        width: item.w,
+        height: item.h,
+        dom: img,
+        dragged: item.dragged
+    };
+
+    return id;
+};
+
+
+widgets.Collection.prototype.removeSmile = function(id){
+    var smile = this._smiles[id];
+    if(!smile) return false;
+    var category = this._categories[this._depth - 1][smile.categoryId];
+    category.smilesDom.removeChild(smile.dom);
+    var i = category.smileIds.indexOf(id);
+    if(i >= 0) category.smileIds.splice(i, 1);
+    delete this._smiles[id];
+    return true;
+};
+
+
+widgets.Collection.prototype.set = function(level, categoryId){
+    if(level < 0 || level >= this._depth) return false;
+    var category = this._categories[level][categoryId];
+    if(categoryId !== null && !category) return false;
+    if(this._selectedIds[level] == categoryId) return true;
+
+    /* Рекурсивно проверяем уровни выше */
+    if(category && level > 0) this.set(level - 1, category.parentId);
+
+    /* Отключаем уровни ниже */
+    if(this._selectedIds[level] !== null){
+        for(var i=level; i<this._depth; i++){
+            if(this._selectedIds[i] === null) break;
+            this._categories[i][this._selectedIds[i]].dom.classList.remove('tab-btn-active');
+            if(i + 1 < this._depth){
+                this._categories[i][this._selectedIds[i]].childrenDom.style.display = 'none';
+                this._dom.tabs_containers[i + 1].style.display = 'none';
+            }
+            this._selectedIds[i] = null;
+        }
+    }
+    if(!category) return true;
+
+    /* Подсвечиваем кнопку в текущем уровне и отображаем уровень ниже */
+    category.dom.classList.add('tab-btn-active');
+    this._selectedIds[level] = categoryId;
+    if(level + 1 < this._depth){
+        this._dom.tabs_containers[level + 1].style.display = '';
+        category.childrenDom.style.display = '';
+    }else{
+        this.setSmiles(categoryId);
+    }
+    return true;
+};
+
+
+widgets.Collection.prototype.setSmiles = function(categoryId, force){
+    if(categoryId === null){
+        if(this._dom.smiles_current_id !== null){
+            this._categories[this._depth - 1][this._dom.smiles_current_id].smilesDom.style.display = 'none';
+            this._dom.smiles_current_id = null;
+            this._dom.category_description.textContent = '';
+            this._dom.additionalContainer.style.display = 'none';
+        }
+        return true;
+    }
+
+    var smiles_current = null; 
+    if(this._dom.smiles_current_id !== null){
+        smiles_current = this._categories[this._depth - 1][this._dom.smiles_current_id].smilesDom;
+    }
+
+    var category = this._categories[this._depth - 1][categoryId];
+    if(!category) return false;
+
+    this._dom.category_description.textContent = category.description || '';
+
+    if(!category.smilesDom){
+        if(force || !this.options.get_smiles_func){
+            /* В кэше нет, но надобно отобразить пустоту */
+            this.addSmile(categoryId, null);
+        }else{
+            /* В кэше нет — запрашиваем смайлики */
+            if(smiles_current) smiles_current.classList.add('processing');
+            this.options.get_smiles_func(this, categoryId);
+        }
+    }
+
+    if(category.smilesDom && categoryId !== this._dom.smiles_current_id){
+        if(smiles_current){
+            if(smiles_current.classList.contains('processing')){
+                smiles_current.classList.remove('processing');
+            }
+            smiles_current.style.display = 'none';
+        }
+        smiles_current = category.smilesDom;
+        this._dom.smiles_current_id = categoryId;
+        smiles_current.style.display = '';
+
+        if(this.options.onchange) this.options.onchange(this, categoryId);
+        this._dom.additionalContainer.style.display = '';
+    }
+
+    return true;
+};
+
+
+widgets.Collection.prototype.setDragged = function(id, dragged){
+    var smile = this._smiles[id];
+    if(!smile) return false;
+    if(smile.dragged != dragged){
+        smile.dragged = !smile.dragged;
+        smile.dom.classList.toggle('dragged');
+    }
+    return true;
+};
+
+
+widgets.Collection.prototype.getCategoryInfo = function(level, categoryId, options){
+    if(level < 0 || level >= this._depth) return null;
+    var category = this._categories[level][categoryId];
+    if(!category) return null;
+
+    var info = {
+        name: category.name,
+        description: category.description,
+        icon: !category.iconUrl ? null : {
+            id: category.iconId != null ? parseInt(category.iconId) : null,
+            url: (!options || !options.withoutIconUrl) ? category.iconUrl : undefined
         }
     };
 
     if(!options || !options.short){
-        info.level = item.level;
+        info.level = category.level;
     }
     if(!options || !options.withoutIds){
-        info.id = item.origId;
+        info.id = category.id;
     }
 
     return info;
 };
 
-widgets.Collection.prototype.getSmileInfo = function(smile_id, options){
-    var smile = this._dom.smiles[smile_id];
-    if(!smile) return null;
-    var info = {
-        url: smile.src,
-        w: parseInt(smile.getAttribute('width')),
-        h: parseInt(smile.getAttribute('height'))
+
+widgets.Collection.prototype.getCategoriesWithHierarchy = function(options){
+    var root = [];
+    var items = [];
+    var level, item, id;
+
+    for(level=0; level<this._depth; level++){
+        items.push({});
+
+        for(id in this._categories[level]){
+            item = this.getCategoryInfo(level, id, options);
+
+            if(level + 1 < this._depth){
+                item[this.hierarchy[level + 1][0]] = [];
+            }
+
+            if(level > 0){
+                items[level - 1][this._categories[level][id].parentId][this.hierarchy[level][0]].push(item);
+            }else{
+                root.push(item);
+            }
+            items[level][item.id] = item;
+        }
     }
+
+    return root;
+};
+
+
+widgets.Collection.prototype.getSmileInfo = function(smileId, options){
+    var smile = this._smiles[smileId];
+    if(!smile) return null;
+
+    var info = {
+        url: smile.url,
+        w: smile.width,
+        h: smile.height,
+        description: smile.description
+    };
+
+
     if(!options || !options.withoutIds){
-        info.id = smile_id;
+        info.id = smile.id;
     }
     if(options && options.withParent){
-        info.parentId = this._elements[parseInt(smile.dataset.localItemId)].origId;
+        info.categoryId = smile.categoryId;
     }
+
     return info;
 };
 
-widgets.Collection.prototype.getSmileElement = function(smile_id){
-    return this._dom.smiles[smile_id] || null;
+
+widgets.Collection.prototype.getSmileIds = function(categoryId){
+    if(!this._categories[this._depth - 1][categoryId]) return null;
+    return Array.prototype.slice.apply(this._categories[this._depth - 1][categoryId].smileIds);
 };
 
-widgets.Collection.prototype.getAdditionalContainer = function(){
-    return this._dom.additionalContainer;
+
+widgets.Collection.prototype.getAllCategorizedSmileIds = function(){
+    var result = {};
+    for(var categoryId in this._categories[this._depth - 1]){
+        result[categoryId] = Array.prototype.slice.apply(this._categories[this._depth - 1][categoryId].smileIds);
+    }
+    return result;
 };
 
-widgets.Collection.prototype.getSmiles = function(elem_id, without_dragged){
-    var item_id = this._ids[this._depth - 1][elem_id];
-    if(!this._dom.smiles_blocks[item_id]) return null;
 
-    var smile_ids = [];
-    var imgs = Array.prototype.slice.apply(this._dom.smiles_blocks[item_id].querySelectorAll('img[class="smile"]'));
-    for(var i=0; i<imgs.length; i++){
-        var smileId = parseInt(imgs[i].dataset.localId);
-        if(this._dom.smiles[smileId] && (!without_dragged || !imgs[i].classList.contains('dragged'))){
-            smile_ids.push(smileId);
+widgets.Collection.prototype.getAllSmileIds = function(){
+    var result = [];
+    for(var id in this._smiles){
+        result.push(parseInt(id));
+    }
+    return result;
+};
+
+
+widgets.Collection.prototype.getSelectedCategory = function(level){
+    return this._selectedIds[level];
+};
+
+
+widgets.Collection.prototype.getParentId = function(level, categoryId){
+    if(level <= 0 || level >= this._depth || !this._categories[level][categoryId]) return null;
+    return this._categories[level][categoryId].parentId;
+};
+
+
+widgets.Collection.prototype.typeOfElement = function(element){
+    if(!element) return null;
+    if(element.classList.contains('smile') && this._smiles[parseInt(element.dataset.id)].dom === element){
+        var id = parseInt(element.dataset.id);
+        return {
+            type: 'smile',
+            id: id,
+            categoryId: this._smiles[id].categoryId
+        };
+    }
+    return null;
+};
+
+
+/* private */
+
+
+widgets.Collection.prototype._loadDataLevel = function(items, level, parent_id){
+    var level_info = this.hierarchy[level];
+    var item_id;
+
+    for(var i=0; i<items.length; i++){
+        item_id = this.addCategory(level, parent_id, items[i]);
+
+        /* Загружаем следующий уровень при его наличии */
+        if(level + 1 < this._depth && items[i][this.hierarchy[level + 1][0]]){
+            this._loadDataLevel(items[i][this.hierarchy[level + 1][0]], level + 1, item_id);
         }
     }
-
-    return smile_ids;
 };
 
-widgets.Collection.prototype.getAllSmiles = function(without_dragged){
-    var smile_ids = [];
-    for(var smileId in this._dom.smiles){
-        if(!without_dragged || !this._dom.smiles[smileId].classList.contains('dragged')){
-            smile_ids.push(smileId);
-        }
-    }
-
-    return smile_ids;
-};
-
-widgets.Collection.prototype._buildDomTabs = function(level, parent_id){
+widgets.Collection.prototype._buildDomTabs = function(level, categoryId){
+    var parentLevel = level - 1;
+    if(level > 0 && !this._categories[parentLevel][categoryId]) return null;
     var tabs = document.createElement('div');
     tabs.className = 'tabs-items';
     tabs.style.display = 'none';
-    tabs.dataset.id = 'tabs-' + parent_id.toString();
-    this._dom.tabs[parent_id] = tabs;
+    if(level > 0){
+        tabs.dataset.id = 'tabs-' + categoryId.toString();
+    }
 
     if(this.options.editable){
         this._dom.tabs_containers[level].insertBefore(tabs, this._dom.tabs_containers[level].lastElementChild);
@@ -527,131 +575,20 @@ widgets.Collection.prototype._buildDomTabs = function(level, parent_id){
         this._dom.tabs_containers[level].appendChild(tabs);
     }
     return tabs;
-}
-
-widgets.Collection.prototype.removeElement = function(level, id){
-    if(!this._ids[level][id]) return null;
-    return this._removeElementLocal(this._ids[level][id]);
-}
-;
-widgets.Collection.prototype._removeElementLocal = function(item_id){
-    var item = this._elements[item_id];
-    var smile_ids = [];
-
-    /* Снимаем выделение */
-    if(this._selected[item.level] == item_id){
-        this._setLocal(null, item.level);
-    }
-
-    /* Рекурсивно даляем элементы уровнями ниже */
-    if(item.level + 1 >= this._depth){
-        if(this._dom.smiles_current_id == item_id) this.setSmiles(null);
-    }else{
-        for(var i=0; i<item.children_ids.length; i++){
-            this._removeElementLocal(item.children_ids[i]);
-        }
-    }
-
-    /* И смайлики тоже, да */
-    if(this._dom.smiles_blocks[item_id]){
-        var imgs = Array.prototype.slice.apply(this._dom.smiles_blocks[item_id].querySelectorAll('img[class="smile"]'));
-        for(var i=0; i<imgs.length; i++){
-            var smileId = parseInt(imgs[i].dataset.localId);
-            if(this.removeSmile(smileId)) smile_ids.push(smileId);
-        }
-        if(this._dom.smiles_blocks[item_id].parentNode){
-            this._dom.smiles_blocks[item_id].parentNode.removeChild(this._dom.smiles_blocks[item_id]);
-        }
-        delete this._dom.smiles_blocks[item_id];
-    }
-
-    /* И только теперь можно прибрать всё за текущим элементом */
-    if(item.dom.parentNode) item.dom.parentNode.removeChild(item.dom);
-    item.dom = null;
-    delete this._ids[item.level][item.origId];
-    delete this._elements[item_id];
-
-    if(this._dom.tabs[item_id] && this._dom.tabs[item_id].parentNode){
-        this._dom.tabs[item_id].parentNode.removeChild(this._dom.tabs[item_id]);
-    }
-    delete this._dom.tabs[item_id];
-
-    if(item.parentId != 0){
-        var index = this._elements[item.parentId].children_ids.indexOf(item.id);
-        if(index > -1) this._elements[item.parentId].children_ids.splice(index, 1);
-    }
-
-    return smile_ids;;
 };
 
-widgets.Collection.prototype.loadData = function(items){
-    this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
-};
+/* events */
 
-widgets.Collection.prototype._loadDataLevel = function(items, level, parent_id){
-    var level_info = this.hierarchy[level];
-    var item_id;
-
-    for(var i=0; i<items.length; i++){
-        item_id = this._addElementLocal(parent_id, items[i]);
-
-        /* Загружаем следующий уровень при его наличии */
-        if(level + 1 < this._depth && items[i][this.hierarchy[level + 1][0]]){
-            this._loadDataLevel(items[i][this.hierarchy[level + 1][0]], level + 1, item_id);
-        }
-    }
-}
-
-widgets.Collection.prototype._setLocal = function(local_id, level){
-    var item;
-    if(local_id !== null){
-        if(!this._elements[local_id]) return false;
-        item = this._elements[local_id];
-        level = item.level;
-    }else{
-        if(level < 0 || level >= this._depth) return false;
-        item = null;
-    }
-    if(this._selected[level] == local_id) return true;
-
-    /* Рекурсивно проверяем уровни выше */
-    if(item !== null && item.parentId != 0) this._setLocal(item.parentId);
-
-    /* Отключаем уровни ниже */
-    if(this._selected[level] !== null){
-        for(var i=level; i<this._depth; i++){
-            if(this._selected[i] === null) break;
-            this._elements[this._selected[i]].dom.classList.remove('tab-btn-active');
-            if(i + 1 < this._depth){
-                this._dom.tabs[this._selected[i]].style.display = 'none';
-                this._dom.tabs_containers[i + 1].style.display = 'none';
-            }
-            this._selected[i] = null;
-        }
-    }
-    if(item === null) return true;
-
-    /* Подсвечиваем кнопку в текущем уровне и отображаем уровень ниже */
-    item.dom.classList.add('tab-btn-active');
-    this._selected[level] = local_id;
-    if(level + 1 < this._depth){
-        this._dom.tabs_containers[item.level + 1].style.display = '';
-        this._dom.tabs[local_id].style.display = '';
-    }else{
-        this.setSmiles(item.origId);
-    }
-    return true;
-}
 
 widgets.Collection.prototype._onclick = function(event){
     var target = null;
 
-    /* Ищем кнопку с вкладкой */
+    /* Ищем кнопку с вкладкой (или хотя бы что-то одно) */
     var btn = null;
     var tab = null;
     while(!btn || !tab){
         target = target ? target.parentNode : event.target;
-        if(!target || target === document.body || target === this._dom.container){
+        if(!target || target === this._dom.container || target === document.body){
             if(!btn && !tab) return;
             else break;
         }
@@ -663,95 +600,94 @@ widgets.Collection.prototype._onclick = function(event){
         }
     }
 
-    var item_id = tab && tab.dataset.localId ? parseInt(tab.dataset.localId) : null;
-    var item = this._elements[item_id] || null;
+    var categoryId = tab && tab.dataset.id ? parseInt(tab.dataset.id) : null;
+    var categoryLevel = categoryId !== null ? parseInt(tab.dataset.level) : null;
+    var item = categoryLevel !== null ? this._categories[categoryLevel][categoryId] : null;
     var action = btn ? btn.dataset.action : null;
 
     if(action){
         if(this.options.onaction){
-            this.options.onaction(
-                this,
-                action,
-                item ? item.level : parseInt(btn.dataset.level),
-                item ? item.origId : null
-            );
+            this.options.onaction({
+                container: this,
+                action: action,
+                level: item ? item.level : parseInt(btn.dataset.level),
+                categoryId: categoryId
+            });
         }
         event.preventDefault();
         return false;
     }
 
-    if(item_id !== null){
-        if(!this._setLocal(item_id)) return;
+    if(categoryLevel !== null){
+        if(!this.set(categoryLevel, categoryId)) return;
         event.preventDefault();
         return false;
     }
-}
-
-
-/*
- * Простенькая обёртка над DOM для диалогов
- */
-widgets.Dialog = function(options){
-    this.container = options.container;
-    this.form = options.form;
-    this.onshow = options.onshow;
-    this.onsubmit = options.onsubmit;
-    this._refresh = options.refresh;
-    this.active = !this.container.classList.contains('hidden');
-
-    if(this.form){
-        this.form.addEventListener('submit', function(event){
-            this.onsubmit(this);
-            event.preventDefault();
-            return false;
-        }.bind(this));
-    }
-
-    var close = this.container.querySelector('.dialog-close');
-    if(close) close.addEventListener('click', this.hide.bind(this));
 };
 
-widgets.Dialog.backgroundElement = null;
 
-widgets.Dialog.prototype.show = function(options){
-    if(this.onshow) this.onshow(this, options);
+/* dragdrop */
 
-    if(this.container.classList.contains('hidden')){
-        this.container.classList.remove('hidden')
-    }
-    var bg = widgets.Dialog.backgroundElement;
-    if(bg && bg.classList.contains('hidden')){
-        bg.classList.remove('hidden');
-    }
 
-    var errorElement = this.container.querySelector('.error');
-    if(errorElement && !errorElement.classList.contains('hidden')){
-        errorElement.classList.add('hidden');
+widgets.Collection.prototype._dragStart = function(options){
+    var e = options.element;
+    if(e === this._dom.container) return null;
+
+    do {
+        if(e.dataset.action) break;
+        if(e.classList.contains('smile') && !e.classList.contains('dragged')){
+            var smile = this._smiles[parseInt(e.dataset.id)];
+            if(!smile || smile.dragged) return null;
+            return e;
+        }
+        if(this.options.editable && e.classList.contains('tab-btn')){
+            var level = parseInt(e.dataset.level);
+            var categoryId = parseInt(e.dataset.id);
+            if(this._categories[level] && this._categories[level][categoryId]) return e;
+        }
+        e = e.parentNode;
+    }while(e && e !== this._dom.container);
+
+    return null;
+};
+
+
+widgets.Collection.prototype._dragMove = function(options){
+    if(!options.starting) return;
+
+    var e = options.element;
+    if(e.classList.contains('smile')){
+        if(!e.classList.contains('dragged')) this.setDragged(parseInt(e.dataset.id), true);
+    }else if(e.classList.contains('tab-btn')){
+        if(!e.classList.contains('dragged')) e.classList.add('dragged');
     }
 };
 
-widgets.Dialog.prototype.hide = function(){
-    if(!this.container.classList.contains('hidden')){
-        this.container.classList.add('hidden')
+widgets.Collection.prototype._dragDropTo = function(options){
+    if(!this.options.ondropto) return null;
+    if(options.sourceContainer === this._dom.container) return null;
+
+    /* Что делать при перетаскивании DOM-элементов (включая смайлики) между ними, решает владелец коллекции */
+    /* Коллекция руководит только сам собой, но не взаимодействием с другими коллекциями */
+    var dropAction = this.options.ondropto({
+        sourceContainerElement: options.sourceContainer,
+        targetContainer: this,
+        element: options.element,
+        overlay: options.overlay
+    });
+    if(dropAction && dropAction.name == 'animateToSmile'){
+        return {name: 'animate', targetElement: this._smiles[dropAction.id].dom};
     }
-    var bg = widgets.Dialog.backgroundElement;
-    if(bg && !bg.classList.contains('hidden')){
-        bg.classList.add('hidden');
-    }
+    return dropAction;
 };
 
-widgets.Dialog.prototype.error = function(text){
-    var errorElement = this.container.querySelector('.error');
-    if(!errorElement){
-        alert(text);
-        return;
-    }
-    errorElement.textContent = text || '';
-    if(!text != errorElement.classList.contains('hidden')){
-        errorElement.classList.toggle('hidden');
-    }
-};
 
-widgets.Dialog.prototype.refresh = function(){
-    if(this._refresh) this._refresh(this);
+widgets.Collection.prototype._dragEnd = function(options){
+    if(!options.element) return null;
+    var e = options.element;
+    if(e.classList.contains('smile')){
+        if(e.classList.contains('dragged')) this.setDragged(parseInt(e.dataset.id), false);
+    }else if(e.classList.contains('tab-btn')){
+        if(e.classList.contains('dragged')) e.classList.remove('dragged');
+    }
 };

@@ -210,6 +210,8 @@ var dragdrop = {
 
         if(dropAction && dropAction.name == 'animate' && dropAction.targetElement) {
             this._animate(dropAction.targetElement, ontransitionend);
+        }else if(dropAction && dropAction.name == 'fadeOut'){
+            this._animateFadeOut();
         }else if(!dropAction || dropAction.name != 'nothing') {
             if(this._overlay){
                 (this._overlay.parentNode || this._overlay.parentElement).removeChild(this._overlay);
@@ -261,5 +263,13 @@ var dragdrop = {
 
         /* FIXME: ontransitionend не работает, когда начало анимации совпадает с концом анимации и как следствие её вовсе нет */
         setTimeout(endAnimation, this.transitionDuration)
+    },
+
+    _animateFadeOut: function(){
+        var overlay = this._overlay;
+        overlay.style.transitionProperty = 'opacity';
+        overlay.style.transitionDuration = this.transitionDuration + 'ms';
+        overlay.style.opacity = '0.0';
+        setTimeout(function(){overlay.parentNode.removeChild(overlay)}, this.transitionDuration);
     }
 };

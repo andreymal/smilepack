@@ -22,7 +22,7 @@ smilepacks = Blueprint('smilepacks', __name__)
 def show(smp_id):
     import time
     tm = time.time()
-    smp = SmilePack.bl.get_by_encoded_id(smp_id, preload=True)
+    smp = SmilePack.bl.get_by_hid(smp_id, preload=True)
     print('%.2fms' % ((time.time() - tm) * 1000))
     if not smp:
         abort(404)
@@ -43,7 +43,7 @@ def download_compat(smp_id):
         # У memcached ограничение на размер данных, перестраховываемся
         result = zlib.decompress(result['zlib_data'])
     else:
-        smp = SmilePack.bl.get_by_encoded_id(smp_id, preload=True)
+        smp = SmilePack.bl.get_by_hid(smp_id, preload=True)
         if not smp:
             abort(404)
         result = render_template(
@@ -87,9 +87,9 @@ def create(session_id, first_visit):
     deletion_date = pack.bl.get_deletion_date()
 
     return {
-        'smilepack_id': pack.encoded_id,
-        'download_url': url_for('.download_compat', smp_id=pack.encoded_id, _external=True),
-        'view_url': url_for('pages.generator', smp_id=pack.encoded_id, _external=True),
+        'smilepack_id': pack.hid,
+        'download_url': url_for('.download_compat', smp_id=pack.hid, _external=True),
+        'view_url': url_for('pages.generator', smp_id=pack.hid, _external=True),
         'deletion_date': deletion_date.strftime('%Y-%m-%dT%H:%M:%SZ') if deletion_date else None,
         'fancy_deletion_date': format_datetime(deletion_date) if deletion_date else None
     }

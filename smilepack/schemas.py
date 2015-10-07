@@ -12,11 +12,13 @@ smilepack_smiles_schema = {
             },
             "category_name": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 128
             },
             "url": {
                 "type": "string",
-                "minLength": 9
+                "minLength": 9,
+                "maxLength": 512
             },
             "w": {
                 "type": "integer",

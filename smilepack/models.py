@@ -13,12 +13,14 @@ class Icon(db.Entity):
     """Иконка категории или раздела"""
     filename = orm.Required(str, 128)
     custom_url = orm.Optional(str, 512)
+    created_at = orm.Required(datetime, default=datetime.utcnow)
+    updated_at = orm.Required(datetime, default=datetime.utcnow)
+
     sections = orm.Set('Section')
     subsections = orm.Set('SubSection')
     categories = orm.Set('Category')
     pack_categories = orm.Set('SmilePackCategory')
-    created_at = orm.Required(datetime, default=datetime.utcnow)
-    updated_at = orm.Required(datetime, default=datetime.utcnow)
+    tags = orm.Set('Tag')
 
     @property
     def url(self):
@@ -35,8 +37,7 @@ class Section(db.Entity):
     description = orm.Optional(str, 16000)
     subsections = orm.Set('SubSection')
     order = orm.Required(int, default=0)
-    tags = orm.Set('SmileTag')
-    category_suggestions = orm.Set('CategorySuggestion')
+    tags = orm.Set('Tag')
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
 
@@ -53,7 +54,6 @@ class SubSection(db.Entity):
     description = orm.Optional(str, 16000)
     section = orm.Required(Section)
     categories = orm.Set('Category')
-    category_suggestions = orm.Set('CategorySuggestion')
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
@@ -69,7 +69,6 @@ class Category(db.Entity):
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     smiles = orm.Set('Smile')
-    smile_suggestions = orm.Set('SmileSuggestion')
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
@@ -81,21 +80,24 @@ class Category(db.Entity):
 
 
 class Smile(db.Entity):
-    """Смайлики в категории"""
-    category = orm.Required(Category)
+    """Смайлик, как из коллекции, так и пользовательский"""
+    category = orm.Optional(Category, index=True)
     filename = orm.Required(str, 128)
     width = orm.Required(int)  # TODO: validations
     height = orm.Required(int)
     custom_url = orm.Optional(str, 512)
-    source_url = orm.Optional(str, 512)
-    source_description = orm.Optional(str, 16000)
-    tags = orm.Set('SmileTag')
+    description = orm.Optional(str, 16000)
+    tags = orm.Set('Tag')
     tags_cache = orm.Optional(str, nullable=True)
-    suggestion = orm.Optional('SmileSuggestion')
-    smilepack_smiles = orm.Set('SmilePackSmile')
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+
+    user_addr = orm.Optional(str, 255, nullable=True, default=None)  # TODO: другой тип?
+    user_cookie = orm.Optional(str, 64, nullable=True, default=None)
+
+    smp_smiles = orm.Set('SmilePackSmile')
+    urls = orm.Set('SmileUrl')
 
     bl = Resource('bl.smile')
     
@@ -115,58 +117,53 @@ class Smile(db.Entity):
         self.updated_at = datetime.utcnow()
 
 
-class SmileTag(db.Entity):
-    """Теги смайликов"""
+class SmileUrl(db.Entity):
+    """Ссылка, привязанная к смайлику. Чтобы не пересоздавать один и тот же смайлик несколько раз."""
+    url_hash = orm.Required(str, 40, index=True, unique=True)
+    url = orm.Optional(str, 512)
+    smile = orm.Required(Smile)
+
+
+class Tag(db.Entity):
+    """Тег смайликов (например, «твайлайт спаркл»)"""
     section = orm.Required(Section, index=True)
-    name = orm.Required(str, 64)
+    name = orm.Required(str, 64, index=True, unique=True)
+    description = orm.Optional(str, 16000)
+    icon = orm.Optional(Icon)
     smiles = orm.Set(Smile)
     smiles_count = orm.Required(int, default=0, index=True)
     created_at = orm.Required(datetime, default=datetime.utcnow)
+    updated_at = orm.Required(datetime, default=datetime.utcnow)
+
+    synonyms = orm.Set('TagSynonym')
 
     orm.composite_key(section, name)
 
-
-class CategorySuggestion(db.Entity):
-    """Заявки на добавление категории от пользователей"""
-    name = orm.Required(str, 128)
-    description = orm.Optional(str, 16000)
-    section = orm.Required(Section)
-    subsection = orm.Optional(SubSection)
-    smiles = orm.Set('SmileSuggestion')
-
-    created_at = orm.Required(datetime, default=datetime.utcnow)
+    def before_update(self):
+        self.updated_at = datetime.utcnow()
 
 
-class SmileSuggestion(db.Entity):
-    """Заявки на добавление смайликов от пользователей"""
-    url = orm.Required(str, 512)
-    user_cookie = orm.Required(str, 64, index=True)
-    category = orm.Optional(Category)
-    category_suggestion = orm.Optional(CategorySuggestion)
-    description = orm.Optional(str, 16000)
-    approved_smile = orm.Optional(Smile)
-    created_at = orm.Required(datetime, default=datetime.utcnow, index=True)
-
-    bl = Resource('bl.smilesuggestion')
+class TagSynonym(db.Entity):
+    """Синоним тега смайлика (например, «twilight sparkle» -> «твайлайт спаркл»)"""
+    name = orm.Required(str, 64, index=True, unique=True)
+    tag = orm.Required(Tag)
+    tag_name = orm.Required(str, 64)  # экономим на джойне
 
 
 class SmilePack(db.Entity):
     """Смайлопак"""
+    hid = orm.Required(str, 16, index=True, unique=True)
     user_cookie = orm.Required(str, 64, index=True)
     categories = orm.Set('SmilePackCategory')
     name = orm.Optional(str, 64)
     description = orm.Optional(str, 16000)
-    downloads = orm.Required(int, default=0, index=True)
+    lifetime = orm.Required(int, default=0)
+    views_count = orm.Required(int, default=0, index=True)
+    last_viewed_at = orm.Optional(datetime, default=datetime.utcnow)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
-    last_downloaded_at = orm.Optional(datetime, nullable=True, default=None)
-    lifetime = orm.Optional(int)
 
     bl = Resource('bl.smilepack')
-
-    @property
-    def encoded_id(self):
-        return self.bl.encode_id()
 
     def before_update(self):
         self.updated_at = datetime.utcnow()
@@ -188,18 +185,6 @@ class SmilePackCategory(db.Entity):
 
 
 class SmilePackSmile(db.Entity):
-    """Смайлик в смайлопаке, из базы или кастомный"""
     category = orm.Required(SmilePackCategory)
+    smile = orm.Required(Smile)
     order = orm.Required(int, default=0)
-    internal_smile = orm.Optional(Smile)
-    custom_url = orm.Optional(str, 512)
-    width = orm.Optional(int, nullable=True)
-    height = orm.Optional(int, nullable=True)
-
-    orm.composite_index(category, order)
-
-    @property
-    def url(self):
-        if self.internal_smile:
-            return self.internal_smile.url
-        return self.custom_url

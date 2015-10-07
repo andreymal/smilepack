@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>{% if pack %}Просмотр смайлопака {{ pack.name or pack.encoded_id }}{% else %}Создание смайлопака{% endif %}</title>
+    <title>{% if pack %}Просмотр смайлопака {{ pack.name or pack.hid }}{% else %}Создание смайлопака{% endif %}</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='generator.css') }}" />
 </head>
 <body>
@@ -25,7 +25,7 @@
     </select>
     {% if pack %}
     <button class="button button-primary action-save">Сохранить новый смайлопак</button>
-    <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.encoded_id) }}" target="_blank" id="smp-last-url">Скачать последнюю сохранённую версию</a>
+    <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.hid) }}" target="_blank" id="smp-last-url">Скачать последнюю сохранённую версию</a>
     {% else %}
     <button class="button button-primary action-save">Сохранить и скачать смайлопак!</button>
     <a href="#" target="_blank" id="smp-last-url" style="display: none;">Скачать последнюю сохранённую версию</a>
@@ -40,12 +40,13 @@
 
 <div class="container">
 <div class="container-left" id="collection">
-    <div class="additional">
+    <div style="text-align: center"><img src="{{ url_for('static', filename='loading.gif') }}" alt="" /></div>
+    <div class="additional" style="display: none;">
         <button class="button button action-move-all">Перенести всю категорию в смайлопак</button><br/>
         <em style='color: #ccc; font-size: 0.75em;'>Не нашли нужного смайлика? Когда-нибудь их можно будет предложить.</em>
     </div>
 </div><div class="container-right" id="smilepack">
-    <div class="additional">
+    <div class="additional" style="display: none">
         <button class="button button action-add-smile">Добавить свой смайлик</button>
     </div>
 </div>
@@ -118,10 +119,15 @@
     </div>
 </div>
 
-<script type="text/javascript" src="{{ url_for('static', filename='smp_ajax.js') }}"></script>
+{% if config['USE_BUNDLER'] %}
+<script type="text/javascript" src="{{ get_bundle_url('generator') }}"></script>
+{% else %}
 <script type="text/javascript" src="{{ url_for('static', filename='dragdrop.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='widgets.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='dialogs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='smp_ajax.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='generator.js') }}"></script>
+{% endif %}
 
 <script>
 generator.collectionData = {{ collection_data|tojson|safe }};
