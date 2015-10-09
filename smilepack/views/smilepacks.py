@@ -7,7 +7,7 @@ import jsonschema
 from flask import Blueprint, Response, abort, render_template, current_app, request, url_for
 from flask.ext.babel import format_datetime
 
-from ..models import SmilePack, Icon
+from ..models import SmilePack, SmilePackCategory, Icon
 from .utils import user_session, json_answer, default_crossdomain
 from ..db import db_session
 
@@ -20,17 +20,23 @@ smilepacks = Blueprint('smilepacks', __name__)
 @json_answer
 @db_session
 def show(smp_id):
-    import time
-    tm = time.time()
-    smp = SmilePack.bl.get_by_hid(smp_id, preload=True)
-    print('%.2fms' % ((time.time() - tm) * 1000))
+    smp = SmilePack.bl.get_by_hid(smp_id)
     if not smp:
         abort(404)
 
+    return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
 
-    r = smp.bl.as_json()
 
-    return r
+@smilepacks.route('/<smp_id>/<int:category_id>')
+@default_crossdomain()
+@json_answer
+@db_session
+def show_category(smp_id, category_id):
+    cat = SmilePackCategory.bl.get_by_smilepack(smp_id, category_id)
+    if not cat:
+        abort(404)
+
+    return cat.bl.as_json(with_smiles=True)
 
 
 @smilepacks.route('/<smp_id>.compat.user.js')
@@ -43,7 +49,7 @@ def download_compat(smp_id):
         # У memcached ограничение на размер данных, перестраховываемся
         result = zlib.decompress(result['zlib_data'])
     else:
-        smp = SmilePack.bl.get_by_hid(smp_id, preload=True)
+        smp = SmilePack.bl.get_by_hid(smp_id)
         if not smp:
             abort(404)
         result = render_template(
@@ -80,9 +86,6 @@ def create(session_id, first_visit):
         description=r.get('description'),
         lifetime=r.get('lifetime')
     )
-
-    # TODO: перенести это в bl
-    current_app.cache.set('smilepacks_count', None, timeout=1)
 
     deletion_date = pack.bl.get_deletion_date()
 

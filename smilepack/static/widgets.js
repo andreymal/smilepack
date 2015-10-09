@@ -193,7 +193,7 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         dom: btn,
         iconId: item.icon ? item.icon.id : -1,
         iconUrl: item.icon ? item.icon.url : null,
-        smileIds: level + 1 == this._depth ? [] : null,
+        smileIds: null,
         childrenIds: level + 1 < this._depth ? [] : null,
         childrenDom: null,
         smilesDom: null
@@ -260,36 +260,15 @@ widgets.Collection.prototype.removeCategory = function(level, categoryId){
 
 
 widgets.Collection.prototype.addSmile = function(categoryId, item){
+    if(!item) return null;
     var category = this._categories[this._depth - 1][categoryId];
     if(!category) return null;
-
-    if(!category.smilesDom){
-        var dom_smiles = document.createElement('div');
-        dom_smiles.className = 'smiles-list';
-        dom_smiles.style.display = 'none';
-        this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
-        category.smilesDom = dom_smiles;
-    }
-    if(!item) return null;
 
     var id = item.id;
     if(id == null || isNaN(id)){
         this._lastSmileId--;
         id = this._lastSmileId;
     }
-
-    var img = document.createElement('img');
-    img.alt = "";
-    img.title = (item.tags || []).join(", ") || item.description || item.url;
-    img.src = item.url;
-    img.width = item.w;
-    img.height = item.h;
-    img.className = "smile";
-    img.dataset.id = id.toString();
-    if(item.dragged) img.classList.add('dragged');
-
-    category.smileIds.push(id);
-    category.smilesDom.appendChild(img);
 
     this._smiles[id] = {
         id: id,
@@ -299,11 +278,36 @@ widgets.Collection.prototype.addSmile = function(categoryId, item){
         tags: item.tags,
         width: item.w,
         height: item.h,
-        dom: img,
+        dom: null,
         dragged: item.dragged
     };
+    if(category.smileIds === null) category.smileIds = [];
+    category.smileIds.push(id);
+    if(category.smilesDom) this._addSmileDom(id);
 
     return id;
+};
+
+
+widgets.Collection.prototype._addSmileDom = function(smile_id){
+    var item = this._smiles[smile_id];
+    var category = this._categories[this._depth - 1][item.categoryId];
+    if(item.dom || category.smileIds.indexOf(item.id) < 0) return false;
+
+
+    var img = document.createElement('img');
+    img.alt = "";
+    img.title = (item.tags || []).join(", ") || item.description || item.url;
+    img.src = item.url;
+    img.width = item.width;
+    img.height = item.height;
+    img.className = "smile";
+    img.dataset.id = item.id.toString();
+    if(item.dragged) img.classList.add('dragged');
+
+    category.smilesDom.appendChild(img);
+    item.dom = img;
+    return true;
 };
 
 
@@ -376,10 +380,10 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
 
     this._dom.category_description.textContent = category.description || '';
 
-    if(!category.smilesDom){
+    if(category.smileIds === null){
         if(force || !this.options.get_smiles_func){
             /* В кэше нет, но надобно отобразить пустоту */
-            this.addSmile(categoryId, null);
+            category.smileIds = [];
         }else{
             /* В кэше нет — запрашиваем смайлики */
             if(smiles_current) smiles_current.classList.add('processing');
@@ -387,7 +391,16 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
         }
     }
 
-    if(category.smilesDom && categoryId !== this._dom.smiles_current_id){
+    if(category.smileIds !== null && categoryId !== this._dom.smiles_current_id){
+        if(!category.smilesDom){
+            var dom_smiles = document.createElement('div');
+            dom_smiles.className = 'smiles-list';
+            dom_smiles.style.display = 'none';
+            this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
+            category.smilesDom = dom_smiles;
+            for(var i=0; i<category.smileIds.length; i++) this._addSmileDom(category.smileIds[i]);
+        }
+
         if(smiles_current){
             if(smiles_current.classList.contains('processing')){
                 smiles_current.classList.remove('processing');
@@ -411,9 +424,22 @@ widgets.Collection.prototype.setDragged = function(id, dragged){
     if(!smile) return false;
     if(smile.dragged != dragged){
         smile.dragged = !smile.dragged;
-        smile.dom.classList.toggle('dragged');
+        if(smile.dom) smile.dom.classList.toggle('dragged');
     }
     return true;
+};
+
+
+widgets.Collection.prototype.getLastInternalIds = function(){
+    return [this._lastIds, this._lastSmileId];
+};
+
+
+widgets.Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId){
+    for(var i=0; i<this._depth; i++){
+        this._lastIds[i] = parseInt(lastIds[i]);
+    }
+    this._lastSmileId = parseInt(lastSmileId);
 };
 
 

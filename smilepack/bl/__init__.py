@@ -8,3 +8,4 @@ utils.registry['bl.section'] = smiles.SectionBL
 utils.registry['bl.category'] = smiles.CategoryBL
 utils.registry['bl.smile'] = smiles.SmileBL
 utils.registry['bl.smilepack'] = smilepacks.SmilePackBL
+utils.registry['bl.smilepack_category'] = smilepacks.SmilePackCategoryBL

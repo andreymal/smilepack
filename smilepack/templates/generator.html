@@ -10,11 +10,16 @@
 <div class="top">
     <div class="header">
         <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">Смайлопак</a></div>
+        <div class="storage-actions">
+            Смайлопак в localStorage:
+            <a href="#" id="action-storage-save">Сохранить</a>
+            <a href="#" id="action-storage-load">Загрузить</a>
+        </div>
     </div>
 
     <div class="settings">
     Название: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="Опционально" />
-    Удалить через:
+    Удалить с сервера через:
     <select id="lifetime" autocomplete="off">
         <option{{ ' selected' if not pack or pack.lifetime == 1800 else '' }} value="1800">Полчаса</option>
         <option{{ ' selected' if pack and pack.lifetime == 3600 else '' }} value="3600">1 час</option>
@@ -132,7 +137,7 @@
 <script>
 generator.collectionData = {{ collection_data|tojson|safe }};
 {% if pack %}
-generator.smilepackData = {{ pack.bl.as_json()|tojson|safe }};
+generator.smilepackData = {{ pack.bl.as_json(with_smiles=True)|tojson|safe }};
 {% endif -%}
 </script>
 </body>

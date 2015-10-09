@@ -392,3 +392,13 @@ border-bottom: 0.2em solid #ccf;
     padding: 0.5em;
     line-height: 2em;
 }
+
+.storage-actions {
+    float: right;
+    font-size: 0.75em;
+    color: #777;
+}
+
+.storage-actions a, .storage-actions a:visited {
+    color: #999;
+}

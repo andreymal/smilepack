@@ -16,7 +16,7 @@ __all__ = ['create_app']
 def create_app(minimal=False):
     app = Flask(__name__)
     # FIXME: not working with DEBUG=True
-    app.config.from_object(os.getenv('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
+    app.config.from_object(os.getenv('SMILEPACK_SETTINGS', None) or 'smilepack.settings.Development')
 
     db.bind(
         app.config['DATABASE_ENGINE'],

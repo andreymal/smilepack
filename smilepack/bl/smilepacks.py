@@ -95,10 +95,9 @@ class SmilePackBL(BaseBL):
             db_categories[c.name] = c
 
         # Добавляем или создаём смайлики
-        smp_smiles = {x: [] for x in db_categories.keys()}
+        smiles_count = {x: 0 for x in db_categories.keys()}
         for x in smiles:
             c = db_categories[x['category_name']]
-            c_smiles = smp_smiles[x['category_name']]
 
             if x.get('id') in db_smiles:
                 smile = db_smiles[x['id']]
@@ -127,58 +126,33 @@ class SmilePackBL(BaseBL):
                     url_hash=urls[x['url']]
                 ).flush()
 
-            cat_smile = SmilePackSmile(
-                category=c,
+            # FIXME: тут ОЧЕНЬ много insert-запросов
+            c.smiles.create(
                 smile=smile,
-                order=len(c_smiles)
+                order=smiles_count[x['category_name']]
             )
-
-            c_smiles.append(cat_smile)
+            smiles_count[x['category_name']] += 1
         db.flush()
+        current_app.cache.set('smilepacks_count', None, timeout=1)
 
         return pack
 
-    def get_by_hid(self, hid, preload=False):
-        if not hid:
+    def get_by_hid(self, hid):
+        if not hid or len(hid) > 16:
             return
-        if preload:
-            from ..models import SmilePack, SmilePackCategory, SmilePackSmile
-            pack = self._model().select(lambda x: x.hid == hid).prefetch(
-                SmilePack.categories,
-                SmilePackCategory.smiles,
-                SmilePackSmile.smile
-            ).first()
-        else:
-            pack = self._model().get(hid=hid)
+        pack = self._model().get(hid=hid)
 
         if not pack or pack.lifetime and pack.created_at + timedelta(0, pack.lifetime) < datetime.utcnow():
             return
 
         return pack
 
-    def as_json(self):
+    def as_json(self, with_smiles=False):
+        from ..models import SmilePackSmile
+
         categories = []
         for cat in sorted(self._model().categories, key=lambda x: (x.order, x.id)):
-            jcat = {
-                'id': cat.id,
-                'name': cat.name,
-                'description': cat.description,
-                'icon': {
-                    'id': cat.icon.id,
-                    'url': cat.icon.url,
-                },
-                'smiles': [],
-            }
-            for cat_smile in sorted(cat.smiles, key=lambda x: (x.order, x.id)):
-                smile = cat_smile.smile
-                jcat['smiles'].append({
-                    'id': smile.id,
-                    'relId': cat_smile.id,
-                    'url': smile.url,
-                    'w': smile.width,
-                    'h': smile.height,
-                })
-            categories.append(jcat)
+            categories.append(cat.bl.as_json(with_smiles=with_smiles))
 
         return {
             'name': self._model().name,
@@ -197,21 +171,77 @@ class SmilePackBL(BaseBL):
         }
 
         for cat in sorted(self._model().categories, key=lambda x: (x.order, x.id)):
-            jcat = {
-                'id': len(jsect['categories']),
-                'name': cat.name,
-                'code': cat.name,
-                'icon': cat.icon.url,
-                'smiles': []
-            }
-            for cat_smile in sorted(cat.smiles, key=lambda x: (x.order, x.id)):
-                smile = cat_smile.smile
-                jcat['smiles'].append({
-                    'id': smile.id,
-                    'url': smile.url,
-                    'w': smile.width,
-                    'h': smile.height,
-                })
-            jsect['categories'].append(jcat)
+            jsect['categories'].append(cat.bl.as_json_compat(custom_id=len(jsect['categories'])))
         sections.append(jsect)
         return sections
+
+
+class SmilePackCategoryBL(BaseBL):
+    def get_by_smilepack(self, hid, category_id):
+        if not hid or category_id is None or len(hid) > 16:
+            return
+
+        from ..models import SmilePack
+        pack = SmilePack.get(hid=hid)
+        if not pack or pack.lifetime and pack.created_at + timedelta(0, pack.lifetime) < datetime.utcnow():
+            return
+        return pack.categories.select(lambda x: x.id == category_id).first()
+
+    def as_json(self, with_smiles=False):
+        cat = self._model()
+
+        jcat = {
+            'id': cat.id,
+            'name': cat.name,
+            'description': cat.description,
+            'icon': {
+                'id': cat.icon.id,
+                'url': cat.icon.url,
+            },
+        }
+
+        if with_smiles:
+            from ..models import SmilePackSmile
+            jcat['smiles'] = []
+            for cat_order, cat_id, smile_id, custom_url, width, height, filename in db.orm.select(
+                (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.smile.filename)
+                for c in SmilePackSmile
+                if c.category == cat
+            ).order_by(1):
+                jcat['smiles'].append({
+                    'id': smile_id,
+                    'relId': cat_id,
+                    # FIXME: дублирует логику из сущности Smile; нужно как-то придумать запрос
+                    # с получением этой самой сущности, не похерив джойн (аналогично в as_json_compat)
+                    'url': custom_url or current_app.config['SMILE_URL'].format(id=smile_id, filename=filename),
+                    'w': width,
+                    'h': height
+                })
+
+        return jcat
+
+    def as_json_compat(self, custom_id=None):
+        from ..models import SmilePackSmile
+
+        cat = self._model()
+        jcat = {
+            'id': custom_id if custom_id is not None else cat.id,
+            'name': cat.name,
+            'code': cat.name,
+            'icon': cat.icon.url,
+            'smiles': []
+        }
+
+        for cat_order, cat_id, smile_id, custom_url, width, height, filename in db.orm.select(
+            (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.smile.filename)
+            for c in SmilePackSmile
+            if c.category == cat
+        ).order_by(1):
+            jcat['smiles'].append({
+                'id': smile_id,
+                'url': custom_url or current_app.config['SMILE_URL'].format(id=smile_id, filename=filename),
+                'w': width,
+                'h': height
+            })
+
+        return jcat

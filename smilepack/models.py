@@ -180,6 +180,8 @@ class SmilePackCategory(db.Entity):
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
 
+    bl = Resource('bl.smilepack_category')
+
     def before_update(self):
         self.updated_at = datetime.utcnow()
 

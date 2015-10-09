@@ -1,8 +1,12 @@
 'use strict';
 
 var generator = {
+    storageVersion: 1,
+
     collection: null,
     smilepack: null,
+    modified: false,
+    current_id: null,
 
     collectionData: null,
     smilepackData: null,
@@ -23,6 +27,7 @@ var generator = {
         var id = this.smilepack.addSmile(categoryId, smile);
         if(id === origId){
             this.usedSmiles.push(origId);
+            this.modified = true;
             return {name: 'animateToSmile', id: id};
         }
     },
@@ -35,6 +40,7 @@ var generator = {
         this.usedSmiles.splice(i, 1);
 
         var smile = this.collection.getSmileInfo(id, {withParent: true});
+        this.modified = true;
         if(smile && smile.categoryId == this.collection.getSelectedCategory(2)){ // кастомных смайликов в коллекции нет
             return {name: 'animateToSmile', id: id};
         }else{
@@ -44,6 +50,11 @@ var generator = {
     },
 
     /* actions */
+
+    onchange: function(container, elem_id){
+        generator.current_id = elem_id;
+        window.location.hash = '#' + elem_id.toString();
+    },
 
     onaction: function(options){
         var action = options.action;
@@ -58,6 +69,17 @@ var generator = {
         }
     },
 
+    check_hash: function(){
+        if(!window.location.hash) return;
+        var cat_id = window.location.hash.substring(1);
+        if(isNaN(cat_id)) return;
+
+        cat_id = parseInt(cat_id);
+        if(cat_id == generator.current_id) return;
+
+        generator.collection.set(2, cat_id);
+    },
+
     saveSmilepack: function(){
         var smileIds = this.smilepack.getAllSmileIds();
         if(!smileIds || smileIds.length < 1){
@@ -69,7 +91,7 @@ var generator = {
         var smiles = [];
         for(var i=0; i<smileIds.length; i++){
             var smile = this.smilepack.getSmileInfo(smileIds[i], {withoutIds: true, withParent: true});
-            if(this.collection.getSmileInfo(smileIds[i])){
+            if(smileIds[i] >= 0){
                 smile.id = smileIds[i];
                 delete smile.url;
                 delete smile.description;
@@ -113,6 +135,7 @@ var generator = {
         }else{
             deletionDate.style.display = 'none';
         }
+        this.modified = false;
     },
 
     addSmilepackCategory: function(name, iconId, iconUrl){
@@ -122,6 +145,7 @@ var generator = {
         });
         if(!id) return null;
         this.smilepack.set(0, id);
+        this.modified = true;
         return id;
     },
 
@@ -135,6 +159,7 @@ var generator = {
             var j = this.usedSmiles.indexOf(deleted_smiles[i]);
             if(j >= 0) this.usedSmiles.splice(j, 1);
         }
+        this.modified = true;
         return true;
     },
 
@@ -152,6 +177,7 @@ var generator = {
             if(newId != smileIds[i]) continue;
             this.usedSmiles.push(smileIds[i]);
             this.collection.setDragged(smileIds[i], true);
+            this.modified = true;
         }
         return true;
     },
@@ -162,8 +188,66 @@ var generator = {
             w: width,
             h: height
         });
-        if(id != null) this.usedSmiles.push(id);
+        if(id != null){
+            this.usedSmiles.push(id);
+            this.modified = true;
+        }
         return id;
+    },
+
+    storageSave: function(withConfirm){
+        var data = {storageVersion: this.storageVersion, ids: this.smilepack.getLastInternalIds()};
+
+        var smileIds = this.smilepack.getAllSmileIds();
+        if(smileIds.length < 1){
+            if(withConfirm && !confirm("Нет ни одного смайлика. Сохранить пустоту?")) return;
+        }
+
+        var categories = this.smilepack.getCategoriesWithHierarchy({short: true});
+
+        var catsById = {};
+        for(var i=0; i<categories.length; i++){
+            catsById[categories[i].id] = categories[i];
+            categories[i].smiles = [];
+        }
+
+        for(var i=0; i<smileIds.length; i++){
+            var smile = this.smilepack.getSmileInfo(smileIds[i], {withParent: true});
+            catsById[smile.categoryId].smiles.push(smile);
+            delete smile.categoryId;
+        }
+
+        data.categories = categories;
+        window.localStorage.smiles = JSON.stringify(data);
+        this.modified = false;
+        if(withConfirm) alert('Сохранено!');
+    },
+
+    storageLoad: function(withConfirm){
+        var data = window.localStorage.smiles;
+        if(!data || data.length < 3){
+            if(withConfirm) alert('Нечего загружать!');
+            return false;
+        }
+
+        data = JSON.parse(data);
+        if(data.storageVersion != this.storageVersion){
+            if(withConfirm) alert('С момента сохранения база данных поменялась, не могу загрузить :(');
+            return false;
+        }
+
+        if(withConfirm && this.modified && !confirm('При загрузке потеряются несохранённые изменения, продолжить?')) return false;
+
+        var oldCategories = this.smilepack.getCategoriesWithHierarchy({short: true, withoutIconUrl: true});
+        for(var i=0; i<oldCategories.length; i++) this.smilepack.removeCategory(0, oldCategories[i].id);
+        for(var i=0; i<this.usedSmiles.length; i++) this.collection.setDragged(this.usedSmiles[i], false);
+        this.usedSmiles = [];
+
+        this.smilepack.setLastInternalIds([0], 0);
+        this.initSmilepackData({categories: data.categories});
+        this.smilepack.setLastInternalIds(data.ids[0], data.ids[1]);
+        this.modified = false;
+        return true;
     },
 
     /* data management */
@@ -187,14 +271,15 @@ var generator = {
         if(this.collectionData.sections.length == 1){
             this.collection.set(0, this.collectionData.sections[0].id);
         }
-        // this.check_hash();
+        this.check_hash();
     },
 
-    initSmilepackData: function(){
-        this.smilepack.loadData(this.smilepackData);
+    initSmilepackData: function(data){
+        data = data || this.smilepackData;
+        this.smilepack.loadData(data);
 
-        for(var i=0; i<this.smilepackData.categories.length; i++){
-            var cat = this.smilepackData.categories[i];
+        for(var i=0; i<data.categories.length; i++){
+            var cat = data.categories[i];
             for(var j=0; j<cat.smiles.length; j++){
                 var sm = cat.smiles[j];
                 this.smilepack.addSmile(cat.id, sm);
@@ -202,9 +287,12 @@ var generator = {
         }
 
         this.usedSmiles = this.smilepack.getAllSmileIds();
+        for(var i=0; i<this.usedSmiles.length; i++){
+            this.collection.setDragged(this.usedSmiles[i], true);
+        }
 
-        if(this.smilepackData.categories.length == 1){
-            this.smilepack.set(0, this.smilepackData.categories[0].id);
+        if(data.categories.length == 1){
+            this.smilepack.set(0, data.categories[0].id);
         }
     },
 
@@ -220,7 +308,7 @@ var generator = {
                 editable: false,
                 container: document.getElementById('collection'),
                 get_smiles_func: this.set_collection_smiles.bind(this),
-                //onchange: this.onchange.bind(this),
+                onchange: this.onchange.bind(this),
                 ondropto: this.dropToCollectionEvent.bind(this),
                 message: 'Выберите раздел для просмотра смайликов'
             }
@@ -259,6 +347,9 @@ var generator = {
         this.collection.getAdditionalContainer().querySelector('.action-move-all').addEventListener('click', this.moveAllSmiles.bind(this));
         this.smilepack.getAdditionalContainer().querySelector('.action-add-smile').addEventListener('click', function(){dialogs.open('smile')});
         document.querySelector('.action-save').addEventListener('click', this.saveSmilepack.bind(this));
+
+        document.getElementById('action-storage-save').addEventListener('click', function(){this.storageSave(true)}.bind(this));
+        document.getElementById('action-storage-load').addEventListener('click', function(){this.storageLoad(true)}.bind(this));
     },
 
     init: function(){
@@ -269,6 +360,14 @@ var generator = {
         dialogs.register('category', this.CategoryDialog);
         dialogs.register('smile', this.SmileDialog);
         dialogs.register('smilepack', this.SmilepackDialog);
+
+        window.addEventListener('hashchange', this.check_hash);
+        window.addEventListener('beforeunload', function(e){
+            if(!this.modified) return;
+            var s = 'Есть несохранённые изменения в смайлопаке.';
+            if(e) e.returnValue = s;
+            return s;
+        }.bind(this));
     }
 };
 
