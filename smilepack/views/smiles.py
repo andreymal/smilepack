@@ -6,6 +6,7 @@ from flask import Blueprint, abort, request
 
 from ..models import *
 from .utils import user_session, json_answer, default_crossdomain
+from ..utils import urls
 from ..db import db_session
 
 
@@ -45,6 +46,19 @@ def search(section_id):
         result['smiles'] = [x for x in result['smiles'] if not s - set(x['tags'])]
 
     return result
+
+
+@smiles.route('/by_url')
+@default_crossdomain()
+@json_answer
+@db_session
+def by_url():
+    if not request.args.get('url'):
+        return {'id': None}
+    smile = Smile.bl.search_by_url(request.args['url'])
+    if not smile:
+        return {'id': None}
+    return {'id': smile.id, 'url': smile.url, 'w': smile.width, 'h': smile.height, 'category': smile.category.id if smile.category else None}
 
 
 @smiles.route('/<int:category>')

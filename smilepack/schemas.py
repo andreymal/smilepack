@@ -83,3 +83,48 @@ smile_suggestion_schema = {
     },
     "required": ["url"]
 }
+
+userscript_compat_schema = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "categories": {
+                "type": "array",
+                "items": {
+                    "properties": {
+                        "iconId": {
+                            "type": "integer"
+                        },
+                        "smiles": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": ["string", "integer"]
+                                    },
+                                    "w": {
+                                        "type": "integer"
+                                    },
+                                    "h": {
+                                        "type": "integer"
+                                    },
+                                    "url": {
+                                        "type": "string"
+                                    }
+                                },
+                                "oneOf": [
+                                    {"required": ["w", "h"]}
+                                ]
+                            }
+                        }
+                    },
+                    "required": ["smiles"]
+                },
+            }
+        },
+        "required": ["categories"]
+    }
+}

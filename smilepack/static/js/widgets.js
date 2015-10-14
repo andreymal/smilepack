@@ -139,18 +139,40 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         id = this._lastIds[level];
     }
 
-    /* Создаём кнопку */
+    this._categories[level][id] = {
+        id: id,
+        parentId: level > 0 ? parentId : null,
+        level: level,
+        name: item.name,
+        description: item.description,
+        dom: null,
+        iconId: item.icon ? item.icon.id : -1,
+        iconUrl: item.icon ? item.icon.url : null,
+        smileIds: null,
+        childrenIds: level + 1 < this._depth ? [] : null,
+        childrenDom: null,
+        smilesDom: null
+    };
+    this._buildCategoryDom(level, id, true);
+
+    return id;
+};
+
+
+widgets.Collection.prototype._buildCategoryDom = function(level, categoryId, save){
+    var item = this._categories[level][categoryId];
+
     var btn = document.createElement('a');
     btn.className = 'tab-btn';
-    btn.dataset.id = id.toString();
+    btn.dataset.id = categoryId.toString();
     btn.dataset.level = level.toString();
-    btn.href = level < this._depth - 1 ? '#' : ('#' + id); // TODO: переключалку в options
+    btn.href = level < this._depth - 1 ? '#' : ('#' + categoryId); // TODO: переключалку в options
     btn.title = item.description || '';
-    if(item.icon && item.icon.url){
+    if(item.iconUrl){
         var icon = document.createElement('img');
-        icon.src = item.icon.url;
+        icon.src = item.iconUrl;
         icon.className = 'tab-icon';
-        icon.dataset.id = item.icon.id;
+        icon.dataset.id = item.iconId;
         btn.appendChild(icon);
     }
     btn.appendChild(document.createTextNode(item.name));
@@ -159,10 +181,10 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         var actions = document.createElement('span');
         actions.className = 'actions';
 
-        /* var editbtn = document.createElement('a');
+        var editbtn = document.createElement('a');
         editbtn.className = 'action-btn action-edit';
         editbtn.dataset.action = 'edit';
-        actions.appendChild(editbtn); */
+        actions.appendChild(editbtn); 
 
         var delbtn = document.createElement('a');
         delbtn.className = 'action-btn action-delete';
@@ -172,34 +194,42 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         btn.appendChild(actions);
     }
 
-    if(level > 0){
-        if(!parent.childrenDom){
-            parent.childrenDom = this._buildDomTabs(level, parentId);
+    if(save){
+        if(level > 0){
+            var parent = this._categories[level - 1][item.parentId];
+            if(!parent.childrenDom){
+                parent.childrenDom = this._buildDomTabs(level, item.parentId);
+            }
+            parent.childrenIds.push(categoryId);
+            parent.childrenDom.appendChild(btn);
+        }else{
+            this._rootChildren.push(categoryId);
+            this._dom.rootCategories.appendChild(btn);
         }
-        parent.childrenIds.push(id);
-        parent.childrenDom.appendChild(btn);
-    }else{
-        this._rootChildren.push(id);
-        this._dom.rootCategories.appendChild(btn);
+        item.dom = btn;
     }
+    return btn;
+};
 
-    /* Сохраняем информацию о категории */
-    this._categories[level][id] = {
-        id: id,
-        parentId: level > 0 ? parentId : null,
-        level: level,
-        name: item.name,
-        description: item.description,
-        dom: btn,
-        iconId: item.icon ? item.icon.id : -1,
-        iconUrl: item.icon ? item.icon.url : null,
-        smileIds: null,
-        childrenIds: level + 1 < this._depth ? [] : null,
-        childrenDom: null,
-        smilesDom: null
-    };
 
-    return id;
+widgets.Collection.prototype.editCategory = function(level, categoryId, item){
+    if(level < 0 || level >= this._depth || !this._categories[level][categoryId]) return null;
+    var category = this._categories[level][categoryId];
+
+    category.name = item.name;
+    category.description = item.description;
+    category.iconId = item.icon ? item.icon.id : -1;
+    category.iconUrl = item.icon ? item.icon.url : null;
+
+    var newDom = this._buildCategoryDom(level, categoryId, false);
+    if(this._selectedIds[level] == categoryId) newDom.classList.add('tab-btn-active');
+
+    var domParent = category.dom.parentNode;
+    domParent.insertBefore(newDom, category.dom);
+    domParent.removeChild(category.dom);
+    category.dom = newDom;
+
+    return categoryId;
 };
 
 

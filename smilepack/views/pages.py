@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, render_template, abort, current_app
+from flask import Blueprint, render_template, abort, current_app, request
 from flask.ext.babel import format_datetime
 
 from ..models import Section, SmilePack, Smile, Icon

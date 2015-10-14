@@ -4,13 +4,13 @@
 # pylint: disable=E1120, E1123
 
 import random
-from hashlib import md5
 from datetime import datetime, timedelta
 
 import jsonschema
 from flask import current_app
 
 from .utils import BaseBL
+from ..utils.urls import hash_url
 from .. import schemas, db
 
 
@@ -63,14 +63,8 @@ class SmilePackBL(BaseBL):
         db_icons = {di.id: di for di in Icon.select(lambda x: x.id in icon_ids)}
 
         # Загружаем смайлики по урлам, если таковые имеются
-        # FIXME: смайлики из коллекции без custom_url всё-таки будут дублироваться
-        urls = {x['url']: md5(x['url'].encode('utf-8')).hexdigest() for x in smiles if not x.get('id') and x.get('url')}
-        hashes = urls.values()
-        if hashes:
-            smile_urls = SmileUrl.select(lambda x: x.url_hash in hashes).prefetch(SmileUrl.smile)[:]
-            smile_urls = {x.url: x.smile for x in smile_urls}
-        else:
-            smile_urls = {}
+        urls = [x['url'] for x in smiles if x.get('id') is None and x.get('url')]
+        smile_urls = dict(zip(urls, Smile.bl.search_by_urls(urls)))
 
         # Создаём смайлопак
         pack = self._model()(
@@ -96,13 +90,14 @@ class SmilePackBL(BaseBL):
 
         # Добавляем или создаём смайлики
         smiles_count = {x: 0 for x in db_categories.keys()}
+        new_smiles = []
         for x in smiles:
             c = db_categories[x['category_name']]
 
             if x.get('id') in db_smiles:
                 smile = db_smiles[x['id']]
-            elif x.get('url') in smile_urls:
-                smile = smile_urls[x.get('url')]
+            elif smile_urls.get(x.get('url')):
+                smile = smile_urls[x['url']]
             else:
                 if not x.get('url') or (not x['url'].startswith('http://') and not x['url'].startswith('https://')):
                     continue  # TODO: сделать что-нибудь?
@@ -123,8 +118,9 @@ class SmilePackBL(BaseBL):
                 SmileUrl(
                     url=x['url'],
                     smile=smile,
-                    url_hash=urls[x['url']]
+                    url_hash=hash_url(x['url'])
                 ).flush()
+                new_smiles.append(smile)
 
             # FIXME: тут ОЧЕНЬ много insert-запросов
             c.smiles.create(
@@ -134,6 +130,7 @@ class SmilePackBL(BaseBL):
             smiles_count[x['category_name']] += 1
         db.flush()
         current_app.cache.set('smilepacks_count', None, timeout=1)
+        current_app.logger.info('Created smilepack %s with %d new smiles', pack.hid, len(new_smiles))
 
         return pack
 
@@ -229,6 +226,7 @@ class SmilePackCategoryBL(BaseBL):
             'name': cat.name,
             'code': cat.name,
             'icon': cat.icon.url,
+            'iconId': cat.icon.id,
             'smiles': []
         }
 

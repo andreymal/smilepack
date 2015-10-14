@@ -17,7 +17,6 @@ body.drag-enabled * {
     background-color: #222;
     color: white;
     height: 5em;
-    overflow: hidden;
     box-shadow: 0 0 0.35em #333;
     position: absolute;
     top: 0;
@@ -82,7 +81,7 @@ input.text {
     font-size: inherit;
     border-radius: 0.4em;
     transition: box-shadow ease 0.15s, border ease 0.15s;
-    height: 1.5em;
+    height: 1.75em;
     padding: 0.25em;
     box-sizing: border-box;
 }
@@ -104,6 +103,7 @@ input.text:focus {
     color: black;
     line-height: 1.5em;
     margin: 0;
+    overflow: hidden;
 }
 
 .tabs-level {
@@ -337,6 +337,14 @@ border-bottom: 0.2em solid #ccf;
     border-bottom: 0;
 }
 
+#dialog-new-category.mode-add .mode-edit {
+    display: none;
+}
+
+#dialog-new-category.mode-edit .mode-add {
+    display: none;
+}
+
 .input-width-full {
     width: 100%;
 }
@@ -344,8 +352,18 @@ border-bottom: 0.2em solid #ccf;
 .icon-container {
     display: block;
     overflow-y: auto;
-    max-height: 7.5em;
+    max-height: 12.5em;
     margin: 0.5em 0;
+    text-align: justify;
+}
+
+.icon-container label {
+    display: inline-block;
+    margin-right: 0.5em;
+}
+
+.icon-container label:hover {
+    background-color: #f3f3f3;
 }
 
 .dialog-icon {
@@ -384,6 +402,10 @@ border-bottom: 0.2em solid #ccf;
     box-shadow: 0 0 0.35em rgba(240, 240, 255, 0.5) inset;
 }
 
+.button:disabled, .button-primary:disabled {
+    opacity: 0.5;
+}
+
 .dialog-background.hidden, .dialog.hidden {
     display: none;
 }
@@ -393,12 +415,110 @@ border-bottom: 0.2em solid #ccf;
     line-height: 2em;
 }
 
-.storage-actions {
-    float: right;
-    font-size: 0.75em;
+.actions-menu {
+    position: absolute;
+    right: 0.25em;
+    top: 0.25em;
+    color: #999;
+    font-size: 0.9em;
+    width: 14em;
+    height: 1.75em;
+    line-height: 1.25em;
+    text-align: right;
+    padding: 0.25em;
+    cursor: default;
+    background-color: #333;
+    box-sizing: border-box;
+    border-radius: 0.25em;
+}
+
+.actions-list {
+    width: 14em;
+    position: fixed;
+    z-index: 500;
+    list-style: none outside none;
+    margin: 0.25em 0 0 -0.25em;
+    padding: 0;
+    background-color: #333;
+    text-align: left;
+    display: none;
+}
+
+.actions-list li {
+    margin: 0;
+    padding: 0.25em;
+    color: white;
+    cursor: pointer;
+}
+
+.actions-menu:hover {
+    border-radius: 0.25em 0.25em 0 0;
+}
+
+.actions-menu:hover .actions-list {
+    display: block;
+    transition-delay: 0;
+}
+
+.actions-list li:hover {
+    background-color: #555;
+}
+
+
+/* dark */
+
+body.dark .container {
+    background-color: #222;
+    color: #eee;
+}
+
+body.dark .tabs-wrapper {
+    background-color: #334;
+    color: #999;
+}
+
+body.dark .tabs-level {
+    border-bottom: 1px solid #223;
+}
+
+body.dark .tab-btn, body.dark .tab-btn:visited, body.datk .tab-btn:active {
+    color: #bbb;
+}
+
+body.dark .tab-btn:hover {
+    border-bottom: 0.2em solid #779;
+}
+
+body.dark .tab-btn-active, body.dark .tab-btn-active:hover {
+    border-bottom: 0.2em solid #668;
+}
+
+body.dark .tab-btn.overlay {
+    border-bottom: 0.2em solid #779;
+    background-color: #334;
+}
+
+body.dark .category-description {
     color: #777;
 }
 
-.storage-actions a, .storage-actions a:visited {
-    color: #999;
+body.dark .container .button {
+    background-color: #444;
+    color: #ccc;
+    border: 1px solid black;
+}
+
+
+@media(max-width: 52em){
+    .top {
+        height: 8em;
+    }
+
+    .settings {
+        height: 6em;
+    }
+
+    .container {
+        top: 8em;
+    }
 }

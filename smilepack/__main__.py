@@ -31,6 +31,15 @@ def shell():
         code.interact(local={'smilepack': smilepack, 'app': manager.app})
 
 
+@manager.command
+def rehash_custom_smiles(start_id=None):
+    from smilepack.utils import urls
+    from smilepack.db import orm, db_session
+    orm.sql_debug(False)
+    with db_session:
+        urls.rehash_custom_smiles(start_id)
+
+
 @manager.option('-h', '--host', dest='host', help='Server host (default 127.0.0.1)')
 @manager.option('-p', '--port', dest='port', help='Server port (default 5000)')
 def runserver(host, port):

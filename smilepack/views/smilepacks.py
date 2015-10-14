@@ -8,6 +8,7 @@ from flask import Blueprint, Response, abort, render_template, current_app, requ
 from flask.ext.babel import format_datetime
 
 from ..models import SmilePack, SmilePackCategory, Icon
+from ..utils import userscript_parser
 from .utils import user_session, json_answer, default_crossdomain
 from ..db import db_session
 
@@ -96,3 +97,22 @@ def create(session_id, first_visit):
         'deletion_date': deletion_date.strftime('%Y-%m-%dT%H:%M:%SZ') if deletion_date else None,
         'fancy_deletion_date': format_datetime(deletion_date) if deletion_date else None
     }
+
+
+@smilepacks.route('/import', methods=['POST'])
+@default_crossdomain(methods=['POST'])
+@json_answer
+def import_userscript():
+    if 'file' not in request.files:
+        return {'categories': [], 'notice': 'No file'}
+    if request.files['file'].content_length > 512 * 1024:
+        return {'categories': [], 'notice': 'Too big file'}
+    data = request.files['file'].stream.read().decode('utf-8', 'replace').replace('\r', '')
+
+    with db_session:
+        try:
+            categories, cat_id, sm_id = userscript_parser.parse(data)
+        except userscript_parser.UserscriptParserError as exc:
+            return {'categories': [], 'notice': str(exc)}
+
+    return {'categories': categories, 'ids': ([cat_id], sm_id), 'notice': None}

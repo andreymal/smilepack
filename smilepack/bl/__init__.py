@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from . import smiles, smilepacks, utils
+from .. import bl_registry
 
 
-utils.registry['bl.section'] = smiles.SectionBL
-utils.registry['bl.category'] = smiles.CategoryBL
-utils.registry['bl.smile'] = smiles.SmileBL
-utils.registry['bl.smilepack'] = smilepacks.SmilePackBL
-utils.registry['bl.smilepack_category'] = smilepacks.SmilePackCategoryBL
+bl_registry.register('bl.section', smiles.SectionBL)
+bl_registry.register('bl.category', smiles.CategoryBL)
+bl_registry.register('bl.smile', smiles.SmileBL)
+bl_registry.register('bl.smilepack', smilepacks.SmilePackBL)
+bl_registry.register('bl.smilepack_category', smilepacks.SmilePackCategoryBL)

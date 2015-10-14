@@ -65,6 +65,7 @@ var dragdrop = {
 
     _eventDown: function(event, container){
         if(this._currentElement) return;
+        if((event.which || event.button) != 1) return;  // button is 1 in IE
         var element = event.target || event.srcElement;
         /* Получение разрешения на перетаскивание и правильного элемента */
         element = container.onstart({

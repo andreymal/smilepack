@@ -4,6 +4,7 @@
 import jsonschema
 
 from .utils import BaseBL
+from ..utils.urls import parse as parse_urls, hash_url
 from ..db import orm
 from .. import schemas
 
@@ -83,6 +84,57 @@ class CategoryBL(BaseBL):
 
 
 class SmileBL(BaseBL):
+    def search_by_url(self, url):
+        return self.search_by_urls((url,))[0]
+
+    def search_by_urls(self, urls):
+        from ..models import Smile, SmileUrl
+        # 1) Парсим ссылки, доставая из них то, что можно достать
+        parsed_urls = parse_urls(urls)
+        ids = parsed_urls['ids']
+        filenames = parsed_urls['filenames']
+        parsed_urls = parsed_urls['parsed_urls']
+
+        result_smiles = [None] * len(urls)
+
+        # 2) Распарсенные данные забираем из БД пачкой
+        if ids:
+            ids = orm.select(x for x in Smile if x.id in ids)
+            ids = {x.id: x for x in ids}
+        if filenames:
+            filenames = reversed(orm.select(x for x in Smile if x.filename in filenames).order_by(Smile.id)[:])
+            filenames = {x.filename: x for x in filenames}
+        else:
+            filenames = {}
+
+        hashes = {}
+        # 2.1) Разгребаем полученную из БД пачку
+        for i in range(len(urls)):
+            url = urls[i]
+            data = parsed_urls[i]
+
+            if data.get('id') in ids:
+                result_smiles[i] = ids[data['id']]
+            elif data.get('filename') in filenames:
+                result_smiles[i] = filenames[data['filename']]
+            else:
+                hashes[url] = hash_url(url)
+
+        # 3) Урлы, которые не распарсились, ищем в отдельной коллекции урлов
+        # (url_hash в отдельной сущности, потому что у одного смайла может оказаться несколько урлов на разных хостингах)
+        # FIXME: тут тоже where in вместо inner join, хотя наверно здесь не так критично
+        hash_values = tuple(hashes.values())
+        if hash_values:
+            smiles = dict(orm.select((x.url, x.smile) for x in SmileUrl if x.url_hash in hash_values))
+        else:
+            smiles = {}
+
+        for i, url in enumerate(urls):
+            if url in smiles:
+                result_smiles[i] = smiles[url]
+
+        return result_smiles
+
     def add_tag(self, tag):
         from ..models import Tag, TagSynonym
 

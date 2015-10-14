@@ -7,7 +7,9 @@ import string
 import functools
 from datetime import datetime, timedelta
 
-from flask import request, current_app, jsonify, make_response
+import jsonschema
+from werkzeug.exceptions import UnprocessableEntity
+from flask import abort, request, current_app, jsonify, make_response
 
 
 def generate_session_id():
@@ -67,3 +69,18 @@ def default_crossdomain(methods=['GET']):
         f.provide_automatic_options = False
         return functools.update_wrapper(wrapped_function, f)
     return decorator
+
+
+def register_errorhandlers(app):
+    app.register_error_handler(jsonschema.ValidationError, handle_validation_error)
+
+
+def handle_validation_error(error):
+    return UnprocessableEntity('({}) {}'.format(tuple(error.path), error.message))
+
+
+def disable_cache(app):
+    def add_header(response):
+        response.cache_control.max_age = 0
+        return response
+    app.after_request(add_header)

@@ -39,37 +39,41 @@ var ajax = {
                 }
                 if(options.onload) options.onload(data, x);
             }
+            if(options.onend) options.onend(x);
         };
 
         x.send(options.data || null);
         return x;
     },
 
-    get_categories: function(onload, onerror){
+    get_categories: function(onload, onerror, onend){
         return this.request({
             url: '/smiles/',
             format: 'json',
             onload: onload,
-            onerror: onerror
+            onerror: onerror,
+            onend: onend,
         });
     },
 
-    get_smiles: function(categoryId, onload, onerror){
+    get_smiles: function(categoryId, onload, onerror, onend){
         return this.request({
             url: '/smiles/' + parseInt(categoryId).toString(),
             format: 'json',
             onload: onload,
-            onerror: onerror
+            onerror: onerror,
+            onend: onend
         });
     },
 
-    create_smilepack: function(name, lifetime, categories, smiles, onload, onerror){
+    create_smilepack: function(name, lifetime, categories, smiles, onload, onerror, onend){
         return this.request({
             method: 'POST',
             url: '/smilepack/',
             format: 'json',
             onload: onload,
             onerror: onerror,
+            onend: onend,
             data: JSON.stringify({
                 name: name,
                 lifetime: lifetime,
@@ -77,6 +81,18 @@ var ajax = {
                 smiles: smiles
             }),
             headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    import_userscript: function(form, onload, onerror, onend){
+        return this.request({
+            method: 'POST',
+            url: '/smilepack/import',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: new FormData(form)
         });
     }
 };

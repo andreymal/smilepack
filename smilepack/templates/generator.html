@@ -9,12 +9,16 @@
 
 <div class="top">
     <div class="header">
-        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">Смайлопак</a></div>
-        <div class="storage-actions">
-            Смайлопак в localStorage:
-            <a href="#" id="action-storage-save">Сохранить</a>
-            <a href="#" id="action-storage-load">Загрузить</a>
+        <div class="actions-menu">
+            Другие действия ▼
+            <ul class="actions-list">
+                <li id="action-storage-save">Сохранить в localStorage</li>
+                <li id="action-storage-load">Загрузить из localStorage</li>
+                <li id="action-import-userscript">Импортировать юзерскрипт</li>
+                <li id="action-toggle-dark">Поменять фон</li>
+            </ul>
         </div>
+        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">Смайлопак</a></div>
     </div>
 
     <div class="settings">
@@ -59,8 +63,8 @@
 
 <div id="dialog-background" class="dialog-background hidden"></div>
 
-<div id="dialog-new-category" class="dialog hidden">
-    <div class="dialog-title"><a class="dialog-close"></a> Добавление категории</div>
+<div id="dialog-new-category" class="dialog hidden mode-add">
+    <div class="dialog-title"><a class="dialog-close"></a> <span class="mode-add">Добавление категории</span><span class="mode-edit">Изменение категории</span></div>
 
     <form action="#">
         <label for="name">Название категории:</label><br/>
@@ -76,10 +80,10 @@
         {%- endfor %}
         </div>
 
-        <input type="hidden" name="level" value="0" />
-        <input type="hidden" name="parent" value="0" />
+        <input type="hidden" name="category" value="" />
 
-        <input type="submit" class="button button-primary" value="Создать" />
+        <span class="mode-add"><input type="submit" class="button button-primary" value="Добавить" /></span>
+        <span class="mode-edit"><input type="submit" class="button button-primary" value="Сохранить" /></span>
     </form>
 </div>
 
@@ -105,6 +109,17 @@
     </form>
 </div>
 
+<div id="dialog-import-userscript" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a> Импортирование юзерскрипта</div>
+
+    <form action="#" method="POST" enctype="multipart/form-data">
+        <label for="url">Выберите файл с юзерскриптом</label><br/>
+        <input type="file" name="file" /><br/>
+
+        <input type="submit" class="button button-primary" value="Импортировать" />
+    </form>
+</div>
+
 <div id="dialog-save" class="dialog hidden">
     <div class="dialog-title">Сохранение смайлопака</div>
     <div class="processing">Сохраняем...</div>
@@ -127,11 +142,12 @@
 {% if config['USE_BUNDLER'] %}
 <script type="text/javascript" src="{{ get_bundle_url('generator') }}"></script>
 {% else %}
-<script type="text/javascript" src="{{ url_for('static', filename='dragdrop.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='widgets.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='dialogs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='smp_ajax.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='generator.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/dragdrop.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/widgets.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/dialogs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/smp_ajax.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/generator.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/generator_dialogs.js') }}"></script>
 {% endif %}
 
 <script>

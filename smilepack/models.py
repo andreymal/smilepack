@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import current_app
 
 from .db import db, orm
-from .bl.utils import Resource
+from .bl_registry import Resource
 
 
 class Icon(db.Entity):
@@ -82,7 +82,7 @@ class Category(db.Entity):
 class Smile(db.Entity):
     """Смайлик, как из коллекции, так и пользовательский"""
     category = orm.Optional(Category, index=True)
-    filename = orm.Required(str, 128)
+    filename = orm.Required(str, 128, index=True)
     width = orm.Required(int)  # TODO: validations
     height = orm.Required(int)
     custom_url = orm.Optional(str, 512)
