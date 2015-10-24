@@ -88,9 +88,10 @@ def create(session_id, first_visit):
         name=r.get('name'),
         description=r.get('description'),
         lifetime=r.get('lifetime'),
+        user_addr=request.remote_addr,
     )
 
-    deletion_date = pack.bl.get_deletion_date()
+    deletion_date = pack.delete_at
 
     return {
         'smilepack_id': pack.hid,

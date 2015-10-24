@@ -24,6 +24,8 @@ class Local(Development):
     API_ORIGINS = ['http://my-cool-spa.com', 'http://great-friend-site.net']
     API_ALLOW_CREDENTIALS_FOR = ['*']
 
+    MAX_LIFETIME = 3600 * 7 * 24
+
     UPLOAD_METHOD = 'directory'
     SMILES_DIRECTORY = '/path/to/project/smilepack/media/smiles/'
     # IMGUR_ID = '538bd2a48c13f9e'  # для метода imgur

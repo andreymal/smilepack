@@ -49,17 +49,16 @@ def generator(session_id, first_visit, smp_id):
         pack = SmilePack.bl.get_by_hid(smp_id)
         if not pack:
             abort(404)
-        deletion_date = pack.bl.get_deletion_date()
     else:
         pack = None
-        deletion_date = None
 
     return render_template(
         'generator.html',
         session_id=session_id,
         first_visit=first_visit,
         pack=pack,
-        pack_deletion_date=format_datetime(deletion_date) if deletion_date else None,
+        pack_deletion_date=format_datetime(pack.delete_at) if pack and pack.delete_at else None,
+        lifetime=(pack.delete_at - pack.created_at).total_seconds if pack and pack.delete_at else None,
         icons=Icon.select().order_by(Icon.id)[:],
         collection_data={"sections": Section.bl.get_all_with_categories()},
     )

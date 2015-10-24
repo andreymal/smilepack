@@ -25,12 +25,12 @@
     Название: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="Опционально" />
     Удалить с сервера через:
     <select id="lifetime" autocomplete="off">
-        <option{{ ' selected' if not pack or pack.lifetime == 1800 else '' }} value="1800">Полчаса</option>
-        <option{{ ' selected' if pack and pack.lifetime == 3600 else '' }} value="3600">1 час</option>
-        <option{{ ' selected' if pack and pack.lifetime == 28800 else '' }} value="28800">8 часов</option>
-        <option{{ ' selected' if pack and pack.lifetime == 86400 else '' }} value="86400">1 день</option>
-        <option{{ ' selected' if pack.lifetime == 604800 else '' }} value="604800">1 неделя</option>
-        {#<!--<option{{ ' selected' if pack.lifetime == 0 or pack.lifetime == None else '' }} value="0">Оставить навсегда</option>-->#}
+        <option{{ ' selected' if not pack or lifetime == 1800 else '' }} value="1800">Полчаса</option>
+        <option{{ ' selected' if pack and lifetime == 3600 else '' }} value="3600">1 час</option>
+        <option{{ ' selected' if pack and lifetime == 28800 else '' }} value="28800">8 часов</option>
+        <option{{ ' selected' if pack and lifetime == 86400 else '' }} value="86400">1 день</option>
+        <option{{ ' selected' if lifetime == 604800 else '' }} value="604800">1 неделя</option>
+        {% if config['MAX_LIFETIME'] == 0 %}<option{{ ' selected' if lifetime == 0 or lifetime == None else '' }} value="0">Оставить навсегда</option>{% endif %}
     </select>
     {% if pack %}
     <button class="button button-primary action-save">Сохранить новый смайлопак</button>

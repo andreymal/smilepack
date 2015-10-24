@@ -16,14 +16,9 @@ from ..utils.exceptions import JSONValidationError
 
 
 class SmilePackBL(BaseBL):
-    def get_deletion_date(self):
-        if not self._model().lifetime:
-            return
-        return self._model().created_at + timedelta(0, self._model().lifetime)
-
     def get_by_user(self, session_id):
         packs = self._model().select(lambda x: x.user_cookie == session_id)[:]
-        packs = [pack for pack in packs if not pack.lifetime or pack.created_at + timedelta(0, pack.lifetime) >= datetime.utcnow()]
+        packs = [pack for pack in packs if not pack.delete_at or pack.delete_at >= datetime.utcnow()]
         return packs
 
     def create(self, session_id, smiles, categories, name=None, description=None, lifetime=None, user_addr=None, validate=True):
@@ -76,7 +71,8 @@ class SmilePackBL(BaseBL):
             user_cookie=session_id,
             name=str(name) if name else '',
             description=str(description) if description else '',
-            lifetime=lifetime or 0,
+            delete_at=(datetime.utcnow() + timedelta(0, lifetime)) if lifetime else None,
+            user_addr=user_addr,
         )
         if not smiles and not categories:
             return pack
@@ -124,7 +120,7 @@ class SmilePackBL(BaseBL):
             return
         pack = self._model().get(hid=hid)
 
-        if not pack or pack.lifetime and pack.created_at + timedelta(0, pack.lifetime) < datetime.utcnow():
+        if not pack or pack.delete_at and pack.delete_at < datetime.utcnow():
             return
 
         return pack
@@ -165,7 +161,7 @@ class SmilePackCategoryBL(BaseBL):
 
         from ..models import SmilePack
         pack = SmilePack.get(hid=hid)
-        if not pack or pack.lifetime and pack.created_at + timedelta(0, pack.lifetime) < datetime.utcnow():
+        if not pack or pack.delete_at and pack.delete_at < datetime.utcnow():
             return
         return pack.categories.select(lambda x: x.id == category_id).first()
 

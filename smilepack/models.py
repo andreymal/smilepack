@@ -162,15 +162,16 @@ class TagSynonym(db.Entity):
 class SmilePack(db.Entity):
     """Смайлопак"""
     hid = orm.Required(str, 16, index=True, unique=True)
+    user_addr = orm.Optional(str, 255, nullable=True, default=None)
     user_cookie = orm.Required(str, 64, index=True)
     categories = orm.Set('SmilePackCategory')
     name = orm.Optional(str, 64)
     description = orm.Optional(str, 16000)
-    lifetime = orm.Required(int, default=0)
     views_count = orm.Required(int, default=0, index=True)
     last_viewed_at = orm.Optional(datetime, default=datetime.utcnow)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+    delete_at = orm.Optional(datetime, default=datetime.utcnow)
 
     bl = Resource('bl.smilepack')
 
