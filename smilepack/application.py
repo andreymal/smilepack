@@ -19,21 +19,23 @@ __all__ = ['create_app']
 
 def create_app(minimal=False):
     app = Flask(__name__)
-    # FIXME: not working with DEBUG=True
-    app.config.from_object(os.getenv('SMILEPACK_SETTINGS', None) or 'smilepack.settings.Development')
-
-    db.db.bind(
-        app.config['DATABASE_ENGINE'],
-        **app.config['DATABASE']
-    )
-    db.db.generate_mapping(create_tables=True)
-    if app.config['SQL_DEBUG']:
-        db.orm.sql_debug(True)
+    app.env = os.getenv('SMILEPACK_SETTINGS', None) or 'smilepack.settings.Development'
+    app.config.from_object(app.env)
+    db.configure_for_app(app)
 
     app.limiter = Limiter(app)
     app.logger.setLevel(app.config['LOGGER_LEVEL'])
     if not app.debug and app.config['LOGGER_STDERR']:
         app.logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    if app.config['UPLOAD_METHOD'] == 'imgur':
+        try:
+            from flask_imgur import Imgur
+        except ImportError:
+            from flask_imgur.flask_imgur import Imgur  # https://github.com/exaroth/flask-imgur/issues/2
+        app.imgur = Imgur(app)
+    else:
+        app.imgur = None
 
     if not minimal:
         from . import views

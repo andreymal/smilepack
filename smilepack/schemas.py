@@ -1,6 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+smile_schema = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": "string",
+            "minLength": 9,
+            "maxLength": 512
+        },
+        "w": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "h": {
+            "type": "integer",
+            "minimum": 1
+        }
+    },
+    "required": ["w", "h"]
+}
+
+
 smilepack_smiles_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "array",
@@ -15,11 +37,6 @@ smilepack_smiles_schema = {
                 "minLength": 1,
                 "maxLength": 128
             },
-            "url": {
-                "type": "string",
-                "minLength": 9,
-                "maxLength": 512
-            },
             "w": {
                 "type": "integer",
                 "minimum": 1
@@ -29,10 +46,7 @@ smilepack_smiles_schema = {
                 "minimum": 1
             }
         },
-        "oneOf": [
-            {"required": ["category_name", "id"]},
-            {"required": ["category_name", "url", "w", "h"]},
-        ]
+        "required": ["category_name", "id"],
     },
     "minItems": 1
 }
@@ -65,24 +79,6 @@ smilepack_categories_schema = {
     }
 }
 
-
-smile_suggestion_schema = {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "object",
-    "properties": {
-        "category": {
-            "type": "integer"
-        },
-        "url": {
-            "type": "string",
-            "minLength": 9
-        },
-        "description": {
-            "type": "string"
-        },
-    },
-    "required": ["url"]
-}
 
 userscript_compat_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",

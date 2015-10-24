@@ -61,5 +61,5 @@ def generator(session_id, first_visit, smp_id):
         pack=pack,
         pack_deletion_date=format_datetime(deletion_date) if deletion_date else None,
         icons=Icon.select().order_by(Icon.id)[:],
-        collection_data={"sections": Section.bl.get_with_categories()},
+        collection_data={"sections": Section.bl.get_all_with_categories()},
     )

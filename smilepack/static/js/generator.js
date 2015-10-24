@@ -13,6 +13,8 @@ var generator = {
 
     usedSmiles: [], // неупорядоченный
 
+    saveStatus: null,
+
     /* dragdrop */
 
     dropToSmilepackEvent: function(options){
@@ -73,7 +75,7 @@ var generator = {
 
     onerror: function(data){
         console.log(data);
-        alert('Кажется, что-то пошло не так');
+        alert(data.error || 'Кажется, что-то пошло не так');
     },
 
     check_hash: function(){
@@ -116,35 +118,87 @@ var generator = {
         var categories = this.smilepack.getCategoriesWithHierarchy({short: true, withoutIds: true, withoutIconUrl: true});
 
         var smiles = [];
+        var smilesToCreate = [];
         for(var i=0; i<smileIds.length; i++){
             var smile = this.smilepack.getSmileInfo(smileIds[i], {withoutIds: true, withParent: true});
             if(smileIds[i] >= 0){
                 smile.id = smileIds[i];
                 delete smile.url;
                 delete smile.description;
-                delete smile.w;
-                delete smile.h;
+            }else{
+                smilesToCreate.push(smile);
             }
             smile.category_name = this.smilepack.getCategoryInfo(0, smile.categoryId).name;
             delete smile.categoryId;
             smiles.push(smile);
         }
 
-        
         dialogs.open('smilepack');
 
+        this.saveStatus = {
+            name: document.getElementById('name').value || undefined,
+            lifetime: parseInt(document.getElementById('lifetime').value),
+            categories: categories,
+            smiles: smiles,
+            smilesToCreate: smilesToCreate,
+            createPos: 0
+        };
+        this._saveSmilepackProcessing();
+    },
+
+    _saveSmilepackProcessing: function(data){
+        if(data !== undefined) {
+            var pos = this.saveStatus.createPos;
+            if(data.error || !data.smile) return this._saveSmilepackError(data);
+            this.saveStatus.smilesToCreate[pos].id = data.smile.id;
+            delete this.saveStatus.smilesToCreate[pos].url;
+            this.saveStatus.createPos++;
+        }
+
+        dialogs.get('smilepack').onprogress(this.saveStatus.createPos, this.saveStatus.smilesToCreate.length);
+        if(this.saveStatus.createPos < this.saveStatus.smilesToCreate.length){
+            var pos = this.saveStatus.createPos;
+            ajax.create_smile(
+                {
+                    url: this.saveStatus.smilesToCreate[pos].url,
+                    w: this.saveStatus.smilesToCreate[pos].w,
+                    h: this.saveStatus.smilesToCreate[pos].h
+                },
+                this._saveSmilepackProcessing.bind(this),
+                this._saveSmilepackProcessingSmileError.bind(this)
+            );
+            return;
+        }
+
         ajax.create_smilepack(
-            document.getElementById('name').value || undefined,
-            parseInt(document.getElementById('lifetime').value),
-            categories,
-            smiles,
+            this.saveStatus.name,
+            this.saveStatus.lifetime,
+            this.saveStatus.categories,
+            this.saveStatus.smiles,
             this.savedSmilepackEvent.bind(this),
-            function(data){
-                console.log(data);
-                alert('Кажется, что-то пошло не так');
-                dialogs.close('smilepack');
-            }
+            this._saveSmilepackError.bind(this)
         );
+    },
+
+    _saveSmilepackProcessingSmileError: function(data){
+        if(!data.error) return this._saveSmilepackError(data);
+        var smile = this.saveStatus.smilesToCreate[this.saveStatus.createPos];
+        var msg = 'Не удалось создать смайлик ' + smile.url + ':\n';
+        msg += data.error;
+        msg += '\nПропустить его и продолжить?';
+        if(confirm(msg)){
+            this.saveStatus.smiles.splice(this.saveStatus.smiles.indexOf(smile), 1);
+            this.saveStatus.smilesToCreate.splice(this.saveStatus.createPos, 1);
+            return this._saveSmilepackProcessing();
+        }
+        this.saveStatus = null;
+        dialogs.close('smilepack');
+    },
+
+    _saveSmilepackError: function(data){
+        this.onerror(data);
+        this.saveStatus = null;
+        dialogs.close('smilepack');
     },
 
     savedSmilepackEvent: function(data){
@@ -219,17 +273,50 @@ var generator = {
         return true;
     },
 
-    addCustomSmile: function(url, width, height){
-        var id = generator.smilepack.addSmile(generator.smilepack.getSelectedCategory(0), {
-            url: url,
-            w: width,
-            h: height
+    addCustomSmile: function(smile_data, interactive, onend){
+        var categoryId = generator.smilepack.getSelectedCategory(0);
+        var onload = function(data){
+            this._addCustomSmileEvent(data, smile_data, categoryId, interactive);
+        }.bind(this);
+
+        if(smile_data.url){
+            ajax.create_smile({
+                url: smile_data.url,
+                w: smile_data.w,
+                h: smile_data.h
+            }, onload, this.onerror.bind(this), onend);
+            return true;
+        }else if(smile_data.file){
+            ajax.upload_smile({
+                file: smile_data.file,
+                w: smile_data.w,
+                h: smile_data.h
+            }, onload, this.onerror.bind(this), onend);
+        }else {
+            return false;
+        }
+    },
+
+    _addCustomSmileEvent: function(data, smile_data, categoryId, interactive){
+        if(!data.smile) return this.onerror(data);
+        if(this.usedSmiles.indexOf(data.smile.id) >= 0){
+            if(interactive) alert('Этот смайлик уже используется!');
+            return;
+        }
+
+        var id = generator.smilepack.addSmile(categoryId, {
+            id: data.smile.id,
+            url: data.smile.url,
+            description: data.smile.description,
+            w: smile_data.w,
+            h: smile_data.h
         });
+
         if(id != null){
             this.usedSmiles.push(id);
             this.modified = true;
+            if(!data.created && data.smile.category != null) this.collection.setDragged(data.smile.id, true);
         }
-        return id;
     },
 
     storageSave: function(interactive){

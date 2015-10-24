@@ -7,9 +7,10 @@ import string
 import functools
 from datetime import datetime, timedelta
 
-import jsonschema
-from werkzeug.exceptions import UnprocessableEntity
+from werkzeug.exceptions import HTTPException, UnprocessableEntity
 from flask import abort, request, current_app, jsonify, make_response
+
+from ..utils.exceptions import InternalError, BadRequestError
 
 
 def generate_session_id():
@@ -39,8 +40,23 @@ def user_session(func):
 def json_answer(func):
     @functools.wraps(func)
     def decorator(*args, **kwargs):
-        # TODO: Exceptions
-        return jsonify(func(*args, **kwargs))
+        try:
+            return jsonify(func(*args, **kwargs))
+        except BadRequestError as exc:
+            resp = jsonify(
+                error=exc.message,
+                at=exc.at
+            )
+            resp.status_code = 422
+            return resp
+        except InternalError as exc:
+            resp = jsonify(error=str(exc))
+            resp.status_code = 500
+            return resp
+        except HTTPException as exc:
+            resp = jsonify(error=exc.description)
+            resp.status_code = exc.code
+            return resp
     return decorator
 
 
@@ -55,15 +71,32 @@ def default_crossdomain(methods=['GET']):
             else:
                 resp = make_response(f(*args, **kwargs))
 
-            h = resp.headers
+            origin = request.headers.get('Origin')
+            if not origin:
+                return resp
 
-            h['Access-Control-Allow-Origin'] = current_app.config['API_ORIGIN']
-            h['Access-Control-Allow-Methods'] = methods
-            h['Access-Control-Max-Age'] = str(21600)
-            # if headers is not None:
-            #     h['Access-Control-Allow-Headers'] = headers
-            if current_app.config['API_ALLOW_CREDENTIALS']:
+            origins = current_app.config['API_ORIGINS']
+            cred_origins = current_app.config['API_ALLOW_CREDENTIALS_FOR']
+            origins_all = '*' in origins
+            cred_origins_all = '*' in cred_origins
+
+            h = resp.headers
+            ok = False
+            if cred_origins_all and (origins_all or origin in origins) or origin in cred_origins:
+                h['Access-Control-Allow-Origin'] = origin
                 h['Access-Control-Allow-Credentials'] = 'true'
+                ok = True
+            elif origin in origins:
+                h['Access-Control-Allow-Origin'] = origin
+                ok = True
+            elif origins_all:
+                h['Access-Control-Allow-Origin'] = '*'
+                ok = True
+
+            if ok:
+                h['Access-Control-Allow-Methods'] = methods
+                h['Access-Control-Max-Age'] = str(21600)
+
             return resp
 
         f.provide_automatic_options = False
@@ -72,11 +105,11 @@ def default_crossdomain(methods=['GET']):
 
 
 def register_errorhandlers(app):
-    app.register_error_handler(jsonschema.ValidationError, handle_validation_error)
+    app.register_error_handler(BadRequestError, handle_bad_request_error)
 
 
-def handle_validation_error(error):
-    return UnprocessableEntity('({}) {}'.format(tuple(error.path), error.message))
+def handle_bad_request_error(error):
+    return UnprocessableEntity(str(error))
 
 
 def disable_cache(app):

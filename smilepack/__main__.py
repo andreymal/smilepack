@@ -32,7 +32,15 @@ def shell():
 
 
 @manager.command
-def rehash_custom_smiles(start_id=None):
+def status():
+    from smilepack.db import orm
+    from smilepack.utils.status import print_status
+    orm.sql_debug(False)
+    print_status(manager.app)
+
+
+@manager.command
+def rehash_custom_urls(start_id=None):
     from smilepack.utils import urls
     from smilepack.db import orm, db_session
     orm.sql_debug(False)
@@ -40,10 +48,20 @@ def rehash_custom_smiles(start_id=None):
         urls.rehash_custom_smiles(start_id)
 
 
+@manager.option('-s', '--store', dest='store', help='Path to hashsums store with format "id sha256sum"')
+def rehash_smiles(store=None):
+    from smilepack.utils import smiles
+    from smilepack.db import orm, db_session
+    orm.sql_debug(False)
+    with db_session:
+        smiles.calc_hashsums_if_needed(store_path=store)
+
+
 @manager.option('-h', '--host', dest='host', help='Server host (default 127.0.0.1)')
 @manager.option('-p', '--port', dest='port', help='Server port (default 5000)')
-def runserver(host, port):
-    manager.app.run(host=host, port=int(port) if port is not None else None)
+@manager.option('-t', '--threaded', dest='threaded', help='Threaded mode', action='store_true')
+def runserver(host, port, threaded=False):
+    manager.app.run(host=host, port=int(port) if port is not None else None, threaded=threaded)
 
 
 if __name__ == '__main__':

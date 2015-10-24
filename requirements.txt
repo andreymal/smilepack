@@ -8,3 +8,4 @@ mysqlclient
 python3-memcached
 Flask-Limiter
 pymemcache  # for limiter
+Pillow

@@ -9,6 +9,16 @@ from ..db import orm
 from ..models import Smile, SmileUrl
 
 
+def check_and_normalize(url):
+    if not url or not isinstance(url, str):
+        raise ValueError('Invalid url')
+    if url.startswith('//'):
+        url = 'http:' + url
+    if not url.startswith('http://') and not url.startswith('https://'):
+        raise ValueError('Invalid url {}'.format(url))
+    return url
+
+
 def hash_url(url):
     return md5(url.encode('utf-8')).hexdigest()
 

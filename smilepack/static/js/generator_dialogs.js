@@ -18,7 +18,7 @@ generator.CategoryDialog.prototype.onsubmit = function(){
     if(!f.name.value) return this.error('Введите имя категории');
     if(f.name.value.length > 128) return this.error('Длинновато имя у категории');
 
-    // Safari не умеет в f.icon.value
+    // Safari не умеет в f.[radio].value
     var value, url;
     for(var i=0; i<f.icon.length; i++){
         if(!f.icon[i].checked && i != 0) continue;
@@ -74,58 +74,155 @@ generator.SmileDialog = function(options){
     dialogs.Dialog.apply(this, arguments);
     this.container = document.getElementById('dialog-new-smile');
     this.form = document.querySelector('#dialog-new-smile form');
+    this.btn = document.querySelector('#dialog-new-smile form input[type="submit"]');
 
-    this.form.url.addEventListener('change', this.refresh.bind(this));
-    this.form.w.addEventListener('change', this.refresh.bind(this));
-    this.form.h.addEventListener('change', this.refresh.bind(this));
+    var onchange = this.refresh.bind(this);
+    var onfile = this.refreshFile.bind(this);
+
+    this.form.url.addEventListener('change', onfile);
+    this.form.w.addEventListener('change', onchange);
+    this.form.h.addEventListener('change', onchange);
+
+    this.current_uploader = 'link';
+    this.uploaders = {
+        file: document.querySelector('#dialog-new-smile form .file-uploader'),
+        link: document.querySelector('#dialog-new-smile form .link-uploader')
+    };
+    if(this.uploaders.file){
+        this.uploaders.file.addEventListener('change', onfile);
+    }
+    if(this.form.uploader) {
+        for(var i=0; i<this.form.uploader.length; i++){
+            this.form.uploader[i].addEventListener('change', this._setUploaderEvent.bind(this));
+        }
+    }
 };
 generator.SmileDialog.prototype = Object.create(dialogs.Dialog.prototype);
 generator.SmileDialog.prototype.constructor = generator.SmileDialog;
 
 
-generator.SmileDialog.prototype.refresh = function(){
+generator.SmileDialog.prototype._setUploaderEvent = function(event){
+    this.setUploader(event.target.value); // FIXME: нужно подружить this и bind
+};
+
+
+generator.SmileDialog.prototype.setUploader = function(uploader){
+    if(uploader == this.current_uploader || !this.uploaders[uploader]) return;
+    this.uploaders[this.current_uploader].style.display = 'none';
+    this.uploaders[uploader].style.display = '';
+    this.current_uploader = uploader;
+    this.refreshFile();
+};
+
+
+generator.SmileDialog.prototype.clearPreview = function(){
+    var f = this.form;
+    var preview = f.querySelector('.new-smile-preview');
+    preview.src = 'data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=';
+    preview.width = 0;
+    preview.height = 0;
+    f.w.value = '';
+    f.h.value = '';
+};
+
+
+generator.SmileDialog.prototype.setPreviewUrl = function(url){
     var f = this.form;
     var preview = f.querySelector('.new-smile-preview');
 
-    if(preview.src != f.url.value){
-        var img = document.createElement('img');
-        img.onload = function(){
-            preview.src = img.src;
-            preview.width = img.width;
-            preview.height = img.height;
-            f.w.value = img.width;
-            f.h.value = img.height;
-        };
-        img.onerror = function(){
-            preview.src = 'data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=';
-            preview.width = 0;
-            preview.height = 0;
-            f.w.value = '';
-            f.h.value = '';
-        };
-        img.src = f.url.value;
-        return;
-    }
+    var img = document.createElement('img');
+    img.onload = function(){
+        preview.src = img.src;
+        preview.width = img.width;
+        preview.height = img.height;
+        f.w.value = img.width;
+        f.h.value = img.height;
+    };
+    img.onerror = this.clearPreview.bind(this);
+    img.src = url;
+};
+
+
+generator.SmileDialog.prototype.refreshFile = function(){
+    var f = this.form;
+    var preview = f.querySelector('.new-smile-preview');
+
+    if(this.current_uploader == 'link'){
+        if(preview.src == f.url.value) return;
+        if(f.url.value.length < 9) {
+            this.clearPreview();
+            return;
+        }
+        this.setPreviewUrl(f.url.value);
+        
+    }else if(this.current_uploader == 'file'){
+        if(!f.file.files || !f.file.files[0]){
+            this.clearPreview();
+            return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(){
+            this.setPreviewUrl(reader.result);
+        }.bind(this);
+        reader.onerror = function(){
+            this.clearPreview();
+        }.bind(this);
+        reader.readAsDataURL(f.file.files[0]);
+    };
+};
+
+
+generator.SmileDialog.prototype.refresh = function(){
+    var f = this.form;
+
+    var preview = f.querySelector('.new-smile-preview');
+    var aspect = preview.width / preview.height;
+    var save_aspect = f.save_aspect.checked;
 
     var w = parseInt(f.w.value);
-    if(!isNaN(w) && w > 0) preview.width = w;
+    if(!isNaN(w) && w > 0 && preview.width != w){
+        preview.width = w;
+        if(save_aspect){
+            preview.height = Math.round(w / aspect);
+            f.h.value = preview.height;
+        }
+    }
 
     var h = parseInt(f.h.value);
-    if(!isNaN(h) && h > 0) preview.height = h;
+    if(!isNaN(h) && h > 0 && preview.height != h){
+        preview.height = h;
+        if(save_aspect){
+            preview.width = Math.round(h * aspect);
+            f.w.value = preview.width;
+        }
+    }
 };
 
 
 generator.SmileDialog.prototype.onsubmit = function(){
     var f = this.form;
-    if(!f.url.value || f.url.value.length < 9) return this.error('Надо бы ссылку на смайлик');
-    if(f.url.value.length > 512) return this.error('Длинновата ссылка, перезалейте на что-нибудь поадекватнее');
+    if(this.current_uploader == 'link'){
+        if(!f.url.value || f.url.value.length < 9) return this.error('Надо бы ссылку на смайлик');
+        if(f.url.value.length > 512) return this.error('Длинновата ссылка, перезалейте на что-нибудь поадекватнее');
+    }else if(this.current_uploader == 'file'){
+        if(!f.file.files || !f.file.files[0]) return this.error('Надо бы выбрать файл');
+    }
     var w = parseInt(f.w.value);
     var h = parseInt(f.h.value);
     if(isNaN(w) || w < 1 || isNaN(h) || h < 1) return this.error('Размеры смайлика кривоваты');
 
-    var id = generator.addCustomSmile(f.url.value, w, h);
-    if(id == null) return this.error('Что-то пошло не так');
-    dialogs.close(this.name);
+    var onend = function(){
+        this.btn.disabled = false;
+        dialogs.close(this.name);
+    }.bind(this);
+
+    if(this.current_uploader == 'link'){
+        generator.addCustomSmile({url: f.url.value, w: w, h: h}, true, onend);
+    }else if(this.current_uploader == 'file'){
+        generator.addCustomSmile({file: f.file.files[0], w: w, h: h}, true, onend);
+    }
+    this.btn.disabled = true;
 };
 
 
@@ -166,6 +263,11 @@ generator.SmilepackDialog = function(options){
     this.container = document.getElementById('dialog-save');
     this.processingElement = this.container.querySelector('.processing');
     this.savedElement = this.container.querySelector('.saved');
+
+    this.beginElement = this.processingElement.querySelector('.processing-begin');
+    this.endElement = this.processingElement.querySelector('.processing-end');
+    this.smileCurrentElement = this.beginElement.querySelector('.smile-current');
+    this.smilesCountElement = this.beginElement.querySelector('.smiles-count');
 };
 generator.SmilepackDialog.prototype = Object.create(dialogs.Dialog.prototype);
 generator.SmilepackDialog.prototype.constructor = generator.SmilepackDialog;
@@ -175,8 +277,22 @@ generator.SmilepackDialog.prototype.open = function(){
     this.processingElement.style.display = '';
     this.savedElement.style.display = 'none';
     if(this.container.classList.contains('smp-saved')) this.container.classList.remove('smp-saved');
+    this.onprogress(0, 0);
     this.show();
     return true;
+};
+
+
+generator.SmilepackDialog.prototype.onprogress = function(smile_current, smiles_count){
+    if(smile_current >= smiles_count){
+        this.beginElement.style.display = 'none';
+        this.endElement.style.display = '';
+        return;
+    }
+    this.beginElement.style.display = '';
+    this.endElement.style.display = 'none';
+    this.smileCurrentElement.textContent = smile_current + 1;
+    this.smilesCountElement.textContent = smiles_count;
 };
 
 

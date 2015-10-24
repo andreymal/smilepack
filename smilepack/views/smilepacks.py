@@ -11,6 +11,7 @@ from ..models import SmilePack, SmilePackCategory, Icon
 from ..utils import userscript_parser
 from .utils import user_session, json_answer, default_crossdomain
 from ..db import db_session
+from ..utils.exceptions import BadRequestError
 
 
 smilepacks = Blueprint('smilepacks', __name__)
@@ -55,6 +56,7 @@ def download_compat(smp_id):
             abort(404)
         result = render_template(
             'smilepack_classic.js',
+            pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
             pack_json_compat=smp.bl.as_json_compat(),
             host=request.host,
             generator_url=url_for('pages.generator', smp_id=None, _external=True),
@@ -77,7 +79,7 @@ def download_compat(smp_id):
 def create(session_id, first_visit):
     r = request.json
     if not r:
-        raise jsonschema.ValidationError('Empty request')
+        raise BadRequestError('Empty request')
 
     pack = SmilePack.bl.create(
         session_id,
@@ -85,7 +87,7 @@ def create(session_id, first_visit):
         r.get('categories'),
         name=r.get('name'),
         description=r.get('description'),
-        lifetime=r.get('lifetime')
+        lifetime=r.get('lifetime'),
     )
 
     deletion_date = pack.bl.get_deletion_date()
@@ -107,7 +109,7 @@ def import_userscript():
         return {'categories': [], 'notice': 'No file'}
     if request.files['file'].content_length > 512 * 1024:
         return {'categories': [], 'notice': 'Too big file'}
-    data = request.files['file'].stream.read().decode('utf-8', 'replace').replace('\r', '')
+    data = request.files['file'].stream.read().decode('utf-8-sig', 'replace').replace('\r', '')
 
     with db_session:
         try:

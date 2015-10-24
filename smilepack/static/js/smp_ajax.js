@@ -26,20 +26,32 @@ var ajax = {
         }
 
         x.onreadystatechange = function(){
+            var data;
+            var error = false;
             if(x.readyState != 4) return;
+
             if(x.status >= 400){
-                if(options.onerror) options.onerror(x.responseText, x);
+                error = true;
+                if(options.onerror){
+                    data = x.responseText;
+                    if(options.format == 'json' && data.length > 1 && data[0] == '{'){
+                        try{
+                            data = JSON.parse(x.responseText);
+                        }catch(e){}
+                    }
+                    options.onerror(data, x);
+                }
+
             }else{
-                var data;
                 if(options.format == 'json'){
-                    if(typeof JSON != 'undefined') data = JSON.parse(x.responseText);
-                    else data = eval('(' + x.responseText + ')');
+                    data = JSON.parse(x.responseText);
                 }else{
                     data = x.responseText;
                 }
                 if(options.onload) options.onload(data, x);
             }
-            if(options.onend) options.onend(x);
+
+            if(options.onend) options.onend(error, data, x);
         };
 
         x.send(options.data || null);
@@ -93,6 +105,34 @@ var ajax = {
             onerror: onerror,
             onend: onend,
             data: new FormData(form)
+        });
+    },
+
+    create_smile: function(data, onload, onerror, onend){
+        return this.request({
+            method: 'POST',
+            url: '/smiles/',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify(data),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    upload_smile: function(data, onload, onerror, onend){
+        var fdata = new FormData();
+        for(var x in data) fdata.append(x, data[x]);
+
+        return this.request({
+            method: 'POST',
+            url: '/smiles/',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: fdata
         });
     }
 };

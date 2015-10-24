@@ -1,7 +1,7 @@
 {% raw %}// ==UserScript==
 // @name         Smile-O-Pack
 // @version      1.21
-// @description  Смайлопак
+// @description  Смайлопак «{% endraw %}{{ pack_name }}{% raw %}»
 // @include      http://*/*
 // @include      https://*/*
 // @match        http://*/*

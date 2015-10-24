@@ -4,6 +4,15 @@
 from pony import orm
 from pony.orm import Database, db_session, commit, rollback, flush
 
-__all__ = ['orm', 'db', 'db_session', 'commit', 'rollback', 'flush', 'get', 'insert']
 
 db = Database()
+
+
+def configure_for_app(app):
+    db.bind(
+        app.config['DATABASE_ENGINE'],
+        **app.config['DATABASE']
+    )
+    db.generate_mapping(create_tables=True)
+    if app.config['SQL_DEBUG']:
+        orm.sql_debug(True)

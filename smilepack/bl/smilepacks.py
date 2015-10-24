@@ -12,6 +12,7 @@ from flask import current_app
 from .utils import BaseBL
 from ..utils.urls import hash_url
 from .. import schemas, db
+from ..utils.exceptions import JSONValidationError
 
 
 class SmilePackBL(BaseBL):
@@ -25,9 +26,16 @@ class SmilePackBL(BaseBL):
         packs = [pack for pack in packs if not pack.lifetime or pack.created_at + timedelta(0, pack.lifetime) >= datetime.utcnow()]
         return packs
 
-    def create(self, session_id, smiles, categories, name=None, description=None, lifetime=None):
-        jsonschema.validate(smiles, schemas.smilepack_smiles_schema)
-        jsonschema.validate(categories, schemas.smilepack_categories_schema)
+    def create(self, session_id, smiles, categories, name=None, description=None, lifetime=None, user_addr=None, validate=True):
+        if validate:
+            try:
+                jsonschema.validate(smiles, schemas.smilepack_smiles_schema)
+            except jsonschema.ValidationError as exc:
+                raise JSONValidationError(exc)
+            try:
+                jsonschema.validate(categories, schemas.smilepack_categories_schema)
+            except jsonschema.ValidationError as exc:
+                raise JSONValidationError(exc)
 
         try:
             lifetime = max(0, int(lifetime)) if lifetime is not None else 0
@@ -51,20 +59,16 @@ class SmilePackBL(BaseBL):
                 })
                 category_names.append(x['category_name'])
 
-        from ..models import SmilePackCategory, Smile, SmilePackSmile, SmileUrl, Icon
+        from ..models import SmilePackCategory, Smile, SmilePackSmile, Icon
 
         # Загружаем имеющиеся смайлики
         smile_ids = [s['id'] for s in smiles if s.get('id')]
-        db_smiles = {ds.id: ds for ds in Smile.select(lambda x: x.id in smile_ids)}
+        db_smiles = {ds.id: ds for ds in Smile.select(lambda x: x.id in smile_ids)} if smile_ids else {}
 
         # Загружаем имеющиеся иконки
         first_icon = Icon.select().first()
         icon_ids = set((x.get('icon') or {}).get('id', 0) for x in categories)
-        db_icons = {di.id: di for di in Icon.select(lambda x: x.id in icon_ids)}
-
-        # Загружаем смайлики по урлам, если таковые имеются
-        urls = [x['url'] for x in smiles if x.get('id') is None and x.get('url')]
-        smile_urls = dict(zip(urls, Smile.bl.search_by_urls(urls)))
+        db_icons = {di.id: di for di in Icon.select(lambda x: x.id in icon_ids)} if icon_ids else {}
 
         # Создаём смайлопак
         pack = self._model()(
@@ -72,8 +76,10 @@ class SmilePackBL(BaseBL):
             user_cookie=session_id,
             name=str(name) if name else '',
             description=str(description) if description else '',
-            lifetime=lifetime or None,
+            lifetime=lifetime or 0,
         )
+        if not smiles and not categories:
+            return pack
         pack.flush()
 
         # Создаём категории смайлопака
@@ -88,49 +94,28 @@ class SmilePackBL(BaseBL):
             c.flush()
             db_categories[c.name] = c
 
-        # Добавляем или создаём смайлики
-        smiles_count = {x: 0 for x in db_categories.keys()}
-        new_smiles = []
+        # Добавляем смайлики
+        smile_ids = {x: [] for x in db_categories.keys()}
         for x in smiles:
             c = db_categories[x['category_name']]
 
             if x.get('id') in db_smiles:
                 smile = db_smiles[x['id']]
-            elif smile_urls.get(x.get('url')):
-                smile = smile_urls[x['url']]
             else:
-                if not x.get('url') or (not x['url'].startswith('http://') and not x['url'].startswith('https://')):
-                    continue  # TODO: сделать что-нибудь?
-                # TODO: перезалив урла себе
-                smile = Smile(
-                    category=None,
-                    user_addr=None,  # TODO:
-                    user_cookie=session_id,
-                    filename=x['url'].rstrip('/').rsplit('/', 1)[-1],
-                    width=x['w'],
-                    height=x['h'],
-                    custom_url=x['url'],
-                    tags_cache='',
-                )
-                smile.flush()
+                continue  # TODO: тоже сделать что-нибудь?
 
-                # Сохраняем инфу о урле, дабы не плодить дубликаты смайликов
-                SmileUrl(
-                    url=x['url'],
+            if smile.id not in smile_ids[x['category_name']]:
+                # FIXME: тут ОЧЕНЬ много insert-запросов
+                c.smiles.create(
                     smile=smile,
-                    url_hash=hash_url(x['url'])
-                ).flush()
-                new_smiles.append(smile)
-
-            # FIXME: тут ОЧЕНЬ много insert-запросов
-            c.smiles.create(
-                smile=smile,
-                order=smiles_count[x['category_name']]
-            )
-            smiles_count[x['category_name']] += 1
+                    order=len(smile_ids[x['category_name']]),
+                    width=x['w'] if x.get('w') and x['w'] != smile.width else None,
+                    height=x['h'] if x.get('h') and x['h'] != smile.height else None,
+                )
+                smile_ids[x['category_name']].append(smile.id)
         db.flush()
         current_app.cache.set('smilepacks_count', None, timeout=1)
-        current_app.logger.info('Created smilepack %s with %d new smiles', pack.hid, len(new_smiles))
+        current_app.logger.info('Created smilepack %s (%d smiles)', pack.hid, sum(len(x) for x in smile_ids.values()))
 
         return pack
 
@@ -200,8 +185,8 @@ class SmilePackCategoryBL(BaseBL):
         if with_smiles:
             from ..models import SmilePackSmile
             jcat['smiles'] = []
-            for cat_order, cat_id, smile_id, custom_url, width, height, filename in db.orm.select(
-                (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.smile.filename)
+            for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename, tags_cache in db.orm.select(
+                (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.width, c.height, c.smile.filename, c.smile.tags_cache)
                 for c in SmilePackSmile
                 if c.category == cat
             ).order_by(1):
@@ -211,8 +196,9 @@ class SmilePackCategoryBL(BaseBL):
                     # FIXME: дублирует логику из сущности Smile; нужно как-то придумать запрос
                     # с получением этой самой сущности, не похерив джойн (аналогично в as_json_compat)
                     'url': custom_url or current_app.config['SMILE_URL'].format(id=smile_id, filename=filename),
-                    'w': width,
-                    'h': height
+                    'w': custom_width or width,
+                    'h': custom_height or height,
+                    'tags': tags_cache.split(',') if tags_cache else [],
                 })
 
         return jcat
@@ -230,16 +216,16 @@ class SmilePackCategoryBL(BaseBL):
             'smiles': []
         }
 
-        for cat_order, cat_id, smile_id, custom_url, width, height, filename in db.orm.select(
-            (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.smile.filename)
+        for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename in db.orm.select(
+            (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.width, c.height, c.smile.filename)
             for c in SmilePackSmile
             if c.category == cat
         ).order_by(1):
             jcat['smiles'].append({
                 'id': smile_id,
                 'url': custom_url or current_app.config['SMILE_URL'].format(id=smile_id, filename=filename),
-                'w': width,
-                'h': height
+                'w': custom_width or width,
+                'h': custom_height or height,
             })
 
         return jcat

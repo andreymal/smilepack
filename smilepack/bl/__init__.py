@@ -6,7 +6,9 @@ from .. import bl_registry
 
 
 bl_registry.register('bl.section', smiles.SectionBL)
+bl_registry.register('bl.subsection', smiles.SubSectionBL)
 bl_registry.register('bl.category', smiles.CategoryBL)
 bl_registry.register('bl.smile', smiles.SmileBL)
+bl_registry.register('bl.tag', smiles.TagBL)
 bl_registry.register('bl.smilepack', smilepacks.SmilePackBL)
 bl_registry.register('bl.smilepack_category', smilepacks.SmilePackCategoryBL)

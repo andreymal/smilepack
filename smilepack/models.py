@@ -38,6 +38,7 @@ class Section(db.Entity):
     subsections = orm.Set('SubSection')
     order = orm.Required(int, default=0)
     tags = orm.Set('Tag')
+    tag_synonyms = orm.Set('TagSynonym')
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
 
@@ -57,6 +58,8 @@ class SubSection(db.Entity):
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+
+    bl = Resource('bl.subsection')
 
     def before_update(self):
         self.updated_at = datetime.utcnow()
@@ -82,8 +85,8 @@ class Category(db.Entity):
 class Smile(db.Entity):
     """Смайлик, как из коллекции, так и пользовательский"""
     category = orm.Optional(Category, index=True)
-    filename = orm.Required(str, 128, index=True)
-    width = orm.Required(int)  # TODO: validations
+    filename = orm.Required(str, 128, index=True)  # индекс для поиска смайликов по готовым ссылкам
+    width = orm.Required(int)
     height = orm.Required(int)
     custom_url = orm.Optional(str, 512)
     description = orm.Optional(str, 16000)
@@ -92,6 +95,7 @@ class Smile(db.Entity):
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+    hashsum = orm.Optional(str, 128, index=True)
 
     user_addr = orm.Optional(str, 255, nullable=True, default=None)  # TODO: другой тип?
     user_cookie = orm.Optional(str, 64, nullable=True, default=None)
@@ -139,15 +143,20 @@ class Tag(db.Entity):
 
     orm.composite_key(section, name)
 
+    bl = Resource('bl.tag')
+
     def before_update(self):
         self.updated_at = datetime.utcnow()
 
 
 class TagSynonym(db.Entity):
     """Синоним тега смайлика (например, «twilight sparkle» -> «твайлайт спаркл»)"""
-    name = orm.Required(str, 64, index=True, unique=True)
+    section = orm.Required(Section, index=True)
+    name = orm.Required(str, 64, unique=True)
     tag = orm.Required(Tag)
     tag_name = orm.Required(str, 64)  # экономим на джойне
+
+    orm.composite_key(section, name)
 
 
 class SmilePack(db.Entity):
@@ -190,3 +199,5 @@ class SmilePackSmile(db.Entity):
     category = orm.Required(SmilePackCategory)
     smile = orm.Required(Smile)
     order = orm.Required(int, default=0)
+    width = orm.Optional(int)
+    height = orm.Optional(int)

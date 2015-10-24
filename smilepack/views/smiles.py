@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from urllib.request import urlopen
+
 import jsonschema
-from flask import Blueprint, abort, request
+from flask import Blueprint, abort, request, send_from_directory
 
 from ..models import *
 from .utils import user_session, json_answer, default_crossdomain
 from ..utils import urls
 from ..db import db_session
+from ..utils.exceptions import BadRequestError
 
 
 smiles = Blueprint('smiles', __name__)
@@ -18,7 +21,7 @@ smiles = Blueprint('smiles', __name__)
 @json_answer
 @db_session
 def index():
-    return {'sections': Section.bl.get_with_categories()}
+    return {'sections': Section.bl.get_all_with_categories()}
 
 
 @smiles.route('/search/<int:section_id>')
@@ -36,7 +39,9 @@ def search(section_id):
     if not tags:
         return {'smiles': []}
 
-    result = section.bl.search_by_tags(tags)
+    tags_entities = section.bl.get_tags(tags)
+
+    result = section.bl.search_by_tags(set(x.name for x in tags_entities))
     result = {'smiles': [x.bl.as_json() for x in result]}
 
     # TODO: переделать более по-человечески
@@ -44,6 +49,8 @@ def search(section_id):
         s = set(tags)
         # берём только те смайлики, в которых есть все-все теги из запроса
         result['smiles'] = [x for x in result['smiles'] if not s - set(x['tags'])]
+
+    result['tags'] = [tag.bl.as_json() for tag in tags_entities]
 
     return result
 
@@ -72,16 +79,31 @@ def show(category):
     return {'smiles': cat.bl.get_smiles_as_json()}
 
 
-@smiles.route('/suggest', methods=['POST'])
+@smiles.route('/', methods=['POST'])
 @user_session
 @default_crossdomain(methods=['POST'])
 @json_answer
 @db_session
-def suggest(session_id, first_visit):
-    r = request.json
-    if not r:
-        raise jsonschema.ValidationError('Empty request')
+def create(session_id, first_visit):
+    r = dict(request.json or {})
+    if not r and request.form:
+        # multipart/form-data не json, приходится конвертировать
+        if request.form.get('w') and request.form['w'].isdigit():
+            r['w'] = int(request.form['w'])
+        if request.form.get('h') and request.form['h'].isdigit():
+            r['h'] = int(request.form['h'])
 
-    suggestion = SmileSuggestion.bl.create(session_id, r)
+    if request.files.get('file'):
+        r['file'] = request.files['file']
 
-    return {'id': suggestion.id}
+    elif not r.get('url'):
+        raise BadRequestError('Empty request')
+
+    return {'smile': Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).bl.as_json()}
+
+
+@smiles.route('/images/<path:filename>')
+def download(filename):
+    if not current_app.config['SMILES_DIRECTORY']:
+        abort(404)
+    return send_from_directory(current_app.config['SMILES_DIRECTORY'], filename)
