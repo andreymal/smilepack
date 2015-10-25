@@ -114,8 +114,12 @@ def import_userscript():
 
     with db_session:
         try:
-            categories, cat_id, sm_id = userscript_parser.parse(data)
+            categories, cat_id, sm_id, missing = userscript_parser.parse(data)
         except userscript_parser.UserscriptParserError as exc:
             return {'categories': [], 'notice': str(exc)}
 
-    return {'categories': categories, 'ids': ([cat_id], sm_id), 'notice': None}
+    return {
+        'categories': categories,
+        'ids': ([cat_id], sm_id),
+        'notice': 'Missing smiles count: {}'.format(missing) if missing > 0 else None
+    }

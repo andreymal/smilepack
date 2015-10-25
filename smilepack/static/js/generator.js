@@ -104,7 +104,10 @@ var generator = {
             if(interactive) alert(data.notice || 'Кажется, что-то пошло не так');
             return;
         }
-        if(data.notice) console.log(data.notice);
+        if(data.notice){
+            if(interactive) alert(data.notice);
+            console.log(data.notice);
+        }
 
         this.replaceSmilepackData({categories: data.categories}, data.ids);
     },
@@ -280,7 +283,7 @@ var generator = {
     addCustomSmile: function(smile_data, interactive, onend){
         var categoryId = generator.smilepack.getSelectedCategory(0);
         var onload = function(data){
-            this._addCustomSmileEvent(data, smile_data, categoryId, interactive);
+            this._addCustomSmileEvent(data, smile_data, categoryId, interactive, onend);
         }.bind(this);
 
         if(smile_data.url){
@@ -288,23 +291,24 @@ var generator = {
                 url: smile_data.url,
                 w: smile_data.w,
                 h: smile_data.h
-            }, onload, this.onerror.bind(this), onend);
+            }, onload, this.onerror.bind(this));
             return true;
         }else if(smile_data.file){
             ajax.upload_smile({
                 file: smile_data.file,
                 w: smile_data.w,
                 h: smile_data.h
-            }, onload, this.onerror.bind(this), onend);
+            }, onload, this.onerror.bind(this));
         }else {
             return false;
         }
     },
 
-    _addCustomSmileEvent: function(data, smile_data, categoryId, interactive){
+    _addCustomSmileEvent: function(data, smile_data, categoryId, interactive, onend){
         if(!data.smile) return this.onerror(data);
         if(this.usedSmiles.indexOf(data.smile.id) >= 0){
             if(interactive) alert('Этот смайлик уже используется!');
+            onend(false, data.smile.id);
             return;
         }
 
@@ -321,6 +325,7 @@ var generator = {
             this.modified = true;
             if(!data.created && data.smile.category != null) this.collection.setDragged(data.smile.id, true);
         }
+        onend(true, id);
     },
 
     storageSave: function(interactive){
@@ -438,7 +443,8 @@ var generator = {
                 get_smiles_func: this.set_collection_smiles.bind(this),
                 onchange: this.onchange.bind(this),
                 ondropto: this.dropToCollectionEvent.bind(this),
-                message: 'Выберите раздел для просмотра смайликов'
+                message: 'Выберите раздел для просмотра смайликов',
+                additionalOnTop: true
             }
         );
 

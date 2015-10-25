@@ -212,9 +212,9 @@ generator.SmileDialog.prototype.onsubmit = function(){
     var h = parseInt(f.h.value);
     if(isNaN(w) || w < 1 || isNaN(h) || h < 1) return this.error('Размеры смайлика кривоваты');
 
-    var onend = function(){
+    var onend = function(added, smile_id){
         this.btn.disabled = false;
-        dialogs.close(this.name);
+        if(added) dialogs.close(this.name);
     }.bind(this);
 
     if(this.current_uploader == 'link'){

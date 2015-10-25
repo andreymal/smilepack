@@ -426,7 +426,11 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
             var dom_smiles = document.createElement('div');
             dom_smiles.className = 'smiles-list';
             dom_smiles.style.display = 'none';
-            this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
+            if(this.options.additionalOnTop){
+                this._dom.container.appendChild(dom_smiles);
+            }else{
+                this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
+            }
             category.smilesDom = dom_smiles;
             for(var i=0; i<category.smileIds.length; i++) this._addSmileDom(category.smileIds[i]);
         }

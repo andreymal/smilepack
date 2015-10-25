@@ -45,6 +45,7 @@ def parse(data):
     categories = []
     cat_id = 0
     sm_id = 0
+    missing = 0
     for section in sections:
         icon_ids = [x['iconId'] for x in section['categories'] if x.get('iconId') is not None]
         icons = {x.id: {'id': x.id, 'url': x.url} for x in Icon.select(lambda x: x.id in icon_ids)}
@@ -86,8 +87,7 @@ def parse(data):
                         'w': smile['w'],
                         'h': smile['h']
                     }
-                else:
-                    # TODO: перезалив url себе
+                elif smile.get('url'):
                     sm_id -= 1
                     new_smile = {
                         'id': sm_id,
@@ -95,8 +95,10 @@ def parse(data):
                         'w': smile['w'],
                         'h': smile['h']
                     }
+                else:
+                    missing += 1
                 new_category['smiles'].append(new_smile)
 
             categories.append(new_category)
 
-    return categories, cat_id, sm_id
+    return categories, cat_id, sm_id, missing

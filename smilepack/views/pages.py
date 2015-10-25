@@ -19,7 +19,7 @@ def index(session_id, first_visit):
     # TODO: перенести это в bl
     smiles_count = current_app.cache.get('smiles_count')
     if smiles_count is None:
-        smiles_count = Smile.select(lambda x: x.category is not None).count()
+        smiles_count = Smile.select(lambda x: x.category is not None and x.approved_at is not None).count()
         current_app.cache.set('smiles_count', smiles_count, timeout=300)
 
     # TODO: переделать с учётом удаления старых смайлопаков
