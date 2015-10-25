@@ -160,15 +160,17 @@ var generator = {
         dialogs.get('smilepack').onprogress(this.saveStatus.createPos, this.saveStatus.smilesToCreate.length);
         if(this.saveStatus.createPos < this.saveStatus.smilesToCreate.length){
             var pos = this.saveStatus.createPos;
-            ajax.create_smile(
-                {
-                    url: this.saveStatus.smilesToCreate[pos].url,
-                    w: this.saveStatus.smilesToCreate[pos].w,
-                    h: this.saveStatus.smilesToCreate[pos].h
-                },
-                this._saveSmilepackProcessing.bind(this),
-                this._saveSmilepackProcessingSmileError.bind(this)
-            );
+            setTimeout(function(){
+                ajax.create_smile(
+                    {
+                        url: this.saveStatus.smilesToCreate[pos].url,
+                        w: this.saveStatus.smilesToCreate[pos].w,
+                        h: this.saveStatus.smilesToCreate[pos].h
+                    },
+                    this._saveSmilepackProcessing.bind(this),
+                    this._saveSmilepackProcessingSmileError.bind(this)
+                );
+            }.bind(this), 350);
             return;
         }
 
