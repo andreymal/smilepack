@@ -87,7 +87,7 @@ def create(session_id, first_visit):
         r.get('categories'),
         name=r.get('name'),
         description=r.get('description'),
-        lifetime=r.get('lifetime'),
+        lifetime=r.get('lifetime') if current_app.config['ALLOW_LIFETIME_SELECT'] else 0,
         user_addr=request.remote_addr,
     )
 

@@ -47,6 +47,7 @@ class Config(object):
     SYMBOLS_FOR_HID = '0123456789abcdefghijklmnopqrstuvwxyz'
     HID_LENGTH = 6
     MAX_LIFETIME = 0
+    ALLOW_LIFETIME_SELECT = True
 
     SMILE_URL = '/smiles/images/{filename}'
     ICON_URL = 'https://andreymal.org/files/ava.png'
@@ -68,6 +69,8 @@ class Config(object):
     ALLOW_CUSTOM_URLS = True
     MIN_SMILE_SIZE = (4, 4)
     MAX_SMILE_SIZE = (1024, 1024)
+
+    ISSUE_REPORT_LINK = None
 
 
 class Development(Config):

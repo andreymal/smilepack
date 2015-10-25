@@ -18,11 +18,17 @@
                 <li id="action-toggle-dark">Поменять фон</li>
             </ul>
         </div>
+        <div class="header-right">
+            {% if config['ISSUE_REPORT_LINK'] -%}
+                <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">Сообщить о проблеме</a>
+            {%- endif %}
+        </div>
         <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">Смайлопак</a></div>
     </div>
 
     <div class="settings">
     Название: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="Опционально" />
+    {% if config['ALLOW_LIFETIME_SELECT'] -%}
     Удалить с сервера через:
     <select id="lifetime" autocomplete="off">
         <option{{ ' selected' if not pack or lifetime == 1800 else '' }} value="1800">Полчаса</option>
@@ -32,6 +38,7 @@
         <option{{ ' selected' if lifetime == 604800 else '' }} value="604800">1 неделя</option>
         {% if config['MAX_LIFETIME'] == 0 %}<option{{ ' selected' if lifetime == 0 or lifetime == None else '' }} value="0">Оставить навсегда</option>{% endif %}
     </select>
+    {%- endif %}
     {% if pack %}
     <button class="button button-primary action-save">Сохранить новый смайлопак</button>
     <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.hid) }}" target="_blank" id="smp-last-url">Скачать последнюю сохранённую версию</a>

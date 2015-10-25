@@ -25,6 +25,7 @@ class Local(Development):
     API_ALLOW_CREDENTIALS_FOR = ['*']
 
     MAX_LIFETIME = 3600 * 7 * 24
+    # ALLOW_LIFETIME_SELECT = False
 
     UPLOAD_METHOD = 'directory'
     SMILES_DIRECTORY = '/path/to/project/smilepack/media/smiles/'

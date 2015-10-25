@@ -434,6 +434,20 @@ border-bottom: 0.2em solid #ccf;
     line-height: 2em;
 }
 
+.header-right {
+    float: right;
+    font-size: 0.9em;
+    margin-right: 14.5em;
+}
+
+.header .report-link, .header .report-link:visited {
+    color: #777;
+}
+
+.header .report-link:hover {
+    color: #eee;
+}
+
 .actions-menu {
     position: absolute;
     right: 0.25em;

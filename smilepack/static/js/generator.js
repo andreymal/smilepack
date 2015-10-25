@@ -135,9 +135,11 @@ var generator = {
 
         dialogs.open('smilepack');
 
+        var lifetime_elem = document.getElementById('lifetime');
+
         this.saveStatus = {
             name: document.getElementById('name').value || undefined,
-            lifetime: parseInt(document.getElementById('lifetime').value),
+            lifetime: lifetime_elem ? parseInt(lifetime_elem.value) : 0,
             categories: categories,
             smiles: smiles,
             smilesToCreate: smilesToCreate,
