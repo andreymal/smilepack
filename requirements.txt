@@ -1,11 +1,1 @@
-Flask
-Flask-Babel
-Flask-Script
-pony
-jsonschema
-pytz
-mysqlclient
-python3-memcached
-Flask-Limiter
-pymemcache  # for limiter
-Pillow
+.

@@ -24,7 +24,7 @@ class Config(object):
     LOGGER_LEVEL = logging.INFO
     LOGGER_STDERR = True
 
-    RATELIMIT_ENABLED = True
+    RATELIMIT_ENABLED = False
     RATELIMIT_STORAGE_URL = 'memcached://127.0.0.1:11211'
     RATELIMIT_GLOBAL = '9/3second'
 
@@ -50,7 +50,7 @@ class Config(object):
     ALLOW_LIFETIME_SELECT = True
 
     SMILE_URL = '/smiles/images/{filename}'
-    ICON_URL = 'https://andreymal.org/files/ava.png'
+    ICON_URL = '/smiles/images/{filename}'
 
     # Замените это под свои ссылки
     URL_PARSER_REGEX = [

@@ -285,20 +285,24 @@ var generator = {
         var onload = function(data){
             this._addCustomSmileEvent(data, smile_data, categoryId, interactive, onend);
         }.bind(this);
+        var onerror = function(data, x){
+            this.onerror(data, x);
+            if(onend) onend(false, null);
+        }.bind(this);
 
         if(smile_data.url){
             ajax.create_smile({
                 url: smile_data.url,
                 w: smile_data.w,
                 h: smile_data.h
-            }, onload, this.onerror.bind(this));
+            }, onload, onerror);
             return true;
         }else if(smile_data.file){
             ajax.upload_smile({
                 file: smile_data.file,
                 w: smile_data.w,
                 h: smile_data.h
-            }, onload, this.onerror.bind(this));
+            }, onload, onerror);
         }else {
             return false;
         }

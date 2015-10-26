@@ -20,11 +20,16 @@ generator.CategoryDialog.prototype.onsubmit = function(){
 
     // Safari не умеет в f.[radio].value
     var value, url;
-    for(var i=0; i<f.icon.length; i++){
-        if(!f.icon[i].checked && i != 0) continue;
-        value = f.icon[i].value;
-        url = f.icon[i].dataset.valueUrl;
-        if(f.icon[i].checked) break;
+    if(f.icon.length){
+        for(var i=0; i<f.icon.length; i++){
+            if(!f.icon[i].checked && i != 0) continue;
+            value = f.icon[i].value;
+            url = f.icon[i].dataset.valueUrl;
+            if(f.icon[i].checked) break;
+        }
+    }else{
+        value = f.icon.value;
+        url = f.icon.dataset.valueUrl;
     }
 
     var id = null;
@@ -59,7 +64,7 @@ generator.CategoryDialog.prototype.open = function(options){
         this.form.category.value = options.category.id;
     }else{
         this.form.name.value = '';
-        this.form.icon.value = this.form.icon[0].value;
+        if(this.form.icon[0]) this.form.icon.value = this.form.icon[0].value;
         this.form.category.value = "";
     }
     this.show();

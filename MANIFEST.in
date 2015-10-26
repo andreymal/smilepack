@@ -1,0 +1,2 @@
+recursive-include smilepack/templates *
+recursive-include smilepack/static *

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from smilepack.settings import Development
+from smilepack import settings
 
 
-class Local(Development):
+class Local(settings.Development):
     DATABASE_ENGINE = 'mysql'
     DATABASE = {
         'host': '127.0.0.1',
@@ -13,6 +13,8 @@ class Local(Development):
         'passwd': '123456',
         'db': 'smilepack',
     }
+
+    RATELIMIT_ENABLED = True  # требует memcached
 
     URL_PARSER_REGEX = [
         {

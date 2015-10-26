@@ -21,7 +21,7 @@ def create_app(minimal=False):
     app = Flask(__name__)
     app.env = os.getenv('SMILEPACK_SETTINGS', None) or 'smilepack.settings.Development'
     app.config.from_object(app.env)
-    db.configure_for_app(app)
+    db.configure_for_app(app, db_seed=True)
 
     app.limiter = Limiter(app)
     app.logger.setLevel(app.config['LOGGER_LEVEL'])
