@@ -15,7 +15,7 @@ module.exports = {
     output: {
         path: "./smilepack/public",
         publicPath: "/assets/",
-        filename: "[hash:8]/[name].js"
+        filename: "[name].[hash:8].js"
     },
     resolve: {
         extensions: ["", ".js", ".styl"]
@@ -24,15 +24,19 @@ module.exports = {
         loaders: [
             {
                 test: /\.styl/i,
-                loader: ExtractTextPlugin.extract("css!stylus")
+                loader: ExtractTextPlugin.extract("css-loader!stylus-loader")
+            },
+            {
+                test: /\.(jpe?g|png|gif|svg([\?]?.*))$/i,
+                loader: 'file?context=' + root + '&name=[name].[hash:8].[ext]'
             }
         ]
     },
     plugins: [
-        new ExtractTextPlugin("[hash:8]/[name].css"),
+        new ExtractTextPlugin("[name].[hash:8].css"),
         new ManifestRevisionPlugin(path.join("smilepack", "manifest.json"), {
             rootAssetPath: root,
-            ignorePaths: ["/styles", "/scripts"]
+            ignorePaths: ["/styles", "/scripts", "/images"]
         })
     ]
 };
