@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import math
 from urllib.request import urlopen
 
 import jsonschema
@@ -203,6 +204,36 @@ class SmileBL(BaseBL):
         current_app.logger.info('Created smile %d (%s %dx%d)', smile.id, smile.url, smile.width, smile.height)
         return smile
 
+    def get_all_collection_smiles_count(self):
+        smiles_count = current_app.cache.get('smiles_count')
+        if smiles_count is None:
+            smiles_count = self._model().select(lambda x: x.category is not None and x.approved_at is not None).count()
+            current_app.cache.set('smiles_count', smiles_count, timeout=300)
+        return smiles_count
+
+    def get_last_approved(self, count=100):
+        Smile = self._model()
+        return Smile.select(lambda x: x.category is not None and x.approved_at is not None).order_by(Smile.approved_at.desc(), Smile.id.desc())[:count]
+
+    def get_last_approved_as_json(self, count=100):
+        if count <= 0:
+            return []
+
+        query_count = count if count > 100 else 100
+        query_count = math.ceil(query_count // 25) * 25
+
+        smiles = current_app.cache.get('last_smiles_{}'.format(query_count))
+        if smiles is not None:
+            return smiles[:count]
+
+        smiles = self.get_last_approved(query_count)
+        if query_count > 1000:
+            return [x.as_json(full_info=True) for x in smiles[:count]]
+
+        smiles = [x.bl.as_json(full_info=True) for x in smiles]
+        current_app.cache.set('last_smiles_{}'.format(query_count), smiles, timeout=300)
+        return smiles[:count]
+
     def search_by_hashsum(self, hashsum):
         return self._model().select(lambda x: x.hashsum == hashsum).first()
 
@@ -300,7 +331,7 @@ class SmileBL(BaseBL):
         from ..models import TagSynonym
 
         tag = str(tag or '').strip().lower()
-        
+
         smile = self._model()
         tag_obj = smile.tags.select(lambda x: x.name == tag).first()
         if not tag_obj:

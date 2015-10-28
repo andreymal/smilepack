@@ -24,9 +24,11 @@ var generator = {
         var origId = parseInt(options.element.dataset.id);
         if(this.usedSmiles.indexOf(origId) >= 0) return;
 
+        this.collection.setSelected(origId, false);
         var smile = this.collection.getSmileInfo(origId);
         smile.dragged = true;
         var id = this.smilepack.addSmile(categoryId, smile);
+        if(options.dropPosition != null) this.smilepack.moveSmile(id, options.dropPosition);
         if(id === origId){
             this.usedSmiles.push(origId);
             this.modified = true;
@@ -209,6 +211,11 @@ var generator = {
     },
 
     savedSmilepackEvent: function(data){
+        if(data.path && window.history){
+            document.title = document.getElementById('name').value;
+            window.history.replaceState(null, null, data.path + location.hash);
+        }
+
         var options = {savedData: data};
         dialogs.get('smilepack').onsave(options);
 
@@ -448,7 +455,10 @@ var generator = {
                 onchange: this.onchange.bind(this),
                 ondropto: this.dropToCollectionEvent.bind(this),
                 message: 'Выберите раздел для просмотра смайликов',
-                additionalOnTop: true
+                additionalOnTop: true,
+                selectable: false,
+                selectableDragged: false,
+                useCategoryLinks: true
             }
         );
 
@@ -462,7 +472,8 @@ var generator = {
                 container: document.getElementById('smilepack'),
                 ondropto: this.dropToSmilepackEvent.bind(this),
                 onaction: this.onaction.bind(this),
-                message: this.smilepackData ? 'Выберите категорию смайлопака для просмотра' : 'Добавьте категорию здесь и заполните её перетаскиванием смайликов из коллекции'
+                message: this.smilepackData ? 'Выберите категорию смайлопака для просмотра' : 'Добавьте категорию здесь и заполните её перетаскиванием смайликов из коллекции',
+                selectable: false
             }
         );
     },

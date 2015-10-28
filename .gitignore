@@ -1,6 +1,7 @@
 /env/
 __pycache__/
 *.pyc
+/smilepack.egg-info/
 /local_settings.py
 /fabfile.py
 /database.sqlite3

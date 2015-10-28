@@ -16,11 +16,7 @@ pages = Blueprint('pages', __name__)
 @user_session
 @db_session
 def index(session_id, first_visit):
-    # TODO: перенести это в bl
-    smiles_count = current_app.cache.get('smiles_count')
-    if smiles_count is None:
-        smiles_count = Smile.select(lambda x: x.category is not None and x.approved_at is not None).count()
-        current_app.cache.set('smiles_count', smiles_count, timeout=300)
+    smiles_count = Smile.bl.get_all_collection_smiles_count()
 
     # TODO: переделать с учётом удаления старых смайлопаков
     smilepacks_count = current_app.cache.get('smilepacks_count')
@@ -37,6 +33,7 @@ def index(session_id, first_visit):
         smilepacks=smilepacks,
         smiles_count=smiles_count,
         smilepacks_count=smilepacks_count,
+        new_smiles_json=Smile.bl.get_last_approved_as_json()
     )
 
 
@@ -49,6 +46,7 @@ def generator(session_id, first_visit, smp_id):
         pack = SmilePack.bl.get_by_hid(smp_id)
         if not pack:
             abort(404)
+        pack.bl.add_view(request.remote_addr, session_id if not first_visit else None)
     else:
         pack = None
 

@@ -18,14 +18,16 @@ smilepacks = Blueprint('smilepacks', __name__)
 
 
 @smilepacks.route('/<smp_id>')
+@user_session
 @default_crossdomain()
 @json_answer
 @db_session
-def show(smp_id):
+def show(session_id, first_visit, smp_id):
     smp = SmilePack.bl.get_by_hid(smp_id)
     if not smp:
         abort(404)
 
+    smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
     return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
 
 
@@ -42,18 +44,21 @@ def show_category(smp_id, category_id):
 
 
 @smilepacks.route('/<smp_id>.compat.user.js')
+@user_session
 @db_session
-def download_compat(smp_id):
+def download_compat(session_id, first_visit, smp_id):
     ckey = 'compat_js_{}'.format(smp_id)
     result = current_app.cache.get(ckey)
+
+    smp = SmilePack.bl.get_by_hid(smp_id)
+    if not smp:
+        abort(404)
+    smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
 
     if result:
         # У memcached ограничение на размер данных, перестраховываемся
         result = zlib.decompress(result['zlib_data'])
     else:
-        smp = SmilePack.bl.get_by_hid(smp_id)
-        if not smp:
-            abort(404)
         result = render_template(
             'smilepack_classic.js',
             pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
@@ -97,6 +102,7 @@ def create(session_id, first_visit):
         'smilepack_id': pack.hid,
         'download_url': url_for('.download_compat', smp_id=pack.hid, _external=True),
         'view_url': url_for('pages.generator', smp_id=pack.hid, _external=True),
+        'path': url_for('pages.generator', smp_id=pack.hid),
         'deletion_date': deletion_date.strftime('%Y-%m-%dT%H:%M:%SZ') if deletion_date else None,
         'fancy_deletion_date': format_datetime(deletion_date) if deletion_date else None
     }

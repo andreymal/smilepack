@@ -10,7 +10,13 @@ pip3 install git+https://bitbucket.org/andreymal/smilepack.git
 smilepack runserver
 ```
 
-После этого будет создана база `database.sqlite3`. Адрес сайта `http://localhost:5000/`.
+После этого будет создана база `database.sqlite3` в текущем каталоге. Адрес сайта `http://localhost:5000/`.
+
+В production-окружении можно запускать через, например, gunicorn:
+
+```
+gunicorn -w 4 smilepack.wsgi
+```
 
 
 ## Конфигурация
@@ -20,6 +26,8 @@ smilepack runserver
 ```
 export SMILEPACK_SETTINGS=local_settings.Local
 ```
+
+Можно указать и любой другой объект любого другого Python-модуля, если он подходит.
 
 Для production-окружения не забудьте поменять наследование с `settings.Development` на `settings.Config`, чтобы отключить инструменты для отладки.
 
@@ -69,6 +77,12 @@ export SMILEPACK_SETTINGS=local_settings.Local
 * `PROXIES_COUNT` — указывает число прокси-серверов, находящимся перед приложением. Например, если используется nginx, который перенаправляет запросы на это приложение, то нужно указать `PROXIES_COUNT = 1`. Это требуется для корректного определения IP-адресов пользователей.
 
 * `MAX_CONTENT_LENGTH` — максимальный размер (в байтах) отправляемых приложению запросов (в том числе файлов; по умолчанию 4 МиБ). При использовании nginx не забудьте проверить ограничение и в его конфигурации тоже.
+
+* `ADMINS` – список e-mail, куда будут отправляться сообщения об ошибках.
+
+* `ERROR_EMAIL_FROM` – с какого адреса отправлять сообщения об ошибках.
+
+* `ERROR_EMAIL_HANDLER_PARAMS = {'mailhost': '127.0.0.1'}` – параметры для [logging.handlers.SMTPHandler](https://docs.python.org/3/library/logging.handlers.html#smtphandler), который будет отправлять сообщения об ошибках.
 
 Другие параметры, не указанные здесь, можно посмотреть самостоятельно в файле `smilepack/settings.py`.
 

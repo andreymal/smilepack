@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Смайлопак</title>
-    <link href="{{ url_for('static', filename='index.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ url_for_static('index.css') }}" rel="stylesheet" type="text/css" />
 </head>
 <body>
 
@@ -22,6 +22,15 @@
 </div>
 
 <div class="additional">
+    {%- if new_smiles_json|length >= 20 %}
+    <div class="new-smiles-container">
+        <div class="new-smiles-title">Новые смайлы:</div>
+        <div id="new-smiles">{% for smile in new_smiles_json %}
+            <a href="{{ url_for('pages.generator') }}#{{ smile['category'][0] }}"><img src="{{ smile['url'] }}" alt="" title="{{ smile['category'][1] }}" /></a>
+        {%- endfor %}</div>
+    </div>
+    {% endif -%}
+
     <div class="title">Что это?</div>
     <div class="column">
         Новый бэкенд смайлопака с классным API, написанный за полтора дня. Умеет в хранение смайлопаков и добавление новых смайликов пользователями, а также поиск по тегам!
@@ -31,6 +40,6 @@
         Оставленный без изменений юзерскрипт для встраивания смайлопака в веб-сайты. Пользуйтесь смайлопаком везде, где бы вы ни были!
     </div>
 </div>
-
+<script src="{{ url_for_static('js/index.js') }}"></script>
 </body>
 </html>

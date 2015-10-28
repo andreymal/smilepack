@@ -15,8 +15,10 @@ setup(
     version='0.1',
     description='Smilepack',
     author='andreymal',
+    author_email='andriyano-31@mail.ru',
     license='MIT',
     url='https://bitbucket.org/andreymal/smilepack',
+    platforms=['linux', 'osx', 'bsd'],
     packages=find_packages(),
     install_requires=[
         'Flask',

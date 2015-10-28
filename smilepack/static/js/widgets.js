@@ -19,6 +19,9 @@ widgets.Collection = function(hierarchy, options){
 
     /* Объекты со смайликами; нумерация общая для всех категорий */
     this._smiles = {};
+    this._selectedSmileIds = [];
+    this._lastSelectedSmileId = null;
+    this._smileMovePosId = null; /* для dragdrop */
     this._lastSmileId = 0;
 
     /* Выбранные категории на каджом из уровней */
@@ -73,6 +76,12 @@ widgets.Collection = function(hierarchy, options){
     }
     this._dom.container.appendChild(this._dom.additionalContainer);
 
+    /* Подсветка для перемещаемых смайликов */
+    this._dom.dropHint = document.createElement('div');
+    this._dom.dropHint.className = 'drop-hint';
+    this._dom.dropHint.style.display = 'none';
+    this._dom.container.appendChild(this._dom.dropHint);
+
     for(var i=0; i<this._depth; i++){
         this._categories.push({});
         this._lastIds.push(0);
@@ -107,8 +116,10 @@ widgets.Collection = function(hierarchy, options){
         {
             onstart: this._dragStart.bind(this),
             onmove: this._dragMove.bind(this),
+            onmoveto: this._dragMoveTo.bind(this),
             ondropto: this._dragDropTo.bind(this),
-            ontransitionend: this._dragEnd.bind(this)
+            ontransitionend: this._dragEnd.bind(this),
+            onclick: this._smileClickEvent.bind(this)
         }
     );
 };
@@ -166,7 +177,7 @@ widgets.Collection.prototype._buildCategoryDom = function(level, categoryId, sav
     btn.className = 'tab-btn';
     btn.dataset.id = categoryId.toString();
     btn.dataset.level = level.toString();
-    btn.href = level < this._depth - 1 ? '#' : ('#' + categoryId); // TODO: переключалку в options
+    btn.href = (!this.options.useCategoryLinks || level < this._depth - 1) ? '#' : ('#' + categoryId);
     btn.title = item.description || '';
     if(item.iconUrl){
         var icon = document.createElement('img');
@@ -309,11 +320,13 @@ widgets.Collection.prototype.addSmile = function(categoryId, item){
         width: item.w,
         height: item.h,
         dom: null,
-        dragged: item.dragged
+        dragged: item.dragged || false,
+        selected: item.selected || false
     };
     if(category.smileIds === null) category.smileIds = [];
     category.smileIds.push(id);
     if(category.smilesDom) this._addSmileDom(id);
+    if(this._smiles[id].selected) this._selectedSmileIds.push(id);
 
     return id;
 };
@@ -334,6 +347,7 @@ widgets.Collection.prototype._addSmileDom = function(smile_id){
     img.className = "smile";
     img.dataset.id = item.id.toString();
     if(item.dragged) img.classList.add('dragged');
+    if(item.selected) img.classList.add('selected');
 
     category.smilesDom.appendChild(img);
     item.dom = img;
@@ -348,7 +362,38 @@ widgets.Collection.prototype.removeSmile = function(id){
     category.smilesDom.removeChild(smile.dom);
     var i = category.smileIds.indexOf(id);
     if(i >= 0) category.smileIds.splice(i, 1);
+    i = this._selectedSmileIds.indexOf(id);
+    if(i >= 0) this._selectedSmileIds.splice(i, 1);
     delete this._smiles[id];
+    return true;
+};
+
+
+widgets.Collection.prototype.moveSmile = function(smileId, beforeSmileId){
+    if(smileId == beforeSmileId) return false;
+    var smile = this._smiles[smileId];
+    var beforeSmile = beforeSmileId != null ? this._smiles[beforeSmileId] : null;
+    /* beforeSmile null - перемещаем смайлик в конец; undefined - не перемещаем, ибо смайлик не нашелся */
+    if(!smile || beforeSmileId != null && !beforeSmile) return false;
+    /* За пределы категории не перемещаем */
+    if(beforeSmile && beforeSmile.categoryId != smile.categoryId) return false;
+
+    var category = this._categories[this._depth - 1][smile.categoryId];
+    var i = category.smileIds.indexOf(smile.id);
+    /* Не забываем пересортировать айдишники в категории */
+    if(i >= 0) category.smileIds.splice(i, 1);
+
+    if(beforeSmile){
+        /* Перемещаем смайлик перед указанным */
+        smile.dom.parentNode.insertBefore(smile.dom, beforeSmile.dom);
+        i = category.smileIds.indexOf(beforeSmile.id);
+        category.smileIds.splice(i, 0, smile.id);
+    }else{
+        /* Перемещаем смайлик в конец */
+        smile.dom.parentNode.appendChild(smile.dom);
+        category.smileIds.push(smile.id);
+    }
+
     return true;
 };
 
@@ -435,6 +480,8 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
             for(var i=0; i<category.smileIds.length; i++) this._addSmileDom(category.smileIds[i]);
         }
 
+        this.deselectAll();
+
         if(smiles_current){
             if(smiles_current.classList.contains('processing')){
                 smiles_current.classList.remove('processing');
@@ -452,6 +499,11 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
     return true;
 };
 
+widgets.Collection.prototype.getDragged = function(id){
+    var smile = this._smiles[id];
+    return smile ? smile.dragged : null;
+}
+
 
 widgets.Collection.prototype.setDragged = function(id, dragged){
     var smile = this._smiles[id];
@@ -461,6 +513,62 @@ widgets.Collection.prototype.setDragged = function(id, dragged){
         if(smile.dom) smile.dom.classList.toggle('dragged');
     }
     return true;
+};
+
+
+widgets.Collection.prototype.getSelected = function(id){
+    var smile = this._smiles[id];
+    return smile ? smile.selected : null;
+}
+
+
+widgets.Collection.prototype.setSelected = function(id, selected){
+    var smile = this._smiles[id];
+    /* Смайлики в скрытых категориях не выделяем */
+    if(!smile || selected && smile.categoryId != this._selectedIds[this._depth - 1]) return false;
+    if(selected && smile.dragged && !options.selectableDragged) return false;
+
+    /* Переключаем выделение */
+    if(smile.selected != selected){
+        smile.selected = !smile.selected;
+        if(smile.dom) smile.dom.classList.toggle('selected');
+    }
+
+    /* Обновляем список выделенных смайликов */
+    var i = this._selectedSmileIds.indexOf(smile.id);
+    if(selected && i < 0) this._selectedSmileIds.push(smile.id);
+    else if (!selected && i >= 0) this._selectedSmileIds.splice(i, 1);
+
+    /* Запоминаем последний выделенный смайлик для shift+ЛКМ */
+    if(selected) this._lastSelectedSmileId = smile.id;
+    else if(this._selectedSmileIds.length == 0) this._lastSelectedSmileId = null;
+    return true;
+};
+
+
+widgets.Collection.prototype.toggleSelected = function(id){
+    var smile = this._smiles[id];
+    if(!smile) return false;
+    return this.setSelected(smile.id, !smile.selected);
+};
+
+
+widgets.Collection.prototype.deselectAll = function(){
+    var smile;
+    if(this._selectedSmileIds.length == 0) return false;
+    for(var i=0; i<this._selectedSmileIds.length; i++){
+        smile = this._smiles[this._selectedSmileIds[i]];
+        smile.selected = false;
+        if(smile.dom) smile.dom.classList.toggle('selected');
+    }
+    this._selectedSmileIds = [];
+    this._lastSelectedSmileId = null;
+    return true;
+};
+
+
+widgets.Collection.prototype.getDropPosition = function(){
+    return this._smileMovePosId;
 };
 
 
@@ -553,6 +661,13 @@ widgets.Collection.prototype.getSmileInfo = function(smileId, options){
 };
 
 
+widgets.Collection.prototype.getSmileIdByDom = function(element){
+    if(!element || !this._dom.container.contains(element) || !element.classList.contains('smile')) return null;
+    var smile = this._smiles[parseInt(element.dataset.id)];
+    return smile ? smile.id : null;
+};
+
+
 widgets.Collection.prototype.getSmileIds = function(categoryId){
     if(!this._categories[this._depth - 1][categoryId]) return null;
     return Array.prototype.slice.apply(this._categories[this._depth - 1][categoryId].smileIds);
@@ -570,8 +685,9 @@ widgets.Collection.prototype.getAllCategorizedSmileIds = function(){
 
 widgets.Collection.prototype.getAllSmileIds = function(){
     var result = [];
-    for(var id in this._smiles){
-        result.push(parseInt(id));
+    /* Выдираем из категорий для сохранения порядка */
+    for(var categoryId in this._categories[this._depth - 1]){
+        result.push.apply(result, this._categories[this._depth - 1][categoryId].smileIds);
     }
     return result;
 };
@@ -641,6 +757,7 @@ widgets.Collection.prototype._buildDomTabs = function(level, categoryId){
 
 
 widgets.Collection.prototype._onclick = function(event){
+    if(event.target.classList.contains('smile')) return; // смайлики обрабатывает dragdrop
     var target = null;
 
     /* Ищем кнопку с вкладкой (или хотя бы что-то одно) */
@@ -686,6 +803,33 @@ widgets.Collection.prototype._onclick = function(event){
 };
 
 
+widgets.Collection.prototype._smileClickEvent = function(options){
+    if(!options.element.classList.contains('smile') || !options.element.dataset.id) return;
+    var smile = this._smiles[parseInt(options.element.dataset.id)];
+    if(!smile) return;
+    if(!this.options.selectable) return;
+    var category = this._categories[this._depth - 1][smile.categoryId];
+
+    if(options.event.shiftKey && this._lastSelectedSmileId != null) {
+        var pos1 = category.smileIds.indexOf(this._lastSelectedSmileId);
+        var pos2 = category.smileIds.indexOf(smile.id);
+        if(pos1 > pos2){
+            var tmp = pos2;
+            pos2 = pos1;
+            pos1 = tmp;
+        }
+        for(var i=pos1; i<=pos2; i++){
+            this.setSelected(category.smileIds[i], true);
+        }
+    }else if(!options.event.ctrlKey && !options.event.metaKey && (this._selectedSmileIds.length > 1 || !smile.selected)){
+        this.deselectAll();
+        this.setSelected(smile.id, true);
+    }else{
+        this.setSelected(smile.id, !smile.selected);
+    }
+};
+
+
 /* dragdrop */
 
 
@@ -713,27 +857,67 @@ widgets.Collection.prototype._dragStart = function(options){
 
 
 widgets.Collection.prototype._dragMove = function(options){
-    if(!options.starting) return;
-
+    if(options.targetContainer !== this._dom.container){
+        this._dom.dropHint.style.display = 'none';
+    }
     var e = options.element;
     if(e.classList.contains('smile')){
-        if(!e.classList.contains('dragged')) this.setDragged(parseInt(e.dataset.id), true);
+        if(options.starting && !e.classList.contains('dragged')) this.setDragged(parseInt(e.dataset.id), true);
+
     }else if(e.classList.contains('tab-btn')){
-        if(!e.classList.contains('dragged')) e.classList.add('dragged');
+        if(options.starting && !e.classList.contains('dragged')) e.classList.add('dragged');
     }
 };
 
+
+widgets.Collection.prototype._dragMoveTo = function(options){
+    var e = options.element;
+    if(e.classList.contains('smile')){
+        var smile_id = parseInt(e.dataset.id);
+        if(this.options.editable){
+            var smileOver = this.getSmileIdByDom(options.mouseOver);
+            this._calculateSmileMove(options.x, options.y, smile_id, smileOver);
+        }
+
+    }else if(e.classList.contains('tab-btn')){
+        // TODO:
+    }
+};
+
+
 widgets.Collection.prototype._dragDropTo = function(options){
+    var smileMovePosId = this._smileMovePosId;
+    this._smileMovePosId = null;
+    this._dom.dropHint.style.display = 'none';
+
     if(!this.options.ondropto) return null;
-    if(options.sourceContainer === this._dom.container) return null;
+    if(options.sourceContainer === this._dom.container && this.options.editable){
+        if(!options.element.classList.contains('smile')) return null;
+        var smile = this._smiles[options.element.dataset.id];
+        if(!smile) return null;
+
+        var category = this._categories[this._depth - 1][smile.categoryId];
+        if(smileMovePosId == null){
+            var lastSmile = this._smiles[category.smileIds[category.smileIds.length - 1]];
+            var rect = lastSmile.dom.getBoundingClientRect();
+            if(options.y >= rect.bottom || options.y >= rect.top && options.x >= rect.left){
+                this.moveSmile(smile.id, null);
+            }
+        }else{
+            this.moveSmile(smile.id, smileMovePosId);
+        }
+
+        return null;
+    }
 
     /* Что делать при перетаскивании DOM-элементов (включая смайлики) между ними, решает владелец коллекции */
-    /* Коллекция руководит только сам собой, но не взаимодействием с другими коллекциями */
+    /* Коллекция руководит только сама собой, но не взаимодействием с другими коллекциями */
     var dropAction = this.options.ondropto({
         sourceContainerElement: options.sourceContainer,
         targetContainer: this,
         element: options.element,
-        overlay: options.overlay
+        overlay: options.overlay,
+        dropPosition: smileMovePosId
     });
     if(dropAction && dropAction.name == 'animateToSmile'){
         return {name: 'animate', targetElement: this._smiles[dropAction.id].dom};
@@ -750,4 +934,61 @@ widgets.Collection.prototype._dragEnd = function(options){
     }else if(e.classList.contains('tab-btn')){
         if(e.classList.contains('dragged')) e.classList.remove('dragged');
     }
+};
+
+
+widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smileOverId){
+    var smileOverOld = this._smileMovePosId;
+    if(smileId == smileOverId) smileOverId = null;
+    if(smileOverId == null){
+        this._dom.dropHint.style.display = 'none';
+        this._smileMovePosId = null;
+        return;
+    }
+
+    var smileOver = this._smiles[smileOverId];
+    var category = this._categories[this._depth - 1][smileOver.categoryId];
+
+    /* Считаем, на какую половину смайлика наведён курсор */
+    var rect = smileOver.dom.getBoundingClientRect();
+    var relPos = (x - rect.left) / rect.width;
+
+    var newMovePosId;
+    if(relPos >= 0.5){
+        /* На правую — будем дропать смайлик после него */
+        var newMovePosId = category.smileIds.indexOf(smileOver.id) + 1;
+        if(newMovePosId >= category.smileIds.length) newMovePosId = null;
+        else newMovePosId = category.smileIds[newMovePosId];
+    }else{
+        /* На левую — перед ним */
+        newMovePosId = smileOverId;
+    }
+
+    if(newMovePosId == this._smileMovePosId) return;
+    this._smileMovePosId = newMovePosId;
+
+    /* Ищем соседний смайлик для расчёта высоты подсветки */
+    var nearSmile = null;
+    if(newMovePosId == smileOverId){
+        nearSmile = category.smileIds.indexOf(smileOverId) - 1;
+        nearSmile  = nearSmile >= 0 ? this._smiles[category.smileIds[nearSmile]] : null;
+    }else if(newMovePosId != null){
+        nearSmile = this._smiles[newMovePosId];
+    }
+
+    /* За высоту подсветки берём высоту меньшего смайлика */
+    var nearRect = nearSmile ? nearSmile.dom.getBoundingClientRect() : null;
+    if(nearRect && nearRect.height < rect.height) {
+        this._dom.dropHint.style.height = nearRect.height + 'px';
+    }else{
+        this._dom.dropHint.style.height = rect.height + 'px';
+    }
+
+    /* Отображаем подсветку */
+    if(newMovePosId != null) {
+        smileOver.dom.parentNode.insertBefore(this._dom.dropHint, this._smiles[newMovePosId].dom);
+    }else{
+        smileOver.dom.parentNode.appendChild(this._dom.dropHint);
+    }
+    this._dom.dropHint.style.display = '';
 };

@@ -2,18 +2,46 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time
+from hashlib import md5
 
-from flask import current_app, url_for
+from flask import current_app, url_for, safe_join
 
 
-def get_bundle_url(name, **kwargs):
+_urls_cache = {}
+
+
+def get_bundle_url(name, hashsum=True):
+    tm = time.time()
+    c = _urls_cache.get(name)
+    if hashsum and not current_app.debug and c and tm - c[0] < 30:
+        return c[2]
+
     if not current_app.config['USE_BUNDLER']:
         raise RuntimeError('Bundler is not enabled')
     if name not in current_app.config['BUNDLES']:
         raise KeyError('Bundle "" not found'.format(name))
 
-    output = current_app.config['BUNDLES'][name]['output']
-    return url_for('bundle.download', filename=output, **kwargs)
+    filename = current_app.config['BUNDLES'][name]['output']
+    if not hashsum:
+        print('oga.')
+        return url_for('bundle.download', filename=filename)
+
+    path = safe_join(current_app.config['BUNDLE_PATH'], filename)
+    if not os.path.isfile(path):
+        c = [tm, None, url_for('bundle.download', filename=filename)]
+        _urls_cache[name] = c
+        return c[2]
+
+    mtime = os.stat(path).st_mtime
+    if c and c[1] == mtime:
+        c[0] = tm
+        return c[2]
+
+    h = md5(open(path, 'rb').read()).hexdigest()
+    c = [tm, mtime, url_for('bundle.download', filename=filename) + '?' + h]
+    _urls_cache[name] = c
+    return c[2]
 
 
 def bundle_js(files, output, check_strict=False):

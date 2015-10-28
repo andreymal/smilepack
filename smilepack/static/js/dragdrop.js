@@ -127,31 +127,33 @@ var dragdrop = {
         this._overlay.style.left = newX + 'px';
         this._overlay.style.top = newY + 'px';
 
+        var oldMouseOver = this._mouseOver;
         this._mouseOver = document.elementFromPoint(event.clientX, event.clientY);
+
+        var to_container = this._mouseOver ? this._findContainer(this._mouseOver) : null;
 
         /* Сообщаем родному контейнеру о перемещении */
         if(this._currentContainer.onmove){
             this._currentContainer.onmove({
+                targetContainer: to_container ? to_container.dom : null,
                 element: this._currentElement,
                 x: event.clientX,
                 y: event.clientY,
                 mouseOver: this._mouseOver,
+                oldMouseOver: oldMouseOver,
                 starting: starting
             });
         }
 
         /* Сообщаем контейнру, на который перетаскивают, что на него перетаскивают */
-        if(this._mouseOver){
-            var to_container = this._findContainer(this._mouseOver);
-            if(to_container && to_container.onmoveto){
-                to_container.onmoveto({
-                    sourceContainer: this._currentContainer.dom,
-                    element: this._currentElement,
-                    x: event.clientX,
-                    y: event.clientY,
-                    mouseOver: this._mouseOver,
-                });
-            }
+        if(to_container && to_container.onmoveto){
+            to_container.onmoveto({
+                sourceContainer: this._currentContainer.dom,
+                element: this._currentElement,
+                x: event.clientX,
+                y: event.clientY,
+                mouseOver: this._mouseOver,
+            });
         }
 
         return false;
@@ -161,6 +163,7 @@ var dragdrop = {
         if(!this._currentElement || !this._currentContainer) return;
 
         if(!this._started){
+            if(this._currentContainer.onclick) this._currentContainer.onclick({element: this._currentElement, event: event});
             this._stop();
             return;
         }
@@ -170,7 +173,7 @@ var dragdrop = {
         var dropAction = null;
         var accepted = false;
 
-        /* Сообщаем контейнру, на который перетаскивают, что на него всё-таки перетащили (им может оказаться и сам источник) */
+        /* Сообщаем контейнеру, на который перетаскивают, что на него всё-таки перетащили (им может оказаться и сам источник) */
         if(this._mouseOver){
             to_container = this._findContainer(this._mouseOver);
             if(to_container && to_container.ondropto){

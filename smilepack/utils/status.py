@@ -4,7 +4,7 @@
 import os
 import sys
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.request import urlopen
 
 from flask import url_for
@@ -90,7 +90,8 @@ def smilepacks_status(app):
     items = []
     with db.db_session:
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.SmilePack.select().count()), 'status': 'ok'})
-        # TODO: expired count
+        items.append({'key': 'count-non-expired', 'name': 'Non-expired', 'value': str(models.SmilePack.select(lambda x: x.delete_at is not None and x.delete_at > datetime.utcnow()).count()), 'status': 'ok'})
+        items.append({'key': 'count-immortals', 'name': 'Immortals', 'value': str(models.SmilePack.select(lambda x: x.delete_at is None).count()), 'status': 'ok'})
 
         last_smp = models.SmilePack.select().order_by(models.SmilePack.id.desc()).first()
         if last_smp:

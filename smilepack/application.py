@@ -4,6 +4,7 @@
 import os
 import sys
 import logging
+from logging.handlers import SMTPHandler
 
 from flask import Flask
 from flask_limiter import Limiter
@@ -47,6 +48,7 @@ def create_app(minimal=False):
 
         utils.register_errorhandlers(app)
         utils.disable_cache(app)
+        app.jinja_env.globals.update(url_for_static=utils.url_for_static)
 
         if app.config.get('MEMCACHE_SERVERS'):
             app.cache = cache.MemcachedCache(app.config['MEMCACHE_SERVERS'], key_prefix=app.config.get('CACHE_PREFIX', ''))
@@ -61,6 +63,16 @@ def create_app(minimal=False):
 
         if app.config['PROXIES_COUNT'] > 0:
             app.wsgi_app = ProxyFix(app.wsgi_app, app.config['PROXIES_COUNT'])
+
+        if app.config['ADMINS'] and app.config['ERROR_EMAIL_HANDLER_PARAMS']:
+            params = dict(app.config['ERROR_EMAIL_HANDLER_PARAMS'])
+            params['toaddrs'] = app.config['ADMINS']
+            params['fromaddr'] = app.config['ERROR_EMAIL_FROM']
+            params['subject'] = app.config['ERROR_EMAIL_SUBJECT']
+            handler = SMTPHandler(**params)
+            handler.setLevel(logging.ERROR)
+            app.logger.addHandler(handler)
+
 
     app.babel = Babel(app)
 

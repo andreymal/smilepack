@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# for debug=True in Flask
+# for local_settings and debug=True in Flask
 import sys
 if '' not in sys.path:
     sys.path.insert(0, '')

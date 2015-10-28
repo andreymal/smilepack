@@ -95,7 +95,7 @@ class Smile(db.Entity):
     order = orm.Required(int, default=0)
     is_submission = orm.Required(bool, default=False)
     created_at = orm.Required(datetime, default=datetime.utcnow)
-    approved_at = orm.Optional(datetime, nullable=True)
+    approved_at = orm.Optional(datetime, nullable=True, index=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
     hashsum = orm.Optional(str, 128, index=True)
 

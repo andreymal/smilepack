@@ -24,6 +24,11 @@ class Config(object):
     LOGGER_LEVEL = logging.INFO
     LOGGER_STDERR = True
 
+    ADMINS = []
+    ERROR_EMAIL_FROM = 'smilepack@localhost.com',
+    ERROR_EMAIL_SUBJECT = 'Smilepack error'
+    ERROR_EMAIL_HANDLER_PARAMS = {'mailhost': '127.0.0.1'}
+
     RATELIMIT_ENABLED = False
     RATELIMIT_STORAGE_URL = 'memcached://127.0.0.1:11211'
     RATELIMIT_GLOBAL = '9/3second'

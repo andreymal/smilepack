@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>{% if pack %}Просмотр смайлопака {{ pack.name or pack.hid }}{% else %}Создание смайлопака{% endif %}</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='generator.css') }}" />
+    <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}Создание смайлопака{% endif %}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for_static('generator.css') }}" />
 </head>
 <body>
 
@@ -31,12 +31,16 @@
     {% if config['ALLOW_LIFETIME_SELECT'] -%}
     Удалить с сервера через:
     <select id="lifetime" autocomplete="off">
-        <option{{ ' selected' if not pack or lifetime == 1800 else '' }} value="1800">Полчаса</option>
-        <option{{ ' selected' if pack and lifetime == 3600 else '' }} value="3600">1 час</option>
-        <option{{ ' selected' if pack and lifetime == 28800 else '' }} value="28800">8 часов</option>
-        <option{{ ' selected' if pack and lifetime == 86400 else '' }} value="86400">1 день</option>
-        <option{{ ' selected' if lifetime == 604800 else '' }} value="604800">1 неделя</option>
-        {% if config['MAX_LIFETIME'] == 0 %}<option{{ ' selected' if lifetime == 0 or lifetime == None else '' }} value="0">Оставить навсегда</option>{% endif %}
+        <option{{ ' selected' if (not pack and config['MAX_LIFETIME']) or lifetime == 1800 else '' }} value="1800">Полчаса</option>
+        {% for tm, title in [[28800, "8 часов"], [86400, "1 день"], [604800, "Неделю"], [2592000, "30 дней"]] -%}
+        {%- if not config['MAX_LIFETIME'] or config['MAX_LIFETIME'] >= tm -%}
+            <option{{ ' selected' if pack and lifetime == tm else '' }} value="{{ tm }}">{{ title }}</option>
+        {% endif -%}
+        {%- endfor %}
+
+        {%- if not config['MAX_LIFETIME'] -%}
+            <option{{ ' selected' if not lifetime else '' }} value="0">Оставить навсегда</option>
+        {%- endif %}
     </select>
     {%- endif %}
     {% if pack %}
@@ -56,7 +60,7 @@
 
 <div class="container">
 <div class="container-left" id="collection">
-    <div style="text-align: center"><img src="{{ url_for('static', filename='loading.gif') }}" alt="" /></div>
+    <div style="text-align: center"><img src="{{ url_for_static(filename='loading.gif', hashsum=False) }}" alt="" /></div>
     <div class="additional" style="display: none;">
         <button class="button button action-move-all">Перенести всю категорию в смайлопак</button><br/>
     </div>
@@ -166,12 +170,12 @@
 {% if config['USE_BUNDLER'] %}
 <script type="text/javascript" src="{{ get_bundle_url('generator') }}"></script>
 {% else %}
-<script type="text/javascript" src="{{ url_for('static', filename='js/dragdrop.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/widgets.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/dialogs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/smp_ajax.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/generator.js') }}"></script>
-<script type="text/javascript" src="{{ url_for('static', filename='js/generator_dialogs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/dragdrop.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/widgets.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/dialogs.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/smp_ajax.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/generator.js') }}"></script>
+<script type="text/javascript" src="{{ url_for_static('js/generator_dialogs.js') }}"></script>
 {% endif %}
 
 <script>

@@ -4,6 +4,7 @@
 # pylint: disable=E1120, E1123
 
 import random
+from hashlib import md5
 from datetime import datetime, timedelta
 
 import jsonschema
@@ -114,6 +115,22 @@ class SmilePackBL(BaseBL):
         current_app.logger.info('Created smilepack %s (%d smiles)', pack.hid, sum(len(x) for x in smile_ids.values()))
 
         return pack
+
+    def add_view(self, remote_addr, session_id=None):
+        smp = self._model()
+        if session_id and session_id == smp.user_cookie:
+            return smp.views_count
+
+        h = str(session_id or remote_addr).encode('utf-8') + b'\x00' + smp.hid.encode('utf-8')
+        key = 'smp_view_' + md5(h).hexdigest()
+
+        if current_app.cache.get(key) is not None:
+            return smp.views_count
+
+        smp.views_count += 1
+        smp.last_viewed_at = datetime.utcnow()
+        current_app.cache.set(key, str(smp.last_viewed_at), timeout=600)
+        return smp.views_count
 
     def get_by_hid(self, hid):
         if not hid or len(hid) > 16:
