@@ -6,8 +6,9 @@ import sys
 import logging
 from logging.handlers import SMTPHandler
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_limiter import Limiter
+from flask_webpack import Webpack
 from flask.ext.babel import Babel
 from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
@@ -17,11 +18,15 @@ from . import db
 
 __all__ = ['create_app']
 
+here = os.path.abspath(os.path.dirname(__file__))
+
 
 def create_app(minimal=False):
     app = Flask(__name__)
-    app.env = os.getenv('SMILEPACK_SETTINGS', None) or 'smilepack.settings.Development'
-    app.config.from_object(app.env)
+    webpack = Webpack()
+    app.config.from_object(os.getenv('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
+    app.config["WEBPACK_MANIFEST_PATH"] = os.path.join(here, "manifest.json")
+    webpack.init_app(app)
     db.configure_for_app(app, db_seed=True)
 
     app.limiter = Limiter(app)
@@ -60,6 +65,10 @@ def create_app(minimal=False):
             from .bundler import get_bundle_url
             app.register_blueprint(bp_bundle, url_prefix='/bundle')
             app.jinja_env.globals.update(get_bundle_url=get_bundle_url)
+
+        @app.route("/assets/<path:filename>")
+        def send_asset(filename):
+            return send_from_directory(os.path.join(here, "public"), filename)
 
         if app.config['PROXIES_COUNT'] > 0:
             app.wsgi_app = ProxyFix(app.wsgi_app, app.config['PROXIES_COUNT'])

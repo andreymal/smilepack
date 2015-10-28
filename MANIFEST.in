@@ -1,2 +1,3 @@
+include smilepack/manifest.json
 recursive-include smilepack/templates *
-recursive-include smilepack/static *
+recursive-include smilepack/public *.js *.css

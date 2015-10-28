@@ -24,6 +24,7 @@ setup(
         'Flask',
         'Flask-Babel',
         'Flask-Script',
+        'Flask-Webpack',
         'pony',
         'jsonschema',
         'pytz',

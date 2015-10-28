@@ -1,0 +1,27 @@
+{
+  "name": "smilepack",
+  "version": "0.1.0",
+  "description": "Smilepack",
+  "dependencies": {
+    "extract-text-webpack-plugin": "~0.8.2",
+    "manifest-revision-webpack-plugin": "0.0.5",
+    "file-loader": "~0.8.4",
+    "stylus-loader": "~1.4.0",
+    "css-loader": "^0.18.0",
+    "webpack": "~1.12.2"
+  },
+  "scripts": {
+    "webpack:trunk": "webpack --progress --profile --colors",
+    "webpack:production": "NODE_ENV=production webpack",
+    "clean": "rm -rf smilepack/public/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/andreymal/smilepack.git"
+  },
+  "author": "andreymal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://bitbucket.org/andreymal/issues"
+  }
+}

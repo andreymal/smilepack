@@ -3,7 +3,10 @@ __pycache__/
 *.pyc
 /smilepack.egg-info/
 /local_settings.py
-/fabfile.py
-/database.sqlite3
+database.sqlite3
 /local/
 /media/
+node_modules
+.idea
+/smilepack/public
+/smilepack/manifest.json

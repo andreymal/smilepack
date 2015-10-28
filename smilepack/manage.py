@@ -53,10 +53,15 @@ def rehash_smiles(store=None):
 
 
 @manager.option('-h', '--host', dest='host', help='Server host (default 127.0.0.1)')
-@manager.option('-p', '--port', dest='port', help='Server port (default 5000)')
+@manager.option('-p', '--port', dest='port', help='Server port (default 5000)', type=int)
 @manager.option('-t', '--threaded', dest='threaded', help='Threaded mode', action='store_true')
-def runserver(host, port, threaded=False):
-    manager.app.run(host=host, port=int(port) if port is not None else None, threaded=threaded)
+def runserver(host, port=None, threaded=False):
+    manager.app.run(
+        host=host,
+        port=port,
+        threaded=threaded,
+        extra_files=[manager.app.config["WEBPACK_MANIFEST_PATH"]]
+    )
 
 
 if __name__ == '__main__':
