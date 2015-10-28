@@ -10,7 +10,9 @@ var root = "./smilepack/assets";
 module.exports = {
     entry: {
         landing_js: root + "/scripts/landing.js",
-        landing_css: root + "/styles/landing.styl"
+        //generator_js: root + "/scripts/generator.js",
+        landing_css: root + "/styles/landing.styl",
+        generator_css: root + "/styles/generator.styl"
     },
     output: {
         path: "./smilepack/public",
@@ -36,7 +38,7 @@ module.exports = {
         new ExtractTextPlugin("[name].[hash:8].css"),
         new ManifestRevisionPlugin(path.join("smilepack", "manifest.json"), {
             rootAssetPath: root,
-            ignorePaths: ["/styles", "/scripts", "/images"]
+            ignorePaths: ["/styles", "/scripts"]
         })
     ]
 };
