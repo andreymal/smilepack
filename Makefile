@@ -74,4 +74,5 @@ install: clean
 develop:
 	npm install
 	npm run-script webpack:trunk
+	pip install -r requirements.development.txt
 	python setup.py develop
