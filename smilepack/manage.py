@@ -9,11 +9,6 @@ manager = Manager(application.create_app())
 
 
 @manager.command
-def bundle():
-    pass
-
-
-@manager.command
 def shell():
     import code
     import smilepack
@@ -57,7 +52,3 @@ def runserver(host, port=None, threaded=False):
         threaded=threaded,
         extra_files=[manager.app.config["WEBPACK_MANIFEST_PATH"]]
     )
-
-
-if __name__ == '__main__':
-    manager.run()
