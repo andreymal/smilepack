@@ -63,6 +63,7 @@ release: clean
 	python setup.py bdist_wheel upload
 
 dist: clean
+	npm run-script webpack:production
 	python setup.py sdist
 	python setup.py bdist_wheel
 	ls -l dist

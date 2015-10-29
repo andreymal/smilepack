@@ -6,6 +6,7 @@ var path = require("path"),
     ManifestRevisionPlugin = require("manifest-revision-webpack-plugin");
 
 var root = "./smilepack/assets";
+var isProduction = process.env.NODE_ENV == 'production';
 
 module.exports = {
     entry: {
@@ -34,11 +35,22 @@ module.exports = {
             }
         ]
     },
-    plugins: [
-        new ExtractTextPlugin("[name].[hash:8].css"),
-        new ManifestRevisionPlugin(path.join("smilepack", "manifest.json"), {
-            rootAssetPath: root,
-            ignorePaths: ["/styles", "/scripts"]
-        })
-    ]
+    plugins: Array.prototype.concat(
+        [
+            new ExtractTextPlugin("[name].[hash:8].css"),
+            new ManifestRevisionPlugin(path.join("smilepack", "manifest.json"), {
+                rootAssetPath: root,
+                ignorePaths: ["/styles", "/scripts"]
+            })
+        ],
+        isProduction ? [
+            new webpack.optimize.UglifyJsPlugin(),
+            new webpack.DefinePlugin({
+                "process.env": {
+                    NODE_ENV: '"production"'
+                }
+            }),
+            new webpack.NoErrorsPlugin()
+        ] : []
+    )
 };
