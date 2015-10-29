@@ -23,7 +23,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 def create_app(minimal=False):
     app = Flask(__name__)
     webpack = Webpack()
-    app.config.from_object(os.getenv('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
+    app.config.from_object(os.environ.get('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
     app.config["WEBPACK_MANIFEST_PATH"] = os.path.join(here, "manifest.json")
     webpack.init_app(app)
     db.configure_for_app(app, db_seed=True)
