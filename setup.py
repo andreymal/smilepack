@@ -38,7 +38,7 @@ setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'smilepack=smilepack.manage.manager:run'
+            'smilepack=smilepack.manage:run'
         ],
     },
     classifiers=[

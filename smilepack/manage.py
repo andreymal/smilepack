@@ -52,3 +52,7 @@ def runserver(host, port=None, threaded=False):
         threaded=threaded,
         extra_files=[manager.app.config["WEBPACK_MANIFEST_PATH"]]
     )
+
+
+def run():
+    manager.run()
