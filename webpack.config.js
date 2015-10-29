@@ -10,7 +10,7 @@ var root = "./smilepack/assets";
 module.exports = {
     entry: {
         landing_js: root + "/scripts/landing.js",
-        //generator_js: root + "/scripts/generator.js",
+        generator_js: root + "/scripts/generator",
         landing_css: root + "/styles/landing.styl",
         generator_css: root + "/styles/generator.styl"
     },

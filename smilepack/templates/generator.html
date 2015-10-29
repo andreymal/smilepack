@@ -166,23 +166,13 @@
         <a href="#" class="dialog-close">Вернуться к редактированию</a>
     </div>
 </div>
-
-{% if config['USE_BUNDLER'] %}
-<script type="text/javascript" src="{{ get_bundle_url('generator') }}"></script>
-{% else %}
-<script type="text/javascript" src="{{ url_for_static('js/dragdrop.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/widgets.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/dialogs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/smp_ajax.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/generator.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/generator_dialogs.js') }}"></script>
-{% endif %}
-
+{{ javascript_tag("generator_js") | safe }}
+{# TODO: This should loaded with ajax #}
 <script>
 generator.collectionData = {{ collection_data|tojson|safe }};
 {% if pack %}
 generator.smilepackData = {{ pack.bl.as_json(with_smiles=True)|tojson|safe }};
-{% endif -%}
+{% endif %}
 </script>
 </body>
 </html>

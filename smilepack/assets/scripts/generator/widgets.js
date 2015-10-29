@@ -1,5 +1,6 @@
 'use strict';
 
+var dragdrop = require('./dragdrop.js');
 var widgets = {};
 
 
@@ -992,3 +993,5 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
     }
     this._dom.dropHint.style.display = '';
 };
+
+module.exports = widgets;
