@@ -14,8 +14,7 @@ def read(*args):
     return io.open(join(dirname(__file__), *args)).read()
 
 
-readme = open("README.rst").read()
-history = open("HISTORY.rst").read().replace(".. :changelog:", "")
+readme = open("README.md").read()
 
 requirements = read("requirements.production.txt").splitlines(),
 test_requirements = read("requirements.testing.txt").splitlines(),
