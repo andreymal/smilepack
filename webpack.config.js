@@ -5,22 +5,24 @@ var path = require("path"),
     ExtractTextPlugin = require("extract-text-webpack-plugin"),
     ManifestRevisionPlugin = require("manifest-revision-webpack-plugin");
 
-var root = "./smilepack/assets";
+var root = path.join(__dirname, "smilepack", "assets");
 var isProduction = process.env.NODE_ENV == 'production';
 
 module.exports = {
+    context: root,
     entry: {
-        landing_js: root + "/scripts/landing.js",
-        generator_js: root + "/scripts/generator",
-        landing_css: root + "/styles/landing.styl",
-        generator_css: root + "/styles/generator.styl"
+        landing_js: "landing.js",
+        generator_js: "generator",
+        landing_css: "landing.styl",
+        generator_css: "generator.styl"
     },
     output: {
-        path: "./smilepack/public",
+        path: path.join(__dirname, "smilepack", "public"),
         publicPath: "/assets/",
         filename: "[name].[hash:8].js"
     },
     resolve: {
+        modulesDirectories: ['node_modules', 'scripts', 'styles'],
         extensions: ["", ".js", ".styl"]
     },
     module: {
@@ -31,16 +33,16 @@ module.exports = {
             },
             {
                 test: /\.(jpe?g|png|gif|svg([\?]?.*))$/i,
-                loader: 'file?context=' + root + '&name=[name].[hash:8].[ext]'
+                loader: 'file?name=[name].[hash:8].[ext]'
             }
         ]
     },
     plugins: Array.prototype.concat(
         [
             new ExtractTextPlugin("[name].[hash:8].css"),
-            new ManifestRevisionPlugin(path.join("smilepack", "manifest.json"), {
+            new ManifestRevisionPlugin(path.join(__dirname, "smilepack", "manifest.json"), {
                 rootAssetPath: root,
-                ignorePaths: ["/styles", "/scripts"]
+                ignorePaths: ["styles", "scripts", "images"]
             })
         ],
         isProduction ? [
