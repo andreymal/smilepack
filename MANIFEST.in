@@ -1,3 +1,13 @@
+include AUTHORS.md
+include CONTRIBUTING.md
+include CHANGELOG.md
+include LICENSE.txt
+include README.md
+include *requirements.txt
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-include docs *.md conf.py Makefile
 include smilepack/manifest.json
 recursive-include smilepack/templates *
-recursive-include smilepack/public *.js *.css
+recursive-include smilepack/public *
