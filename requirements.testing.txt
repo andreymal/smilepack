@@ -1,2 +1,4 @@
 coveralls
 flake8
+tox
+setuptools-lint
