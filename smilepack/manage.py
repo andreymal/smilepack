@@ -10,12 +10,7 @@ manager = Manager(application.create_app())
 
 @manager.command
 def bundle():
-    if not manager.app.config['USE_BUNDLER']:
-        print('Bundler is disabled.')
-        return
-
-    from smilepack.bundler import bundle_app
-    bundle_app(manager.app, verbose=True)
+    pass
 
 
 @manager.command

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -53,18 +52,11 @@ def create_app(minimal=False):
 
         utils.register_errorhandlers(app)
         utils.disable_cache(app)
-        app.jinja_env.globals.update(url_for_static=utils.url_for_static)
 
         if app.config.get('MEMCACHE_SERVERS'):
             app.cache = cache.MemcachedCache(app.config['MEMCACHE_SERVERS'], key_prefix=app.config.get('CACHE_PREFIX', ''))
         else:
             app.cache = cache.NullCache()
-
-        if app.config['USE_BUNDLER']:
-            from .views.bundler import bundle as bp_bundle
-            from .bundler import get_bundle_url
-            app.register_blueprint(bp_bundle, url_prefix='/bundle')
-            app.jinja_env.globals.update(get_bundle_url=get_bundle_url)
 
         @app.route("/assets/<path:filename>")
         def send_asset(filename):

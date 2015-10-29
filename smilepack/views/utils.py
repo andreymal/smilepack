@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
-import json
-import time
 import random
 import string
 import functools
-from hashlib import md5
 from datetime import datetime, timedelta
 
 from werkzeug.exceptions import HTTPException, UnprocessableEntity
-from flask import abort, request, current_app, jsonify, make_response, url_for, safe_join
+from flask import request, current_app, jsonify, make_response
 
 from ..utils.exceptions import InternalError, BadRequestError
-
-
-_static_cache = {}
 
 
 def generate_session_id():
@@ -40,6 +33,7 @@ def user_session(func):
         response = current_app.make_response(result)
         response.set_cookie('smilepack_session', value=session_id, expires=datetime.now() + timedelta(365 * 10))
         return response
+
     return decorator
 
 
@@ -63,6 +57,7 @@ def json_answer(func):
             resp = jsonify(error=exc.description)
             resp.status_code = exc.code
             return resp
+
     return decorator
 
 
@@ -107,6 +102,7 @@ def default_crossdomain(methods=['GET']):
 
         f.provide_automatic_options = False
         return functools.update_wrapper(wrapped_function, f)
+
     return decorator
 
 
@@ -122,32 +118,5 @@ def disable_cache(app):
     def add_header(response):
         response.cache_control.max_age = 0
         return response
+
     app.after_request(add_header)
-
-
-def url_for_static(filename, hashsum=True):
-    if not hashsum:
-        return url_for('static', filename=filename)
-
-    tm = time.time()
-    c = _static_cache.get(filename)
-    if not current_app.debug and c and tm - c[0] < 30:
-        return c[2]
-
-    path = safe_join(current_app.static_folder, filename)
-    if not os.path.isabs(path):
-        path = os.path.join(current_app.root_path, path)
-    if not os.path.isfile(path):
-        c = [tm, None, url_for('static', filename=filename)]
-        _static_cache[filename] = c
-        return c[2]
-
-    mtime = os.stat(path).st_mtime
-    if c and mtime == c[1]:
-        c[0] = tm
-        return c[2]
-
-    h = md5(open(path, 'rb').read()).hexdigest()
-    c = [tm, mtime, url_for('static', filename=filename) + '?' + h]
-    _static_cache[filename] = c
-    return c[2]

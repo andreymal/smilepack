@@ -33,16 +33,6 @@ class Config(object):
     RATELIMIT_STORAGE_URL = 'memcached://127.0.0.1:11211'
     RATELIMIT_GLOBAL = '9/3second'
 
-    USE_BUNDLER = False
-    BUNDLE_PATH = os.path.join(os.getcwd(), 'media', 'bundle')
-    BUNDLES = {
-        'generator': {
-            'type': 'js',
-            'files': ['js/dragdrop.js', 'js/widgets.js', 'js/dialogs.js', 'js/smp_ajax.js', 'js/generator.js', 'js/generator_dialogs.js'],
-            'output': 'generator.js'
-        }
-    }
-
     BABEL_DEFAULT_LOCALE = 'ru'
     BABEL_DEFAULT_TIMEZONE = 'Europe/Moscow'
 

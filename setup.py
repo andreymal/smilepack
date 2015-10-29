@@ -2,13 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from setuptools import setup, find_packages
 
 if sys.version_info < (3, 4):
     print("Smilepack requires Python 3.4 or later.")
     sys.exit(1)
-
-from setuptools import setup, find_packages
-
 
 setup(
     name='smilepack',
@@ -36,7 +34,6 @@ setup(
     ],
     extras_require={
         'imgur': ['Flask-Imgur'],
-        'bundle': ['jsmin'],
     },
     include_package_data=True,
     scripts=['bin/smilepack'],
