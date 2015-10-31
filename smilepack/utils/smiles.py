@@ -5,8 +5,8 @@ import re
 import time
 from hashlib import sha256
 
-from ..db import orm
-from ..models import Smile
+from pony import orm
+from smilepack.models import Smile
 
 
 def calc_hashsums_if_needed(store_path=None):
@@ -60,4 +60,3 @@ def calc_hashsums_if_needed(store_path=None):
 
         min_id = smiles[-1].id + 1
     print()
-

@@ -1,13 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import json
 
 import jsonschema
 
-from ..models import Icon, Smile, SmileUrl
-from ..utils import urls
-from .. import schemas
+from smilepack.models import Icon, Smile
+from smilepack import schemas
 
 
 class UserscriptParserError(ValueError):
@@ -32,7 +30,7 @@ def parse(data):
         raise UserscriptParserError('Invalid data ({})'.format(str(exc)))
 
     try:
-        jsonschema.validate(sections, schemas.userscript_compat_schema)
+        jsonschema.validate(sections, schemas.USERSCRIPT_COMPAT)
     except jsonschema.ValidationError as error:
         raise UserscriptParserError('Invalid data at sections {}: {}'.format(tuple(error.path), error.message))
 

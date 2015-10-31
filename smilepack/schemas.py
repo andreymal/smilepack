@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-smile_schema = {
+SMILE = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "properties": {
@@ -23,7 +23,7 @@ smile_schema = {
 }
 
 
-smilepack_smiles_schema = {
+SMILEPACK_SMILE = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "array",
     "items": {
@@ -52,7 +52,7 @@ smilepack_smiles_schema = {
 }
 
 
-smilepack_categories_schema = {
+SMILEPACK_CATEGORIES = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "array",
     "items": {
@@ -80,7 +80,7 @@ smilepack_categories_schema = {
 }
 
 
-userscript_compat_schema = {
+USERSCRIPT_COMPAT = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "array",
     "items": {

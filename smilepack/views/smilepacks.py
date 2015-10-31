@@ -2,22 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import zlib
-
-import jsonschema
+from pony.orm import db_session
 from flask import Blueprint, Response, abort, render_template, current_app, request, url_for
-from flask.ext.babel import format_datetime
+from flask_babel import format_datetime
 
-from ..models import SmilePack, SmilePackCategory, Icon
-from ..utils import userscript_parser
-from .utils import user_session, json_answer, default_crossdomain
-from ..db import db_session
-from ..utils.exceptions import BadRequestError
-
-
-smilepacks = Blueprint('smilepacks', __name__)
+from smilepack.models import SmilePack, SmilePackCategory, Icon
+from smilepack.views.utils import user_session, json_answer, default_crossdomain
+from smilepack.utils import userscript_parser
+from smilepack.utils.exceptions import BadRequestError
 
 
-@smilepacks.route('/<smp_id>')
+bp = Blueprint('smilepacks', __name__)
+
+
+@bp.route('/<smp_id>')
 @user_session
 @default_crossdomain()
 @json_answer
@@ -31,7 +29,7 @@ def show(session_id, first_visit, smp_id):
     return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
 
 
-@smilepacks.route('/<smp_id>/<int:category_id>')
+@bp.route('/<smp_id>/<int:category_id>')
 @default_crossdomain()
 @json_answer
 @db_session
@@ -43,7 +41,7 @@ def show_category(smp_id, category_id):
     return cat.bl.as_json(with_smiles=True)
 
 
-@smilepacks.route('/<smp_id>.compat.user.js')
+@bp.route('/<smp_id>.compat.user.js')
 @user_session
 @db_session
 def download_compat(session_id, first_visit, smp_id):
@@ -76,12 +74,12 @@ def download_compat(session_id, first_visit, smp_id):
     return Response(result, mimetype='text/javascript; charset=utf-8')
 
 
-@smilepacks.route('/', methods=['POST'])
+@bp.route('/', methods=['POST'])
 @user_session
 @default_crossdomain(methods=['POST'])
 @json_answer
 @db_session
-def create(session_id, first_visit):
+def create(session_id):
     r = request.json
     if not r:
         raise BadRequestError('Empty request')
@@ -108,7 +106,7 @@ def create(session_id, first_visit):
     }
 
 
-@smilepacks.route('/import', methods=['POST'])
+@bp.route('/import', methods=['POST'])
 @default_crossdomain(methods=['POST'])
 @json_answer
 def import_userscript():

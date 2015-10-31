@@ -25,10 +25,7 @@ def get_stream_and_hashsum(image_stream=None, url=None):
 
 
 def check_image_format(image_stream):
-    try:
-        from PIL import Image
-    except ImportError:
-        import Image
+    from PIL import Image
 
     old_seek = image_stream.tell()
 
@@ -93,7 +90,7 @@ def upload_to_directory(image_stream, hashsum, image_format=None):
         filename += '.jpg'
     elif image_format == 'GIF':
         filename += '.gif'
-    
+
     full_filename = os.path.join(subdir, filename)
 
     upload_dir = os.path.join(upload_dir, subdir)

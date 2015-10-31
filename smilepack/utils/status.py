@@ -5,16 +5,16 @@ import os
 import sys
 import random
 from datetime import datetime, timedelta
-from urllib.request import urlopen
 
+from pony.orm import db_session
 from flask import url_for
-from flask.ext import babel
+from flask_babel import format_timedelta
 
-from .. import db
-from .. import models
+from smilepack.database import db
+from smilepack import models
 
 
-class ansi:
+class ANSI:
     RESET = '\x1b[0m'
     BOLD = '\x1b[1m'
     RED = "\x1b[31m"
@@ -29,7 +29,7 @@ def system_status(app):
     items = [
         {'key': 'python', 'name': 'Python', 'value': sys.version.replace('\n', ' '), 'status': 'ok'},
         {'key': 'env', 'name': 'Environment', 'value': os.getenv('SMILEPACK_SETTINGS'), 'status': 'ok'},
-        {'key': 'db', 'name': 'DB Provider', 'value': str(db.db.provider), 'status': 'ok'},
+        {'key': 'db', 'name': 'DB Provider', 'value': str(db.provider), 'status': 'ok'},
     ]
     rv = 'enabled ({})'.format(app.config['RATELIMIT_GLOBAL']) if app.config['RATELIMIT_ENABLED'] else 'disabled'
     items.append({'key': 'ratelimit', 'name': 'Ratelimit', 'value': rv, 'status': 'ok'})
@@ -88,7 +88,7 @@ def project_status(app):
 
 def smilepacks_status(app):
     items = []
-    with db.db_session:
+    with db_session:
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.SmilePack.select().count()), 'status': 'ok'})
         items.append({'key': 'count-non-expired', 'name': 'Non-expired', 'value': str(models.SmilePack.select(lambda x: x.delete_at is not None and x.delete_at > datetime.utcnow()).count()), 'status': 'ok'})
         items.append({'key': 'count-immortals', 'name': 'Immortals', 'value': str(models.SmilePack.select(lambda x: x.delete_at is None).count()), 'status': 'ok'})
@@ -114,7 +114,10 @@ def smilepacks_status(app):
             item['status'] = 'fail'
         elif app.config['MAX_LIFETIME'] < 30:
             item['status'] = 'warn'
-        item['value'] = '{} ({})'.format(babel.format_timedelta(timedelta(0, app.config['MAX_LIFETIME'])), app.config['MAX_LIFETIME'])
+        item['value'] = '{} ({})'.format(
+            format_timedelta(timedelta(0, app.config['MAX_LIFETIME'])),
+            app.config['MAX_LIFETIME']
+        )
     items.append(item)
 
     return items
@@ -122,7 +125,7 @@ def smilepacks_status(app):
 
 def smiles_status(app):
     items = []
-    with db.db_session:
+    with db_session:
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.Smile.select().count()), 'status': 'ok'})
         items.append({'key': 'collection_count', 'name': 'In collection', 'value': str(models.Smile.select(lambda x: x.category is not None).count()), 'status': 'ok'})
         items.append({'key': 'user_count', 'name': 'User smiles', 'value': str(models.Smile.select(lambda x: x.user_cookie is not None).count()), 'status': 'ok'})
@@ -182,7 +185,7 @@ def status(app):
 
 def print_status(app, colored=True):
     if colored:
-        c = lambda x, t: getattr(ansi, x) + t + ansi.RESET
+        c = lambda x, t: getattr(ANSI, x) + t + ANSI.RESET
     else:
         c = lambda x, t: t
 
@@ -190,7 +193,7 @@ def print_status(app, colored=True):
     p_item = lambda n, v: print((n + ':').ljust(17) + ' ' + v)
 
     if colored:
-        print(ansi.YELLOW + ansi.BOLD + 'Smilepack' + ansi.RESET)
+        print(ANSI.YELLOW + ANSI.BOLD + 'Smilepack' + ANSI.RESET)
     else:
         print('Smilepack')
 
