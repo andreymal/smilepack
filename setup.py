@@ -3,7 +3,7 @@
 import io
 import sys
 from os.path import dirname, join
-from setuptools import setup
+from setuptools import setup, find_packages
 
 if sys.version_info < (3, 4):
     print("Smilepack requires Python 3.4 or later.")
@@ -29,7 +29,7 @@ setup(
     license='MIT',
     url='https://bitbucket.org/andreymal/smilepack',
     platforms=['linux', 'osx', 'bsd'],
-    packages=['smilepack'],
+    packages=find_packages(),
     install_requires=requirements,
     extras_require={
         'imgur': extra_requirements,
