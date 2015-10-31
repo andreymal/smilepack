@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: clean-pyc clean-build clean-test clean-frontend clean lint test test-all docs
 
 help:
 	@echo "Smilepack"
@@ -41,7 +41,9 @@ clean-frontend:
 	npm run-script clean
 
 lint:
-	python setup.py lint --lint-packages smilepack
+	python setup.py lint \
+	--lint-packages smilepack \
+	--lint-rcfile pylintrc.ini
 
 test:
 	python setup.py test
