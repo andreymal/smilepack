@@ -1,18 +1,18 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from pony.orm import db_session
+
 from flask import Blueprint, render_template, abort, current_app, request
-from flask.ext.babel import format_datetime
+from flask_babel import format_datetime
 
-from ..models import Section, SmilePack, Smile, Icon
-from .utils import user_session
-from ..db import db_session
-
-
-pages = Blueprint('pages', __name__)
+from smilepack.models import Section, SmilePack, Smile, Icon
+from smilepack.views.utils import user_session
 
 
-@pages.route('/')
+bp = Blueprint('pages', __name__)
+
+
+@bp.route('/')
 @user_session
 @db_session
 def index(session_id, first_visit):
@@ -37,8 +37,8 @@ def index(session_id, first_visit):
     )
 
 
-@pages.route('/generate', defaults={'smp_id': None})
-@pages.route('/generate/<smp_id>')
+@bp.route('/generate', defaults={'smp_id': None})
+@bp.route('/generate/<smp_id>')
 @user_session
 @db_session
 def generator(session_id, first_visit, smp_id):

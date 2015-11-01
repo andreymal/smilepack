@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}Создание смайлопака{% endif %}</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for_static('generator.css') }}" />
+    {{ stylesheet_tag("generator_css") | safe }}
 </head>
 <body>
 
@@ -60,7 +60,7 @@
 
 <div class="container">
 <div class="container-left" id="collection">
-    <div style="text-align: center"><img src="{{ url_for_static(filename='loading.gif', hashsum=False) }}" alt="" /></div>
+    <div style="text-align: center"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
     <div class="additional" style="display: none;">
         <button class="button button action-move-all">Перенести всю категорию в смайлопак</button><br/>
     </div>
@@ -166,23 +166,13 @@
         <a href="#" class="dialog-close">Вернуться к редактированию</a>
     </div>
 </div>
-
-{% if config['USE_BUNDLER'] %}
-<script type="text/javascript" src="{{ get_bundle_url('generator') }}"></script>
-{% else %}
-<script type="text/javascript" src="{{ url_for_static('js/dragdrop.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/widgets.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/dialogs.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/smp_ajax.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/generator.js') }}"></script>
-<script type="text/javascript" src="{{ url_for_static('js/generator_dialogs.js') }}"></script>
-{% endif %}
-
+{{ javascript_tag("generator_js") | safe }}
+{# TODO: This should loaded with ajax #}
 <script>
 generator.collectionData = {{ collection_data|tojson|safe }};
 {% if pack %}
 generator.smilepackData = {{ pack.bl.as_json(with_smiles=True)|tojson|safe }};
-{% endif -%}
+{% endif %}
 </script>
 </body>
 </html>

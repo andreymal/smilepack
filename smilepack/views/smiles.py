@@ -1,35 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from pony.orm import db_session
+from flask import Blueprint, abort, request, send_from_directory, current_app
 
-from urllib.request import urlopen
-
-import jsonschema
-from flask import Blueprint, abort, request, send_from_directory
-
-from ..models import *
-from .utils import user_session, json_answer, default_crossdomain
-from ..utils import urls
-from ..db import db_session
-from ..utils.exceptions import BadRequestError
+from smilepack import models
+from smilepack.views.utils import user_session, json_answer, default_crossdomain
+from smilepack.utils.exceptions import BadRequestError
 
 
-smiles = Blueprint('smiles', __name__)
+bp = Blueprint('smiles', __name__)
 
 
-@smiles.route('/')
+@bp.route('/')
 @default_crossdomain()
 @json_answer
 @db_session
 def index():
-    return {'sections': Section.bl.get_all_with_categories()}
+    return {'sections': models.Section.bl.get_all_with_categories()}
 
 
-@smiles.route('/search/<int:section_id>')
+@bp.route('/search/<int:section_id>')
 @default_crossdomain()
 @json_answer
 @db_session
 def search(section_id):
-    section = Section.get(id=section_id)
+    section = models.Section.get(id=section_id)
     if not section:
         return {'smiles': []}
 
@@ -55,31 +50,32 @@ def search(section_id):
     return result
 
 
-@smiles.route('/by_url')
+@bp.route('/by_url')
 @default_crossdomain()
 @json_answer
 @db_session
 def by_url():
     if not request.args.get('url'):
         return {'id': None}
-    smile = Smile.bl.search_by_url(request.args['url'])
+    smile = models.Smile.bl.search_by_url(request.args['url'])
     if not smile:
         return {'id': None}
-    return {'id': smile.id, 'url': smile.url, 'w': smile.width, 'h': smile.height, 'category': smile.category.id if smile.category else None}
+    smile_category_id = smile.category.id if smile.category else None
+    return {'id': smile.id, 'url': smile.url, 'w': smile.width, 'h': smile.height, 'category': smile_category_id}
 
 
-@smiles.route('/<int:category>')
+@bp.route('/<int:category>')
 @default_crossdomain()
 @json_answer
 @db_session
 def show(category):
-    cat = Category.bl.get(category)
+    cat = models.Category.bl.get(category)
     if not cat:
         abort(404)
     return {'smiles': cat.bl.get_smiles_as_json()}
 
 
-@smiles.route('/', methods=['POST'])
+@bp.route('/', methods=['POST'])
 @user_session
 @default_crossdomain(methods=['POST'])
 @json_answer
@@ -99,10 +95,10 @@ def create(session_id, first_visit):
     elif not r.get('url'):
         raise BadRequestError('Empty request')
 
-    return {'smile': Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).bl.as_json()}
+    return {'smile': models.Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).bl.as_json()}
 
 
-@smiles.route('/images/<path:filename>')
+@bp.route('/images/<path:filename>')
 def download(filename):
     if not current_app.config['SMILES_DIRECTORY']:
         abort(404)

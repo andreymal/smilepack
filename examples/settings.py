@@ -1,10 +1,14 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Configuration file for Smilepack
+Place it in /opt/smile/settings.py
+"""
 
+import re
 from smilepack import settings
 
 
-class Local(settings.Development):
+class Production(settings.Config):
     DATABASE_ENGINE = 'mysql'
     DATABASE = {
         'host': '127.0.0.1',
@@ -14,7 +18,7 @@ class Local(settings.Development):
         'db': 'smilepack',
     }
 
-    RATELIMIT_ENABLED = True  # требует memcached
+    RATELIMIT_ENABLED = True
 
     URL_PARSER_REGEX = [
         {
@@ -31,4 +35,4 @@ class Local(settings.Development):
 
     UPLOAD_METHOD = 'directory'
     SMILES_DIRECTORY = '/path/to/project/smilepack/media/smiles/'
-    # IMGUR_ID = '538bd2a48c13f9e'  # для метода imgur
+    # IMGUR_ID = '538bd2a48c13f9e'

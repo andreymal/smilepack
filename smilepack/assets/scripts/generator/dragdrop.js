@@ -277,3 +277,5 @@ var dragdrop = {
         setTimeout(function(){overlay.parentNode.removeChild(overlay)}, this.transitionDuration);
     }
 };
+
+module.exports = dragdrop;

@@ -3,10 +3,11 @@
 
 from datetime import datetime
 
+from pony import orm
 from flask import current_app
 
-from .db import db, orm
-from .bl_registry import Resource
+from smilepack.database import db
+from smilepack.bl.registry import Resource
 
 
 class Icon(db.Entity):
@@ -25,7 +26,7 @@ class Icon(db.Entity):
     @property
     def url(self):
         return self.custom_url or current_app.config['ICON_URL'].format(id=self.id, filename=self.filename)
-    
+
     def before_update(self):
         self.updated_at = datetime.utcnow()
 
@@ -106,7 +107,7 @@ class Smile(db.Entity):
     urls = orm.Set('SmileUrl')
 
     bl = Resource('bl.smile')
-    
+
     @property
     def tags_list(self):
         if self.tags_cache is not None and not self.tags_cache:
@@ -114,7 +115,7 @@ class Smile(db.Entity):
         if self.tags_cache is not None:
             return self.tags_cache.split(',')
         return [x.name for x in self.tags]
-    
+
     @property
     def url(self):
         return self.custom_url or current_app.config['SMILE_URL'].format(id=self.id, filename=self.filename)

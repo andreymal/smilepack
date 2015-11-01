@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Смайлопак</title>
-    <link href="{{ url_for_static('index.css') }}" rel="stylesheet" type="text/css" />
+    {{ stylesheet_tag("landing_css") | safe }}
 </head>
 <body>
 
@@ -40,6 +40,6 @@
         Оставленный без изменений юзерскрипт для встраивания смайлопака в веб-сайты. Пользуйтесь смайлопаком везде, где бы вы ни были!
     </div>
 </div>
-<script src="{{ url_for_static('js/index.js') }}"></script>
+{{ javascript_tag("landing_js") | safe }}
 </body>
 </html>

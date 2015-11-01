@@ -136,3 +136,5 @@ var ajax = {
         });
     }
 };
+
+module.exports = ajax;

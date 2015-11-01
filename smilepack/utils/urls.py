@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from hashlib import md5
+from pony import orm
 
 from flask import current_app
 
-from ..db import orm
-from ..models import Smile, SmileUrl
+from smilepack.models import Smile, SmileUrl
 
 
 def check_and_normalize(url):
@@ -72,7 +71,7 @@ def parse(urls):
     }
 
 
-def rehash_custom_smiles(min_id=None, max_id=None, pagesize=500):
+def rehash_custom_smiles(min_id=None, pagesize=500):
     print('Checking duplicates...')
     d = orm.select((x.custom_url, orm.count(x.id)) for x in Smile if x.custom_url is not None).order_by(-1, 2)[:21]
     if d and d[0][1] > 1:
@@ -90,7 +89,7 @@ def rehash_custom_smiles(min_id=None, max_id=None, pagesize=500):
     if min_id is None:
         print('Nothing.')
         return
-    
+
     while True:
         smiles = Smile.select(lambda x: x.id >= min_id).order_by(Smile.id)[:pagesize]
         if not smiles:

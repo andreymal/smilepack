@@ -10,10 +10,11 @@ from datetime import datetime, timedelta
 import jsonschema
 from flask import current_app
 
-from .utils import BaseBL
-from ..utils.urls import hash_url
-from .. import schemas, db
-from ..utils.exceptions import JSONValidationError
+from smilepack.bl.utils import BaseBL
+
+from smilepack import schemas
+from smilepack.database import db
+from smilepack.utils.exceptions import JSONValidationError
 
 
 class SmilePackBL(BaseBL):
@@ -25,11 +26,11 @@ class SmilePackBL(BaseBL):
     def create(self, session_id, smiles, categories, name=None, description=None, lifetime=None, user_addr=None, validate=True):
         if validate:
             try:
-                jsonschema.validate(smiles, schemas.smilepack_smiles_schema)
+                jsonschema.validate(smiles, schemas.SMILEPACK_SMILE)
             except jsonschema.ValidationError as exc:
                 raise JSONValidationError(exc)
             try:
-                jsonschema.validate(categories, schemas.smilepack_categories_schema)
+                jsonschema.validate(categories, schemas.SMILEPACK_CATEGORIES)
             except jsonschema.ValidationError as exc:
                 raise JSONValidationError(exc)
 
@@ -55,7 +56,7 @@ class SmilePackBL(BaseBL):
                 })
                 category_names.append(x['category_name'])
 
-        from ..models import SmilePackCategory, Smile, SmilePackSmile, Icon
+        from ..models import SmilePackCategory, Smile, Icon
 
         # Загружаем имеющиеся смайлики
         smile_ids = [s['id'] for s in smiles if s.get('id')]
@@ -68,7 +69,11 @@ class SmilePackBL(BaseBL):
 
         # Создаём смайлопак
         pack = self._model()(
-            hid=''.join(random.choice(current_app.config['SYMBOLS_FOR_HID']) for _ in range(current_app.config['HID_LENGTH'])),
+            hid=''.join(
+                random.choice(current_app.config['SYMBOLS_FOR_HID'])
+                for _
+                in range(current_app.config['HID_LENGTH'])
+            ),
             user_cookie=session_id,
             name=str(name) if name else '',
             description=str(description) if description else '',
@@ -143,8 +148,6 @@ class SmilePackBL(BaseBL):
         return pack
 
     def as_json(self, with_smiles=False):
-        from ..models import SmilePackSmile
-
         categories = []
         for cat in sorted(self._model().categories, key=lambda x: (x.order, x.id)):
             categories.append(cat.bl.as_json(with_smiles=with_smiles))

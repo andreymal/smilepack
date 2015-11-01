@@ -4,15 +4,12 @@
 import os
 import math
 from urllib.request import urlopen
-
-import jsonschema
+from pony import orm
 from flask import current_app
 
-from .utils import BaseBL
-from ..utils.urls import parse as parse_urls, hash_url, check_and_normalize
-from ..db import orm
-from .. import schemas
-from ..utils.exceptions import InternalError, BadRequestError, JSONValidationError
+from smilepack.bl.utils import BaseBL
+from smilepack.utils.urls import parse as parse_urls, hash_url, check_and_normalize
+from smilepack.utils.exceptions import InternalError, BadRequestError
 
 
 class SectionBL(BaseBL):
@@ -37,13 +34,13 @@ class SectionBL(BaseBL):
         return result
 
     def get_all_with_categories(self):
-        from ..models import SubSection
+        from smilepack.models import SubSection
         raw_result = self._model().select().order_by(self._model().id).prefetch(self._model().subsections, SubSection.categories)
         raw_result = sorted(raw_result, key=lambda x: (x.order, x.id))
 
         result = []
         for section in raw_result:
-            result.append(section.bl.as_json( with_subsections=True, with_categories=True))
+            result.append(section.bl.as_json(with_subsections=True, with_categories=True))
 
         return result
 
@@ -51,7 +48,7 @@ class SectionBL(BaseBL):
         # TODO: sphinx?
         # TODO: pagination
         section = self._model()
-        from ..models import Tag, Smile, Category, SubSection
+        from smilepack.models import Tag, Smile, Category, SubSection
 
         tags_list = set(str(x).lower() for x in tags_list if x)
         if check_synonyms:
@@ -64,7 +61,7 @@ class SectionBL(BaseBL):
 
     def get_tags(self, tags_list, check_synonyms=True):
         section = self._model()
-        from ..models import Tag
+        from smilepack.models import Tag
         tags_list = set(str(x).lower() for x in tags_list if x)
         if check_synonyms:
             tags_list = self.check_tag_synonyms(tags_list)
@@ -73,7 +70,7 @@ class SectionBL(BaseBL):
 
     def check_tag_synonyms(self, tags_list):
         section = self._model()
-        from ..models import Tag, TagSynonym
+        from smilepack.models import TagSynonym
 
         tags_list = set(str(x).lower() for x in tags_list if x)
         synonym_tags = set(orm.select((x.name, x.tag_name) for x in TagSynonym if x.section == section and x.name in tags_list))
@@ -170,8 +167,6 @@ class SmileBL(BaseBL):
         except OSError as exc:
             current_app.logger.error('Cannot upload image: %s', exc)
             raise InternalError('Upload error')
-        except IOError as exc:
-            raise BadRequestError(str(exc))
 
         smile = self._model()(
             category=category,
@@ -187,7 +182,7 @@ class SmileBL(BaseBL):
         smile.flush()
 
         # Сохраняем инфу о урле, дабы не плодить дубликаты смайликов
-        from ..models import SmileUrl
+        from smilepack.models import SmileUrl
         if data.get('url') and not smile_by_url:
             SmileUrl(
                 url=data['url'],
@@ -241,7 +236,7 @@ class SmileBL(BaseBL):
         return self.search_by_urls((url,))[0]
 
     def search_by_urls(self, urls):
-        from ..models import Smile, SmileUrl
+        from smilepack.models import Smile, SmileUrl
         # 1) Парсим ссылки, доставая из них то, что можно достать
         parsed_urls = parse_urls(urls)
         ids = parsed_urls['ids']
@@ -289,7 +284,7 @@ class SmileBL(BaseBL):
         return result_smiles
 
     def add_tag(self, tag):
-        from ..models import Tag, TagSynonym
+        from smilepack.models import Tag, TagSynonym
 
         tag = str(tag or '').strip().lower()  # TODO: recheck case sensitivity
         if not tag:
@@ -322,13 +317,13 @@ class SmileBL(BaseBL):
             smile.tags_cache = smile.tags_cache + ',' + tag
         smile.flush()
 
-        tag_obj.smiles_count = tag_obj.smiles_count + 1
+        tag_obj.smiles_count += 1
         tag_obj.flush()
 
         return tag_obj
 
     def remove_tag(self, tag):
-        from ..models import TagSynonym
+        from smilepack.models import TagSynonym
 
         tag = str(tag or '').strip().lower()
 
@@ -350,7 +345,7 @@ class SmileBL(BaseBL):
                 smile.tags_cache = ','.join(tags_list)
         smile.flush()
 
-        tag_obj.smiles_count = tag_obj.smiles_count - 1
+        tag_obj.smiles_count -= 1
         tag_obj.flush()
         return True
 

@@ -103,4 +103,6 @@ dialogs.Dialog.prototype.error = function(text){
     }else{
         alert(text);
     }
-}
+};
+
+module.exports = dialogs;

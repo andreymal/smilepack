@@ -1,14 +1,13 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from . import smiles, smilepacks, utils
-from .. import bl_registry
 
+def init_bl():
+    from . import smiles, smilepacks, utils, registry
 
-bl_registry.register('bl.section', smiles.SectionBL)
-bl_registry.register('bl.subsection', smiles.SubSectionBL)
-bl_registry.register('bl.category', smiles.CategoryBL)
-bl_registry.register('bl.smile', smiles.SmileBL)
-bl_registry.register('bl.tag', smiles.TagBL)
-bl_registry.register('bl.smilepack', smilepacks.SmilePackBL)
-bl_registry.register('bl.smilepack_category', smilepacks.SmilePackCategoryBL)
+    registry.register('bl.section', smiles.SectionBL)
+    registry.register('bl.subsection', smiles.SubSectionBL)
+    registry.register('bl.category', smiles.CategoryBL)
+    registry.register('bl.smile', smiles.SmileBL)
+    registry.register('bl.tag', smiles.TagBL)
+    registry.register('bl.smilepack', smilepacks.SmilePackBL)
+    registry.register('bl.smilepack_category', smilepacks.SmilePackCategoryBL)
