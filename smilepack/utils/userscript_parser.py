@@ -64,9 +64,8 @@ def parse(data):
                     continue
 
                 if old_mode and smile.get('id'):
-                    urls_for_parse.append('http://smiles.smile-o-pack.net/{}.gif'.format(smile['id']))
-                else:
-                    urls_for_parse.append(smile.get('url'))
+                    smile['url'] = 'http://smiles.smile-o-pack.net/{}.gif'.format(smile['id'])
+                urls_for_parse.append(smile.get('url'))
 
             parsed_urls = Smile.bl.search_by_urls(urls_for_parse)
 

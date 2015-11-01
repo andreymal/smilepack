@@ -46,7 +46,6 @@ class Config(object):
     SMILE_URL = '/smiles/images/{filename}'
     ICON_URL = '/smiles/images/{filename}'
 
-    # Замените это под свои ссылки
     URL_PARSER_REGEX = [
         {
             're': re.compile(r'//smiles\.smile-o-pack\.net/(?P<id>[0-9]+)\.gif((\?)|($))', re.I),
@@ -56,7 +55,7 @@ class Config(object):
         }
     ]
 
-    UPLOAD_METHOD = None  # доступные методы: directory, imgur
+    UPLOAD_METHOD = None
     SMILES_DIRECTORY = None
     IMGUR_ID = None
 

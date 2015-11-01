@@ -79,7 +79,7 @@ def download_compat(session_id, first_visit, smp_id):
 @default_crossdomain(methods=['POST'])
 @json_answer
 @db_session
-def create(session_id):
+def create(session_id, first_visit):
     r = request.json
     if not r:
         raise BadRequestError('Empty request')

@@ -9,7 +9,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs at <https://bitbucket.org/andreymal/issues>.
+Report bugs at <https://bitbucket.org/andreymal/smilepack/issues>.
 
 If you are reporting a bug, please include:
 
@@ -36,7 +36,7 @@ articles, and such.
 ### Submit Feedback
 
 The best way to send feedback is to file an issue at
-<https://bitbucket.org/andreymal/issues>.
+<https://bitbucket.org/andreymal/smilepack/issues>.
 
 If you are proposing a feature:
 
@@ -51,21 +51,24 @@ Get Started!
 Ready to contribute? Here’s how to set up Smilepack for local development.
 
 1.  Fork the smilepack repo on BitBucket.
+
 2.  Clone your fork locally:
 
-        $ git clone https://bitbucket.org/andreymal/smilepack.git
+        $ git clone https://bitbucket.org/your-username/smilepack.git
 
-3.  Install your local copy into a virtualenv. Assuming you have
-    pyvenv installed, this is how you set up your fork for
-    local development:
+3.  Install your local copy into a virtualenv (requires `npm`):
 
-        $ pyvenv smilepack
-        $ cd smilepack/
+        $ cd smilepack
+        $ virtualenv env
+        $ source env/bin/activate
         $ make develop
 
-4.  Create a branch for local development
+4.  Create a branch for local development:
 
-        $ git checkout -b name-of-your-bugfix-or-feature
+        $ git checkout -b name-of-your-branch
+
+    Use branch name `fix/name-of-your-bugfix` for bugfix or
+    `feature/name-of-your-feature` for new feature.
 
     Now you can make your changes locally.
 
@@ -79,7 +82,7 @@ Ready to contribute? Here’s how to set up Smilepack for local development.
 
         $ git add .
         $ git commit -m "Your detailed description of your changes."
-        $ git push origin name-of-your-bugfix-or-feature
+        $ git push origin name-of-your-brahch
 
 7.  Submit a pull request through the BitBucket website.
 
@@ -91,4 +94,4 @@ Before you submit a pull request, check that it meets these guidelines:
 2.  If the pull request adds functionality, the docs should be updated.
     Put your new functionality into a function with a docstring, and add
     the feature to the list in README.md.
-3.  The pull request should work for Python 3.4 and 3.5
+3.  The pull request should work for Python 3.4 and 3.5.

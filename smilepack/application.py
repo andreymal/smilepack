@@ -13,7 +13,7 @@ from flask_babel import Babel
 from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
 
-from smilepack.database import configure_for_app
+from smilepack import database
 from smilepack.views import smiles, smilepacks, pages, utils
 from smilepack.bl import init_bl
 
@@ -28,7 +28,7 @@ def create_app():
     app.config.from_object(os.environ.get('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
     app.config["WEBPACK_MANIFEST_PATH"] = os.path.join(here, "manifest.json")
     webpack.init_app(app)
-    configure_for_app(app)
+    database.configure_for_app(app, db_seed=True)
     init_bl()
     Babel(app)
 

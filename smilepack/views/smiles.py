@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+import os
+
 from pony.orm import db_session
 from flask import Blueprint, abort, request, send_from_directory, current_app
 
@@ -79,7 +82,6 @@ def show(category):
 @user_session
 @default_crossdomain(methods=['POST'])
 @json_answer
-@db_session
 def create(session_id, first_visit):
     r = dict(request.json or {})
     if not r and request.form:
@@ -95,11 +97,16 @@ def create(session_id, first_visit):
     elif not r.get('url'):
         raise BadRequestError('Empty request')
 
-    return {'smile': models.Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).bl.as_json()}
+    # FIXME: Pony ORM with sqlite3 crashes here
+    with db_session:
+        smile_id = models.Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).id
+    with db_session:
+        result = {'smile': models.Smile.get(id=smile_id).bl.as_json()}
+    return result
 
 
 @bp.route('/images/<path:filename>')
 def download(filename):
     if not current_app.config['SMILES_DIRECTORY']:
         abort(404)
-    return send_from_directory(current_app.config['SMILES_DIRECTORY'], filename)
+    return send_from_directory(os.path.abspath(current_app.config['SMILES_DIRECTORY']), filename)

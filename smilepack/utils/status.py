@@ -6,7 +6,7 @@ import sys
 import random
 from datetime import datetime, timedelta
 
-from pony.orm import db_session
+from pony import orm
 from flask import url_for
 from flask_babel import format_timedelta
 
@@ -56,24 +56,7 @@ def system_status(app):
 
 
 def project_status(app):
-    items = [
-        {'key': 'bundler', 'name': 'Bundler', 'value': 'enabled' if app.config['USE_BUNDLER'] else 'disabled', 'status': 'ok'}
-    ]
-
-    item = {'key': 'bundler_path', 'name': 'Bundler path', 'value': '[bundler disabled]', 'status': 'ok'}
-    if app.config['USE_BUNDLER']:
-        if not app.config['BUNDLE_PATH']:
-            item['status'] = 'fail'
-            item['value'] = 'not set'
-        elif not os.path.isdir(app.config['BUNDLE_PATH']):
-            item['status'] = 'fail'
-            item['value'] = app.config['BUNDLE_PATH'] + ' (not found)'
-        elif not os.access(app.config['BUNDLE_PATH'], os.W_OK) or not os.access(app.config['BUNDLE_PATH'], os.R_OK):
-            item['status'] = 'fail'
-            item['value'] = app.config['BUNDLE_PATH'] + ' (permission denied)'
-        else:
-            item['value'] = app.config['BUNDLE_PATH']
-    items.append(item)
+    items = []
 
     items.append({'key': 'cache', 'name': 'Cache', 'value': str(app.cache), 'status': 'ok'})
     k = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(10))
@@ -88,7 +71,7 @@ def project_status(app):
 
 def smilepacks_status(app):
     items = []
-    with db_session:
+    with orm.db_session:
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.SmilePack.select().count()), 'status': 'ok'})
         items.append({'key': 'count-non-expired', 'name': 'Non-expired', 'value': str(models.SmilePack.select(lambda x: x.delete_at is not None and x.delete_at > datetime.utcnow()).count()), 'status': 'ok'})
         items.append({'key': 'count-immortals', 'name': 'Immortals', 'value': str(models.SmilePack.select(lambda x: x.delete_at is None).count()), 'status': 'ok'})
@@ -125,14 +108,14 @@ def smilepacks_status(app):
 
 def smiles_status(app):
     items = []
-    with db_session:
+    with orm.db_session:
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.Smile.select().count()), 'status': 'ok'})
         items.append({'key': 'collection_count', 'name': 'In collection', 'value': str(models.Smile.select(lambda x: x.category is not None).count()), 'status': 'ok'})
         items.append({'key': 'user_count', 'name': 'User smiles', 'value': str(models.Smile.select(lambda x: x.user_cookie is not None).count()), 'status': 'ok'})
         items.append({'key': 'nohash_count', 'name': 'Without hashsums', 'value': str(models.Smile.select(lambda x: not x.hashsum).count()), 'status': 'ok'})
 
         item = {'key': 'duplicates_count', 'name': 'Duplicates', 'value': '0', 'status': 'ok'}
-        duplicates = db.orm.select((x.hashsum, db.orm.count(x.id)) for x in models.Smile if x.hashsum and db.orm.count(x.id) > 1)[:]
+        duplicates = orm.select((x.hashsum, orm.count(x.id)) for x in models.Smile if x.hashsum and orm.count(x.id) > 1)[:]
         if duplicates:
             item['status'] = 'warn'
             cnt = sum(x[1] for x in duplicates)
@@ -157,14 +140,15 @@ def smiles_status(app):
 
     item = {'key': 'smiles_dir', 'name': 'Smiles dir', 'value': 'not set', 'status': 'ok'}
     if app.config['SMILES_DIRECTORY'] is not None:
-        if not os.path.isdir(app.config['SMILES_DIRECTORY']):
+        abs_dir = os.path.abspath(app.config['SMILES_DIRECTORY'])
+        if not os.path.isdir(abs_dir):
             item['status'] = 'fail' if app.config['UPLOAD_METHOD'] == 'directory' else 'ok'
-            item['value'] = app.config['SMILES_DIRECTORY'] + ' (not found)'
-        elif not os.access(app.config['SMILES_DIRECTORY'], os.W_OK) or not os.access(app.config['SMILES_DIRECTORY'], os.R_OK):
+            item['value'] = abs_dir + ' (not found)'
+        elif not os.access(abs_dir, os.W_OK) or not os.access(abs_dir, os.R_OK):
             item['status'] = 'fail' if app.config['UPLOAD_METHOD'] == 'directory' else 'ok'
-            item['value'] = app.config['SMILES_DIRECTORY'] + ' (permission denied)'
+            item['value'] = abs_dir + ' (permission denied)'
         else:
-            item['value'] = app.config['SMILES_DIRECTORY']
+            item['value'] = abs_dir
 
     elif app.config['UPLOAD_METHOD'] == 'directory':
         item['status'] = 'fail'

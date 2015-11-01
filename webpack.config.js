@@ -13,8 +13,8 @@ module.exports = {
     entry: {
         landing_js: "landing.js",
         generator_js: "generator",
-        landing_css: "landing.styl",
-        generator_css: "generator.styl"
+        landing_css: "landing.css",
+        generator_css: "generator.css"
     },
     output: {
         path: path.join(__dirname, "smilepack", "public"),
@@ -23,10 +23,14 @@ module.exports = {
     },
     resolve: {
         modulesDirectories: ['node_modules', 'scripts', 'styles'],
-        extensions: ["", ".js", ".styl"]
+        extensions: ["", ".js", ".css", ".styl"]
     },
     module: {
         loaders: [
+            {
+                test: /\.css/i,
+                loader: ExtractTextPlugin.extract("style-loader", "css-loader")
+            },
             {
                 test: /\.styl/i,
                 loader: ExtractTextPlugin.extract("css-loader!stylus-loader")

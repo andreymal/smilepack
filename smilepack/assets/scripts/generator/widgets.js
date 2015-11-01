@@ -144,6 +144,7 @@ widgets.Collection.prototype.loadData = function(items){
 widgets.Collection.prototype.addCategory = function(level, parentId, item){
     var parentLevel = level - 1;
     var parent = level > 0 ? this._categories[parentLevel][parentId] : null;
+    if(level > 0 && !parent) return null;
 
     var id = item.id;
     if(id == null){
@@ -723,7 +724,6 @@ widgets.Collection.prototype.typeOfElement = function(element){
 
 
 widgets.Collection.prototype._loadDataLevel = function(items, level, parent_id){
-    var level_info = this.hierarchy[level];
     var item_id;
 
     for(var i=0; i<items.length; i++){

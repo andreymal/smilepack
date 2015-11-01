@@ -8,6 +8,7 @@ from hashlib import md5
 from datetime import datetime, timedelta
 
 import jsonschema
+from pony import orm
 from flask import current_app
 
 from smilepack.bl.utils import BaseBL
@@ -201,7 +202,7 @@ class SmilePackCategoryBL(BaseBL):
         if with_smiles:
             from ..models import SmilePackSmile
             jcat['smiles'] = []
-            for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename, tags_cache in db.orm.select(
+            for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename, tags_cache in orm.select(
                 (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.width, c.height, c.smile.filename, c.smile.tags_cache)
                 for c in SmilePackSmile
                 if c.category == cat
@@ -232,7 +233,7 @@ class SmilePackCategoryBL(BaseBL):
             'smiles': []
         }
 
-        for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename in db.orm.select(
+        for cat_order, cat_id, smile_id, custom_url, width, height, custom_width, custom_height, filename in orm.select(
             (c.order, c.id, c.smile.id, c.smile.custom_url, c.smile.width, c.smile.height, c.width, c.height, c.smile.filename)
             for c in SmilePackSmile
             if c.category == cat
