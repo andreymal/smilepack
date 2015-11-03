@@ -100,7 +100,7 @@
 <div id="dialog-new-smile" class="dialog hidden">
     <div class="dialog-title"><a class="dialog-close"></a> Добавление смайлика</div>
 
-    <form action="#">
+    <form action="#" method="POST" enctype="multipart/form-data">
         {% if config.UPLOAD_METHOD != None -%}
         <div class="uploader-choice">
             <label><input type="radio" name="uploader" value="link" autocomplete="off" checked> По ссылке</label>
