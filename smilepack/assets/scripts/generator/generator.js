@@ -1,8 +1,13 @@
 'use strict';
 
 var widgets = require('./widgets.js'),
-    dialogs = require('./dialogs.js'),
-    ajax = require('./ajax.js');
+    ajax = require('./ajax.js'),
+    dialogsManager = require('./dialogsManager.js'),
+
+    CategoryDialog = require('./dialogs/CategoryDialog.js'),
+    SmileDialog = require('./dialogs/SmileDialog.js'),
+    ImportUserscriptDialog = require('./dialogs/ImportUserscriptDialog.js'),
+    SmilepackDialog = require('./dialogs/SmilepackDialog.js');
 
 var generator = {
     storageVersion: 1,
@@ -73,9 +78,9 @@ var generator = {
         if(action == 'delete' && categoryId != null){
             this.deleteSmilepackCategory(categoryId, true);
         }else if(action == 'add') {
-            dialogs.open('category', {level: options.level});
+            dialogsManager.open('category', {}, this.modifySmilepackCategory.bind(this));
         }else if(action == 'edit'){
-            dialogs.open('category', {level: options.level, edit: true, category: this.smilepack.getCategoryInfo(0, options.categoryId)});
+            dialogsManager.open('category', {edit: true, category: this.smilepack.getCategoryInfo(0, options.categoryId)}, this.modifySmilepackCategory.bind(this));
         }
     },
 
@@ -100,22 +105,35 @@ var generator = {
         window.localStorage.generatorDark = document.body.classList.contains('dark') ? '1' : '0';
     },
 
-    importUserscript: function(form, interactive, onend){
-        ajax.import_userscript(form, function(data){this.importedUserscriptEvent(data, interactive)}.bind(this), this.onerror.bind(this), onend);
+    importUserscript: function(options){
+        if(!options.form || !options.form.file.value) return {error: 'Выберите файл'};
+
+        var onend = options.onend;
+        ajax.import_userscript(
+            options.form,
+            function(data){
+                this.importedUserscriptEvent(data, onend);
+            }.bind(this),
+            function(data){
+                console.log(data);
+                if(onend) onend({error: data.error || data});
+            }
+        );
+        return {success: true};
     },
 
-    importedUserscriptEvent: function(data, interactive){
+    importedUserscriptEvent: function(data, onend){
         if(!data.categories || data.categories.length < 1){
             console.log(data);
-            if(interactive) alert(data.notice || 'Кажется, что-то пошло не так');
+            if(onend) onend({error: data.notice || 'Кажется, что-то пошло не так'});
             return;
         }
-        if(data.notice){
-            if(interactive) alert(data.notice);
-            console.log(data.notice);
-        }
-
+        if(data.notice) console.log(data.notice);
         this.replaceSmilepackData({categories: data.categories}, data.ids);
+
+        if(onend){
+            onend({success: true, data: data, notice: data.notice});
+        }
     },
 
     saveSmilepack: function(){
@@ -142,7 +160,7 @@ var generator = {
             smiles.push(smile);
         }
 
-        dialogs.open('smilepack');
+        dialogsManager.open('smilepack', {mode: 'saving'});
 
         var lifetime_elem = document.getElementById('lifetime');
 
@@ -166,7 +184,6 @@ var generator = {
             this.saveStatus.createPos++;
         }
 
-        dialogs.get('smilepack').onprogress(this.saveStatus.createPos, this.saveStatus.smilesToCreate.length);
         if(this.saveStatus.createPos < this.saveStatus.smilesToCreate.length){
             var pos = this.saveStatus.createPos;
             setTimeout(function(){
@@ -180,8 +197,15 @@ var generator = {
                     this._saveSmilepackProcessingSmileError.bind(this)
                 );
             }.bind(this), 350);
+            dialogsManager.open('smilepack', {
+                mode: 'begin',
+                current: this.saveStatus.createPos,
+                count: this.saveStatus.smilesToCreate.length
+            });
             return;
         }
+
+        dialogsManager.open('smilepack', {mode: 'saving'});
 
         ajax.create_smilepack(
             this.saveStatus.name,
@@ -205,13 +229,13 @@ var generator = {
             return this._saveSmilepackProcessing();
         }
         this.saveStatus = null;
-        dialogs.close('smilepack');
+        dialogsManager.close('smilepack');
     },
 
     _saveSmilepackError: function(data){
         this.onerror(data);
         this.saveStatus = null;
-        dialogs.close('smilepack');
+        dialogsManager.close('smilepack');
     },
 
     savedSmilepackEvent: function(data){
@@ -220,8 +244,8 @@ var generator = {
             window.history.replaceState(null, null, data.path + location.hash);
         }
 
-        var options = {savedData: data};
-        dialogs.get('smilepack').onsave(options);
+        var options = {mode: 'saved', savedData: data};
+        dialogsManager.open('smilepack', options);
 
         var lastUrl = document.getElementById('smp-last-url');
         lastUrl.href = options.savedData.download_url;
@@ -237,25 +261,28 @@ var generator = {
         this.modified = false;
     },
 
-    addSmilepackCategory: function(name, iconId, iconUrl){
-        var id = this.smilepack.addCategory(0, 0, {
-            name: name,
-            icon: {id: iconId, url: iconUrl}
-        });
-        if(id == null) return null;
-        this.smilepack.set(0, id);
-        this.modified = true;
-        return id;
-    },
+    modifySmilepackCategory: function(options){
+        if(!options.name) return {error: 'Введите имя категории'};
+        if(options.name.length > 128) return {error: 'Длинновато имя у категории!'};
+        if(!options.iconId || !options.iconUrl) return {error: 'Не выбрана иконка'};
 
-    editSmilepackCategory: function(categoryId, name, iconId, iconUrl){
-        var id = this.smilepack.editCategory(0, categoryId, {
-            name: name,
-            icon: {id: iconId, url: iconUrl}
-        });
-        if(id == null) return null;
+        var id;
+        if(options.categoryId == null){
+            id = this.smilepack.addCategory(0, 0, {
+                name: options.name,
+                icon: {id: options.iconId, url: options.iconUrl}
+            });
+        }else{
+            id = this.smilepack.editCategory(0, options.categoryId, {
+                name: options.name,
+                icon: {id: options.iconId, url: options.iconUrl}
+            });
+        }
+
+        if(id == null) return {error: 'Кажется, что-то пошло не так'};
+        if(options.categoryId == null) this.smilepack.set(0, id);
         this.modified = true;
-        return id;
+        return {success: true, categoryId: id};
     },
 
     deleteSmilepackCategory: function(categoryId, interactive){
@@ -291,39 +318,51 @@ var generator = {
         return true;
     },
 
-    addCustomSmile: function(smile_data, interactive, onend){
+    addCustomSmile: function(options){
+        if(!options.file && (!options.url || options.url.length < 9)){
+            return {error: 'Надо бы смайлик'};
+        }
+        if(options.url && options.url.length > 512){
+            return {error: 'Длинновата ссылка, перезалейте на что-нибудь поадекватнее'};
+        }
+        if(isNaN(options.w) || options.w < 1 || isNaN(options.h) || options.h < 1){
+            return {error: 'Размеры смайлика кривоваты'};
+        }
+
+        var onend = options.onend;
         var categoryId = generator.smilepack.getSelectedCategory(0);
+
         var onload = function(data){
-            this._addCustomSmileEvent(data, smile_data, categoryId, interactive, onend);
+            this._addCustomSmileEvent(data, options, categoryId, onend);
         }.bind(this);
         var onerror = function(data, x){
             this.onerror(data, x);
-            if(onend) onend(false, null);
+            if(onend) onend({success: false, error: data.error || data});
         }.bind(this);
 
-        if(smile_data.url){
+        if(options.url){
             ajax.create_smile({
-                url: smile_data.url,
-                w: smile_data.w,
-                h: smile_data.h
+                url: options.url,
+                w: options.w,
+                h: options.h
             }, onload, onerror);
-            return true;
-        }else if(smile_data.file){
+        }else if(options.file){
             ajax.upload_smile({
-                file: smile_data.file,
-                w: smile_data.w,
-                h: smile_data.h
+                file: options.file,
+                w: options.w,
+                h: options.h
             }, onload, onerror);
-        }else {
-            return false;
         }
+        return {success: true};
     },
 
-    _addCustomSmileEvent: function(data, smile_data, categoryId, interactive, onend){
-        if(!data.smile) return this.onerror(data);
+    _addCustomSmileEvent: function(data, options, categoryId, onend){
+        if(!data.smile){
+            console.log(data);
+            if(onend) onend({error: data.error || data});
+        }
         if(this.usedSmiles.indexOf(data.smile.id) >= 0){
-            if(interactive) alert('Этот смайлик уже используется!');
-            onend(false, data.smile.id);
+            if(onend) onend({error: 'Этот смайлик уже используется!'});
             return;
         }
 
@@ -331,8 +370,8 @@ var generator = {
             id: data.smile.id,
             url: data.smile.url,
             description: data.smile.description,
-            w: smile_data.w,
-            h: smile_data.h
+            w: options.w,
+            h: options.h
         });
 
         if(id != null){
@@ -340,7 +379,7 @@ var generator = {
             this.modified = true;
             if(!data.created && data.smile.category != null) this.collection.setDragged(data.smile.id, true);
         }
-        onend(true, id);
+        if(onend) onend({success: true, smileId: id});
     },
 
     storageSave: function(interactive){
@@ -497,15 +536,34 @@ var generator = {
     },
 
     bindButtonEvents: function(){
-        this.collection.getAdditionalContainer().querySelector('.action-move-all').addEventListener('click', this.moveAllSmiles.bind(this));
-        this.smilepack.getAdditionalContainer().querySelector('.action-add-smile').addEventListener('click', function(){dialogs.open('smile')});
+        var moveBtn = this.collection.getAdditionalContainer().querySelector('.action-move-all');
+        moveBtn.addEventListener('click', this.moveAllSmiles.bind(this));
+
+        var addSmileBtn = this.smilepack.getAdditionalContainer().querySelector('.action-add-smile');
+        addSmileBtn.addEventListener('click', function(){
+            dialogsManager.open('smile', {}, this.addCustomSmile.bind(this));
+        }.bind(this));
+
         document.querySelector('.action-save').addEventListener('click', this.saveSmilepack.bind(this));
 
         document.getElementById('action-storage-save').addEventListener('click', function(){this.storageSave(true)}.bind(this));
         document.getElementById('action-storage-load').addEventListener('click', function(){this.storageLoad(true)}.bind(this));
 
-        document.getElementById('action-import-userscript').addEventListener('click', function(){dialogs.open('import_userscript')});
+        var importBtn = document.getElementById('action-import-userscript');
+        importBtn.addEventListener('click', function(){
+            dialogsManager.open('import_userscript', {}, this.importUserscript.bind(this));
+        }.bind(this));
+
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
+    },
+
+    registerDialogs: function(){
+        dialogsManager.init(document.getElementById('dialog-background'), {
+            'category': new CategoryDialog(),
+            'smile': new SmileDialog(),
+            'import_userscript': new ImportUserscriptDialog(),
+            'smilepack': new SmilepackDialog()
+        });
     },
 
     init: function(){
@@ -525,326 +583,6 @@ var generator = {
         }.bind(this));
     }
 };
-/**
- * Dialogs moved here, temporary
- */
-/*
- * Диалог добавления категории смайлопака
- */
-generator.CategoryDialog = function(options){
-    dialogs.Dialog.apply(this, arguments);
-    this.container = document.getElementById('dialog-new-category');
-    this.form = document.querySelector('#dialog-new-category form');
-};
-generator.CategoryDialog.prototype = Object.create(dialogs.Dialog.prototype);
-generator.CategoryDialog.prototype.constructor = generator.CategoryDialog;
 
-
-generator.CategoryDialog.prototype.onsubmit = function(){
-    var f = this.form;
-    if(!f.name.value) return this.error('Введите имя категории');
-    if(f.name.value.length > 128) return this.error('Длинновато имя у категории');
-
-    // Safari не умеет в f.[radio].value
-    var value, url;
-    if(f.icon.length){
-        for(var i=0; i<f.icon.length; i++){
-            if(!f.icon[i].checked && i != 0) continue;
-            value = f.icon[i].value;
-            url = f.icon[i].dataset.valueUrl;
-            if(f.icon[i].checked) break;
-        }
-    }else{
-        value = f.icon.value;
-        url = f.icon.dataset.valueUrl;
-    }
-
-    var id = null;
-    if(f.category.value.length > 0){
-        id = generator.editSmilepackCategory(
-            parseInt(f.category.value),
-            f.name.value,
-            value,
-            url
-        );
-    }else{
-        id = generator.addSmilepackCategory(
-            f.name.value,
-            value,
-            url
-        );
-    }
-    if(id == null) return this.error('Что-то пошло не так');
-    dialogs.close(this.name);
-};
-
-
-generator.CategoryDialog.prototype.open = function(options){
-    if(options.edit != this.container.classList.contains('mode-edit')){
-        this.container.classList.toggle('mode-add');
-        this.container.classList.toggle('mode-edit');
-    }
-
-    if(options.edit){
-        this.form.name.value = options.category.name;
-        this.form.icon.value = options.category.icon.id;
-        this.form.category.value = options.category.id;
-    }else{
-        this.form.name.value = '';
-        if(this.form.icon[0]) this.form.icon.value = this.form.icon[0].value;
-        this.form.category.value = "";
-    }
-    this.show();
-    return true;
-};
-
-
-/*
- * Диалог добавления нового смайлика
- */
-generator.SmileDialog = function(options){
-    dialogs.Dialog.apply(this, arguments);
-    this.container = document.getElementById('dialog-new-smile');
-    this.form = document.querySelector('#dialog-new-smile form');
-    this.btn = document.querySelector('#dialog-new-smile form input[type="submit"]');
-
-    var onchange = this.refresh.bind(this);
-    var onfile = this.refreshFile.bind(this);
-
-    this.form.url.addEventListener('change', onfile);
-    this.form.w.addEventListener('change', onchange);
-    this.form.h.addEventListener('change', onchange);
-
-    this.current_uploader = 'link';
-    this.uploaders = {
-        file: document.querySelector('#dialog-new-smile form .file-uploader'),
-        link: document.querySelector('#dialog-new-smile form .link-uploader')
-    };
-    if(this.uploaders.file){
-        this.uploaders.file.addEventListener('change', onfile);
-    }
-    if(this.form.uploader) {
-        for(var i=0; i<this.form.uploader.length; i++){
-            this.form.uploader[i].addEventListener('change', this._setUploaderEvent.bind(this));
-        }
-    }
-};
-generator.SmileDialog.prototype = Object.create(dialogs.Dialog.prototype);
-generator.SmileDialog.prototype.constructor = generator.SmileDialog;
-
-
-generator.SmileDialog.prototype._setUploaderEvent = function(event){
-    this.setUploader(event.target.value); // FIXME: нужно подружить this и bind
-};
-
-
-generator.SmileDialog.prototype.setUploader = function(uploader){
-    if(uploader == this.current_uploader || !this.uploaders[uploader]) return;
-    this.uploaders[this.current_uploader].style.display = 'none';
-    this.uploaders[uploader].style.display = '';
-    this.current_uploader = uploader;
-    this.refreshFile();
-};
-
-
-generator.SmileDialog.prototype.clearPreview = function(){
-    var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
-    preview.src = 'data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=';
-    preview.width = 0;
-    preview.height = 0;
-    f.w.value = '';
-    f.h.value = '';
-};
-
-
-generator.SmileDialog.prototype.setPreviewUrl = function(url){
-    var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
-
-    var img = document.createElement('img');
-    img.onload = function(){
-        preview.src = img.src;
-        preview.width = img.width;
-        preview.height = img.height;
-        f.w.value = img.width;
-        f.h.value = img.height;
-    };
-    img.onerror = this.clearPreview.bind(this);
-    img.src = url;
-};
-
-
-generator.SmileDialog.prototype.refreshFile = function(){
-    var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
-
-    if(this.current_uploader == 'link'){
-        if(preview.src == f.url.value) return;
-        if(f.url.value.length < 9) {
-            this.clearPreview();
-            return;
-        }
-        this.setPreviewUrl(f.url.value);
-
-    }else if(this.current_uploader == 'file'){
-        if(!f.file.files || !f.file.files[0]){
-            this.clearPreview();
-            return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function(){
-            this.setPreviewUrl(reader.result);
-        }.bind(this);
-        reader.onerror = function(){
-            this.clearPreview();
-        }.bind(this);
-        reader.readAsDataURL(f.file.files[0]);
-    };
-};
-
-
-generator.SmileDialog.prototype.refresh = function(){
-    var f = this.form;
-
-    var preview = f.querySelector('.new-smile-preview');
-    var aspect = preview.width / preview.height;
-    var save_aspect = f.save_aspect.checked;
-
-    var w = parseInt(f.w.value);
-    if(!isNaN(w) && w > 0 && preview.width != w){
-        preview.width = w;
-        if(save_aspect){
-            preview.height = Math.round(w / aspect);
-            f.h.value = preview.height;
-        }
-    }
-
-    var h = parseInt(f.h.value);
-    if(!isNaN(h) && h > 0 && preview.height != h){
-        preview.height = h;
-        if(save_aspect){
-            preview.width = Math.round(h * aspect);
-            f.w.value = preview.width;
-        }
-    }
-};
-
-
-generator.SmileDialog.prototype.onsubmit = function(){
-    var f = this.form;
-    if(this.current_uploader == 'link'){
-        if(!f.url.value || f.url.value.length < 9) return this.error('Надо бы ссылку на смайлик');
-        if(f.url.value.length > 512) return this.error('Длинновата ссылка, перезалейте на что-нибудь поадекватнее');
-    }else if(this.current_uploader == 'file'){
-        if(!f.file.files || !f.file.files[0]) return this.error('Надо бы выбрать файл');
-    }
-    var w = parseInt(f.w.value);
-    var h = parseInt(f.h.value);
-    if(isNaN(w) || w < 1 || isNaN(h) || h < 1) return this.error('Размеры смайлика кривоваты');
-
-    var onend = function(added, smile_id){
-        this.btn.disabled = false;
-        if(added) dialogs.close(this.name);
-    }.bind(this);
-
-    if(this.current_uploader == 'link'){
-        generator.addCustomSmile({url: f.url.value, w: w, h: h}, true, onend);
-    }else if(this.current_uploader == 'file'){
-        generator.addCustomSmile({file: f.file.files[0], w: w, h: h}, true, onend);
-    }
-    this.btn.disabled = true;
-};
-
-
-/*
- * Диалог импортирования юзерскрипта
- */
-generator.ImportUserscriptDialog = function(options){
-    dialogs.Dialog.apply(this, arguments);
-    this.container = document.getElementById('dialog-import-userscript');
-    this.form = document.querySelector('#dialog-import-userscript form');
-    this.btn = document.querySelector('#dialog-import-userscript form input[type="submit"]')
-};
-generator.ImportUserscriptDialog.prototype = Object.create(dialogs.Dialog.prototype);
-generator.ImportUserscriptDialog.prototype.constructor = generator.ImportUserscriptDialog;
-
-
-generator.ImportUserscriptDialog.prototype.onsubmit = function(){
-    var file = this.form.file;
-    if(!file.value) return this.error('Выберите файл');
-    generator.importUserscript(this.form, true, function(){dialogs.close(this.name)}.bind(this));
-    this.btn.disabled = true;
-};
-
-
-generator.ImportUserscriptDialog.prototype.open = function(options){
-    this.form.file.value = '';
-    this.btn.disabled = false;
-    this.show();
-    return true;
-};
-
-
-/*
- * Диалог сохранения смайлопака
- */
-generator.SmilepackDialog = function(options){
-    dialogs.Dialog.apply(this, arguments);
-    this.container = document.getElementById('dialog-save');
-    this.processingElement = this.container.querySelector('.processing');
-    this.savedElement = this.container.querySelector('.saved');
-
-    this.beginElement = this.processingElement.querySelector('.processing-begin');
-    this.endElement = this.processingElement.querySelector('.processing-end');
-    this.smileCurrentElement = this.beginElement.querySelector('.smile-current');
-    this.smilesCountElement = this.beginElement.querySelector('.smiles-count');
-};
-generator.SmilepackDialog.prototype = Object.create(dialogs.Dialog.prototype);
-generator.SmilepackDialog.prototype.constructor = generator.SmilepackDialog;
-
-
-generator.SmilepackDialog.prototype.open = function(){
-    this.processingElement.style.display = '';
-    this.savedElement.style.display = 'none';
-    if(this.container.classList.contains('smp-saved')) this.container.classList.remove('smp-saved');
-    this.onprogress(0, 0);
-    this.show();
-    return true;
-};
-
-
-generator.SmilepackDialog.prototype.onprogress = function(smile_current, smiles_count){
-    if(smile_current >= smiles_count){
-        this.beginElement.style.display = 'none';
-        this.endElement.style.display = '';
-        return;
-    }
-    this.beginElement.style.display = '';
-    this.endElement.style.display = 'none';
-    this.smileCurrentElement.textContent = smile_current + 1;
-    this.smilesCountElement.textContent = smiles_count;
-};
-
-
-generator.SmilepackDialog.prototype.onsave = function(options){
-    this.processingElement.style.display = 'none';
-    this.savedElement.style.display = '';
-    if(!this.container.classList.contains('smp-saved')) this.container.classList.add('smp-saved');
-
-    this.savedElement.querySelector('.smp-id').textContent = options.savedData.smilepack_id;
-    this.savedElement.querySelector('.smp-url').href = options.savedData.download_url;
-    this.savedElement.querySelector('.smp-view-url').href = options.savedData.view_url;
-    this.savedElement.querySelector('.smp-view-url').textContent = options.savedData.view_url;
-};
-
-
-generator.registerDialogs = function(){
-    dialogs.register('category', this.CategoryDialog);
-    dialogs.register('smile', this.SmileDialog);
-    dialogs.register('smilepack', this.SmilepackDialog);
-    dialogs.register('import_userscript', this.ImportUserscriptDialog);
-};
 
 module.exports = generator;
