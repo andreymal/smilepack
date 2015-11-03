@@ -30,7 +30,7 @@ module.exports = {
                 loader: ExtractTextPlugin.extract("style-loader", "css-loader")
             },
             {
-                test: /\.(jpe?g|png|gif|svg([\?]?.*))$/i,
+                test: /\.(jpe?g|png|gif|svg)([\?].*)?$/i,
                 loader: 'file?context=' + root + '&name=[name].[hash:8].[ext]'
             }
         ]
