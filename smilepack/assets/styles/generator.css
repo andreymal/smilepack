@@ -246,12 +246,27 @@ border-bottom: 0.2em solid #ccf;
 }
 
 .smile {
-    margin: 0.25em;
+    padding: 0.25em;
     cursor: pointer;
 }
 
 .smile.dragged {
     visibility: hidden;
+}
+
+.smile.selected {
+    background-color: rgba(221, 119, 119, 0.2);
+    box-shadow: 0 0 0 2px rgb(221, 119, 119);
+    border-radius: 2px;
+    padding: 0;
+    margin: 0.25em;
+}
+
+.drop-hint {
+    display: inline-block;
+    width: 0px;
+    min-height: 16px;
+    outline: 1px solid red;
 }
 
 #collection .smile.dragged {
