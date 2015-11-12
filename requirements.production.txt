@@ -1,7 +1,3 @@
-Flask
-Flask-Babel
-Flask-Script
-Flask-Webpack
 pony
 jsonschema
 pytz
@@ -10,3 +6,7 @@ python3-memcached
 Flask-Limiter
 pymemcache
 Pillow
+Flask-Script
+Flask-Webpack
+Flask-Babel
+Flask
