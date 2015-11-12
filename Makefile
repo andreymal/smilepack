@@ -17,7 +17,7 @@ help:
 	@echo "dist - package"
 	@echo "install - install the package to the active Python's site-packages"
 
-clean: clean-build clean-pyc clean-test clean-frontend
+clean: clean-build clean-pyc clean-test clean-frontend clean-translations
 
 clean-build:
 	rm -fr build/
@@ -39,6 +39,9 @@ clean-test:
 
 clean-frontend:
 	npm run-script clean
+
+clean-translations:
+	rm smilepack/translations/*/LC_MESSAGES/*.mo
 
 lint:
 	python setup.py lint \
@@ -63,11 +66,13 @@ docs:
 release: clean
 	python setup.py sdist upload
 	npm run-script webpack:production
+	pybabel compile -d smilepack/translations
 	python setup.py bdist_wheel upload
 
 dist: clean
 	python setup.py sdist
 	npm run-script webpack:production
+	pybabel compile -d smilepack/translations
 	python setup.py bdist_wheel
 	ls -l dist
 
@@ -79,3 +84,4 @@ develop:
 	npm run-script webpack:trunk
 	pip install -r requirements.development.txt
 	python setup.py develop
+	pybabel compile -d smilepack/translations

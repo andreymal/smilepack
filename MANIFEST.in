@@ -11,3 +11,4 @@ recursive-include docs *.md conf.py Makefile
 include smilepack/manifest.json
 recursive-include smilepack/templates *
 recursive-include smilepack/public *
+recursive-include smilepack/translations *

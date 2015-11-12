@@ -6,6 +6,10 @@ import logging
 
 
 class Config(object):
+    LOCALES = {
+        'en': 'English',
+        'ru': 'Русский',
+    }
     DEBUG = False
     TESTING = False
     SECRET_KEY = '43h9r7fhfdiu259fch106bxmlk23d7s'

@@ -120,3 +120,37 @@ body {
     vertical-align: middle;
     margin: 2px 0.125em;
 }
+
+.footer {
+    border-top: 1px solid #ddd;
+    margin-top: 1em;
+    padding: 1em;
+    color: #aaa;
+    text-align: right;
+    font-size: 0.65em;
+}
+
+.footer a {
+    color: inherit;
+}
+
+.locale-form {
+    display: inline-block;
+}
+
+.locale-form select {
+    background-color: #ddd;
+    border: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: #777;
+}
+
+.locale-form .locale-submit {
+    background-color: #ddd;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    color: #777;
+}

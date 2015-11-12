@@ -51,6 +51,9 @@ node_modules
 # Fabric script
 /fabfile.py
 
+# gettext binary files
+*.mo
+
 ### Smilepack stuff
 /local_settings.py
 /local/

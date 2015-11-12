@@ -5,10 +5,10 @@ import sys
 import logging
 from logging.handlers import SMTPHandler
 
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request, g
 from flask_limiter import Limiter
 from flask_webpack import Webpack
-from flask_babel import Babel
+import flask_babel
 
 from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
@@ -30,7 +30,20 @@ def create_app():
     webpack.init_app(app)
     database.configure_for_app(app, db_seed=True)
     init_bl()
-    Babel(app)
+
+    babel = flask_babel.Babel(app)
+
+    @babel.localeselector
+    def get_locale():
+        locales = app.config['LOCALES'].keys()
+        locale = request.cookies.get('locale')
+        if locale in locales:
+            return locale
+        return request.accept_languages.best_match(locales)
+
+    @app.before_request
+    def before_request():
+        g.locale = flask_babel.get_locale()
 
     app.limiter = Limiter(app)
     app.logger.setLevel(app.config['LOGGER_LEVEL'])

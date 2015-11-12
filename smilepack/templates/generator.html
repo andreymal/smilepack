@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}Создание смайлопака{% endif %}</title>
+    <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}{{ _("Create smilepack") }}{% endif %}</title>
     {{ stylesheet_tag("generator_css") | safe }}
 </head>
 <body>
@@ -10,50 +10,50 @@
 <div class="top">
     <div class="header">
         <div class="actions-menu">
-            Другие действия ▼
+            {{ _("Other actions") }} ▼
             <ul class="actions-list">
-                <li id="action-storage-save">Сохранить в localStorage</li>
-                <li id="action-storage-load">Загрузить из localStorage</li>
-                <li id="action-import-userscript">Импортировать юзерскрипт</li>
-                <li id="action-toggle-dark">Поменять фон</li>
+                <li id="action-storage-save">{{ _("Save to localStorage") }}</li>
+                <li id="action-storage-load">{{ _("Load from localStorage") }}</li>
+                <li id="action-import-userscript">{{ _("Import userscript") }}</li>
+                <li id="action-toggle-dark">{{ _("Change background") }}</li>
             </ul>
         </div>
         <div class="header-right">
             {% if config['ISSUE_REPORT_LINK'] -%}
-                <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">Сообщить о проблеме</a>
+                <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">{{ _("Report an issue") }}</a>
             {%- endif %}
         </div>
-        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">Смайлопак</a></div>
+        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">{{ _("Smilepack") }}</a></div>
     </div>
 
     <div class="settings">
-    Название: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="Опционально" />
+    {{ _("Name") }}: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="{{ _("Optional") }}" />
     {% if config['ALLOW_LIFETIME_SELECT'] -%}
-    Удалить с сервера через:
+    {{ _("Delete from server after") }}:
     <select id="lifetime" autocomplete="off">
-        <option{{ ' selected' if (not pack and config['MAX_LIFETIME']) or lifetime == 1800 else '' }} value="1800">Полчаса</option>
-        {% for tm, title in [[28800, "8 часов"], [86400, "1 день"], [604800, "Неделю"], [2592000, "30 дней"]] -%}
+        <option{{ ' selected' if (not pack and config['MAX_LIFETIME']) or lifetime == 1800 else '' }} value="1800">{{ _("Half an hour") }}</option>
+        {% for tm, title in [[28800, _("8 hours")], [86400, _("1 day")], [604800, _("Week")], [2592000, _("30 days")]] -%}
         {%- if not config['MAX_LIFETIME'] or config['MAX_LIFETIME'] >= tm -%}
             <option{{ ' selected' if pack and lifetime == tm else '' }} value="{{ tm }}">{{ title }}</option>
         {% endif -%}
         {%- endfor %}
 
         {%- if not config['MAX_LIFETIME'] -%}
-            <option{{ ' selected' if not lifetime else '' }} value="0">Оставить навсегда</option>
+            <option{{ ' selected' if not lifetime else '' }} value="0">{{ _("Keep forever") }}</option>
         {%- endif %}
     </select>
     {%- endif %}
     {% if pack %}
-    <button class="button button-primary action-save">Сохранить новый смайлопак</button>
-    <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.hid) }}" target="_blank" id="smp-last-url">Скачать последнюю сохранённую версию</a>
+    <button class="button button-primary action-save">{{ _("Save new smilepack") }}</button>
+    <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.hid) }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
     {% else %}
-    <button class="button button-primary action-save">Сохранить и скачать смайлопак!</button>
-    <a href="#" target="_blank" id="smp-last-url" style="display: none;">Скачать последнюю сохранённую версию</a>
+    <button class="button button-primary action-save">{{ _("Save and download smilepack!") }}</button>
+    <a href="#" target="_blank" id="smp-last-url" style="display: none;">{{ _("Download last saved version") }}</a>
     {% endif %}
     {% if pack_deletion_date %}
-    <span id="smp-delete-container">(смайлопак будет удалён <span id="smp-delete-date">{{ pack_deletion_date }}</span>)</span>
+    <span id="smp-delete-container">({{ _("smilepack will be deleted") }} <span id="smp-delete-date">{{ pack_deletion_date }}</span>)</span>
     {% else %}
-    <span id="smp-delete-container" style="display: none;">(смайлопак будет удалён <span id="smp-delete-date"></span>)</span>
+    <span id="smp-delete-container" style="display: none;">({{ _("smilepack will be deleted") }} <span id="smp-delete-date"></span>)</span>
     {% endif %}
     </div>
 </div>
@@ -62,11 +62,11 @@
 <div class="container-left" id="collection">
     <div style="text-align: center"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
     <div class="additional" style="display: none;">
-        <button class="button button action-move-all">Перенести всю категорию в смайлопак</button><br/>
+        <button class="button button action-move-all">{{ _("Move the entire category to smilepack") }}</button><br/>
     </div>
 </div><div class="container-right" id="smilepack">
     <div class="additional" style="display: none">
-        <button class="button button action-add-smile">Добавить свой смайлик</button>
+        <button class="button button action-add-smile">{{ _("Add your smile") }}</button>
     </div>
 </div>
 </div><!-- /container -->
@@ -74,13 +74,13 @@
 <div id="dialog-background" class="dialog-background hidden"></div>
 
 <div id="dialog-new-category" class="dialog hidden mode-add">
-    <div class="dialog-title"><a class="dialog-close"></a> <span class="mode-add">Добавление категории</span><span class="mode-edit">Изменение категории</span></div>
+    <div class="dialog-title"><a class="dialog-close"></a> <span class="mode-add">{{ _("Adding a category") }}</span><span class="mode-edit">{{ _("Changing a category") }}</span></div>
 
     <form action="#">
-        <label for="name">Название категории:</label><br/>
+        <label for="name">{{ _("Category name") }}:</label><br/>
         <input name="name" class="text input-width-full" /><br/>
 
-        <label for="icon">Иконка:</label><br/>
+        <label for="icon">{{ _("Icon") }}:</label><br/>
         <div class="icon-container">
         {%- for icon in icons %}
             <label>
@@ -92,19 +92,19 @@
 
         <input type="hidden" name="category" value="" />
 
-        <span class="mode-add"><input type="submit" class="button button-primary" value="Добавить" /></span>
-        <span class="mode-edit"><input type="submit" class="button button-primary" value="Сохранить" /></span>
+        <span class="mode-add"><input type="submit" class="button button-primary" value="{{ _("Add") }}" /></span>
+        <span class="mode-edit"><input type="submit" class="button button-primary" value="{{ _("Save") }}" /></span>
     </form>
 </div>
 
 <div id="dialog-new-smile" class="dialog hidden">
-    <div class="dialog-title"><a class="dialog-close"></a> Добавление смайлика</div>
+    <div class="dialog-title"><a class="dialog-close"></a> {{ _("Adding a smile") }}</div>
 
     <form action="#" method="POST" enctype="multipart/form-data">
         {% if config.UPLOAD_METHOD != None -%}
         <div class="uploader-choice">
-            <label><input type="radio" name="uploader" value="link" autocomplete="off" checked> По ссылке</label>
-            <label><input type="radio" name="uploader" value="file" autocomplete="off"> С компьютера</label>
+            <label><input type="radio" name="uploader" value="link" autocomplete="off" checked> {{ _("From link") }}</label>
+            <label><input type="radio" name="uploader" value="file" autocomplete="off"> {{ _("From computer") }}</label>
         </div>
 
         <div class="file-uploader" style="display: none">
@@ -113,57 +113,57 @@
         {% endif -%}
 
         <div class="link-uploader">
-            <label for="url">Ссылка:</label><br/>
+            <label for="url">{{ _("Link") }}:</label><br/>
             <input name="url" class="text input-width-full" /><br/>
         </div>
 
-        Размер смайлика:
-        <input name="w" type="number" style="width: 6em;" value="" placeholder="Длина" class="text" />
+        {{ _("Smile size") }}:
+        <input name="w" type="number" style="width: 6em;" value="" placeholder="{{ _("Width") }}" class="text" />
         x
-        <input name="h" type="number" style="width: 6em;" value="" placeholder="Ширина" class="text" />
-        <label><input type="checkbox" name="save_aspect" checked />Сохранить соотн. сторон</label>
+        <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _("Height") }}" class="text" />
+        <label><input type="checkbox" name="save_aspect" checked />{{ _("Keep aspect ratio") }}</label>
         <br/>
-        <div class="smile-add-notice">Реальные размеры картинки изменены не будут; при необходимости сожмите её самостоятельно в любом графическом редакторе.</div>
+        <div class="smile-add-notice">{{ _("The actual dimensions of the image will not be changed; if necessary, compress it yourself in a graphics editor.") }}</div>
 
         <img class="new-smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" /><br/>
 
         <input type="hidden" name="level" value="0" />
         <input type="hidden" name="category" value="0" />
 
-        <input type="submit" class="button button-primary" value="Добавить" />
+        <input type="submit" class="button button-primary" value="{{ _("Add") }}" />
     </form>
 </div>
 
 <div id="dialog-import-userscript" class="dialog hidden">
-    <div class="dialog-title"><a class="dialog-close"></a> Импортирование юзерскрипта</div>
+    <div class="dialog-title"><a class="dialog-close"></a> {{ _("Importing a userscript") }}</div>
 
     <form action="#" method="POST" enctype="multipart/form-data">
-        <label for="url">Выберите файл с юзерскриптом</label><br/>
+        <label for="url">{{ _("Select an userscript file") }}</label><br/>
         <input type="file" name="file" /><br/>
 
-        <input type="submit" class="button button-primary" value="Импортировать" />
+        <input type="submit" class="button button-primary" value="{{ _("Import") }}" />
     </form>
 </div>
 
 <div id="dialog-save" class="dialog hidden">
-    <div class="dialog-title">Сохранение смайлопака</div>
+    <div class="dialog-title">{{ _("Saving the smilepack") }}</div>
     <div class="processing">
-        <span class="processing-begin">Создаём смайлик <span class="smile-current">%d</span> из <span class="smiles-count">%d</span>...</span>
-        <span class="processing-end">Сохраняем...</span>
+        <span class="processing-begin">{{ _("Create a smile") }} <span class="smile-current">%d</span> / <span class="smiles-count">%d</span>...</span>
+        <span class="processing-end">{{ _("Saving...") }}</span>
     </div>
     <div class="saved" style="display: none; text-align: center;">
-        <div style="font-size: 1.25em">Смайлопак сохранён!</div>
-        <div style="font-size: 1.45em; line-height: 3em">Его id: <span class="smp-id" style="font-weight: bold;"></span></div>
+        <div style="font-size: 1.25em">{{ _("Smilepack saved!") }}</div>
+        <div style="font-size: 1.45em; line-height: 3em">{{ _("His id:") }} <span class="smp-id" style="font-weight: bold;"></span></div>
 
-        Теперь вы можете:<br/>
+        {{ _("Now you can:") }}<br/>
         <ol style="text-align: left; line-height: 1.5em;">
-        <li><a href="#" class="smp-url" target="_blank">Скачать юзерскрипт</a> и установить его в браузере, чтобы пользоваться смайлопаком на всех сайтах с поддержкой HTML или BBCode.</li>
-        <li>Дать посмотреть кому-нибудь ваш смайлопак, поделившись ссылкой: <a href="#" class="smp-view-url" target="_blank">#</a></li>
+        <li><a href="#" class="smp-url" target="_blank">{{ _("Download userscript") }}</a> {{ _("and install it in your browser to use smilepack at all sites that support HTML or BBCode.") }}</li>
+        <li>{{ _("Give a look to someone your smilepack by sharing this link:") }} <a href="#" class="smp-view-url" target="_blank">#</a></li>
         <!-- <li>Интегрировать его в сайт, поддерживающий смайлопак, без установки юзерскрипта с помощью указанного выше id. Но пока сайтов с поддержкой интеграции нет и неизвестно, появятся ли вообще, поэтому эта строчка закомментирована :)</li> -->
-        <li>Закрыть это сообщение и продолжить редактирование, чтобы создать ещё один смайлопак (предыдущий сохранённый смайлопак останется).</li>
+        <li>{{ _("Close this message and continue editing to create another smilepack (previous saved smilepack will be unchanged).") }}</li>
         </ol>
 
-        <a href="#" class="dialog-close">Вернуться к редактированию</a>
+        <a href="#" class="dialog-close">{{ _("Back to editing") }}</a>
     </div>
 </div>
 {{ javascript_tag("generator_js") | safe }}

@@ -2,17 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>Смайлопак</title>
+    <title>{{ _("Smilepack") }}</title>
     {{ stylesheet_tag("landing_css") | safe }}
 </head>
 <body>
 
 <div class="main">
-    <h1>Да, это смайлопак!</h1>
-    <div class="stat">Смайликов в коллекции: {{ smiles_count }}, создано смайлопаков: {{ smilepacks_count }}</div>
-    <a href="{{ url_for('pages.generator') }}" class="generate-button">Создать свой смайлопак</a><br/>
+    <h1>{{ _("Yes, it is smilepack!") }}</h1>
+    <div class="stat">
+        {{ ngettext("%(num)d smile in collection,", "%(num)d smiles in collection,", smiles_count) }}
+        {{ ngettext("%(num)d smilepack created", "%(num)d smilepacks created", smilepacks_count) }}
+    </div>
+    <a href="{{ url_for('pages.generator') }}" class="generate-button">{{ _("Create smilepack") }}</a><br/>
     {% if smilepacks %}
-    Или открыть существующий:
+    {{ _("Or open existing:") }}
     <ul class="smilepacks-list">
     {%- for pack in smilepacks %}
         <li><a href="{{ url_for('pages.generator', smp_id=pack.hid) }}">{{pack.name or pack.hid}}</a> <time class="smp-date" datetime="{{ pack.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">({{ pack.created_at|datetimeformat }})</time></li>
@@ -24,13 +27,14 @@
 <div class="additional">
     {%- if new_smiles_json|length >= 20 %}
     <div class="new-smiles-container">
-        <div class="new-smiles-title">Новые смайлы:</div>
+        <div class="new-smiles-title">{{ _("New smiles:") }}</div>
         <div id="new-smiles">{% for smile in new_smiles_json %}
             <a href="{{ url_for('pages.generator') }}#{{ smile['category'][0] }}"><img src="{{ smile['url'] }}" alt="" title="{{ smile['category'][1] }}" /></a>
         {%- endfor %}</div>
     </div>
     {% endif -%}
 
+    {% if g.locale.language == 'ru' -%}
     <div class="title">Что это?</div>
     <div class="column">
         Новый бэкенд смайлопака с классным API, написанный за полтора дня. Умеет в хранение смайлопаков и добавление новых смайликов пользователями, а также поиск по тегам!
@@ -39,7 +43,23 @@
     </div><div class="column">
         Оставленный без изменений юзерскрипт для встраивания смайлопака в веб-сайты. Пользуйтесь смайлопаком везде, где бы вы ни были!
     </div>
+    {%- endif %}
 </div>
+
+<div class="footer">
+{% if config['ISSUE_REPORT_LINK'] -%}
+    <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">{{ _("Report an issue") }}</a>
+{%- endif %}
+<form class="locale-form" method="POST" action="{{ url_for('pages.setlocale') }}">
+    <select name="locale">
+    {% for locale, title in config['LOCALES']|dictsort %}
+        <option value="{{ locale }}"{{ ' selected' if locale == g.locale.language else '' }}>{{ title }}</option>
+    {% endfor %}
+    </select>
+    <input type="submit" class="locale-submit" value="OK" />
+</form>
+</div>
+
 {{ javascript_tag("landing_js") | safe }}
 </body>
 </html>
