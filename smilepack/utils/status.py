@@ -28,7 +28,7 @@ class ANSI:
 def system_status(app):
     items = [
         {'key': 'python', 'name': 'Python', 'value': sys.version.replace('\n', ' '), 'status': 'ok'},
-        {'key': 'env', 'name': 'Environment', 'value': os.getenv('SMILEPACK_SETTINGS'), 'status': 'ok'},
+        {'key': 'env', 'name': 'Environment', 'value': os.getenv('SMILEPACK_SETTINGS') or 'default', 'status': 'ok'},
         {'key': 'db', 'name': 'DB Provider', 'value': str(db.provider), 'status': 'ok'},
     ]
     rv = 'enabled ({})'.format(app.config['RATELIMIT_GLOBAL']) if app.config['RATELIMIT_ENABLED'] else 'disabled'
