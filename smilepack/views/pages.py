@@ -33,7 +33,7 @@ def index(session_id, first_visit):
         smilepacks=smilepacks,
         smiles_count=smiles_count,
         smilepacks_count=smilepacks_count,
-        new_smiles_json=Smile.bl.get_last_approved_as_json()
+        new_smiles_json=Smile.bl.get_last_approved_as_json(count=25)
     )
 
 

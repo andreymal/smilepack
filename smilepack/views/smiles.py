@@ -22,6 +22,19 @@ def index():
     return {'sections': models.Section.bl.get_all_with_categories()}
 
 
+@bp.route('/new')
+@default_crossdomain()
+@json_answer
+@db_session
+def new():
+    count = request.args.get('count')
+    if count and count.isdigit():
+        count = int(count)
+    else:
+        count = 100
+    return {'smiles': models.Smile.bl.get_last_approved_as_json(count=count)}
+
+
 @bp.route('/search/<int:section_id>')
 @default_crossdomain()
 @json_answer
