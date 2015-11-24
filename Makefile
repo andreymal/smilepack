@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build clean-test clean-frontend clean lint test test-all docs
+.PHONY: clean-pyc clean-build clean-test clean-frontend clean-translations clean lint test test-all docs
 
 help:
 	@echo "Smilepack"
@@ -8,7 +8,7 @@ help:
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "clean-test - remove test and coverage artifacts"
 	@echo "clean-frontend - remove webpack frontend artifacts"
-	@echo "lint - check style with flake8"
+	@echo "lint - check style with pylint"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
@@ -16,6 +16,7 @@ help:
 	@echo "release - package and upload a release"
 	@echo "dist - package"
 	@echo "install - install the package to the active Python's site-packages"
+	@echo "develop - install the package for development as editable"
 
 clean: clean-build clean-pyc clean-test clean-frontend clean-translations
 
@@ -46,7 +47,7 @@ clean-translations:
 lint:
 	python setup.py lint \
 	--lint-packages smilepack \
-	--lint-rcfile pylintrc.ini
+	--lint-rcfile pylintrc
 
 test:
 	python setup.py test
