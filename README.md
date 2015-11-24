@@ -1,98 +1,60 @@
-Смайлопак
+Smilepack
 =========
 
-Веб-сайт для создания коллекции смайликов для сайтов и форумов.
+A website where you can create collections on smiles and use it on other sites.
 
-## Быстрый старт
+
+## Quick start
 
 ```
-pip3 install git+https://bitbucket.org/andreymal/smilepack.git
+pip3 install smilepack
 smilepack runserver
 ```
 
-После этого будет создана база `database.sqlite3` в текущем каталоге. Адрес сайта `http://localhost:5000/`.
+It creates `database.sqlite3` in current directory. Address `http://localhost:5000/`.
 
-В production-окружении можно запускать через, например, gunicorn:
-
-```
-gunicorn -w 4 smilepack.wsgi
-```
-
-
-## Конфигурация
-
-Изменение настроек по умолчанию осуществляется через `.py`-файл, содержащий класс с конфигурацией. Простой пример представлен в `local_settings_example.py`. Его можно сохранить как `local_settings.py` и скормить в приложение через переменную окружения:
+For production you can use gunicorn (or another WSGI server):
 
 ```
-export SMILEPACK_SETTINGS=local_settings.Local
+gunicorn -w 4 'smilepack.application:create_app()'
 ```
 
-Можно указать и любой другой объект любого другого Python-модуля, если он подходит.
 
-Для production-окружения не забудьте поменять наследование с `settings.Development` на `settings.Config`, чтобы отключить инструменты для отладки.
+## Configuration
 
+Default settings are change by `.py` file containing configuration class. Example in `examples/settings.py`. Save it as `local_settings.py` and load using environment variable:
 
-### База данных
+```
+export SMILEPACK_SETTINGS=local_settings.Production
+```
 
-* `DATABASE_ENGINE` и `DATABASE` задаются в формате [параметров подключения в Pony ORM](http://doc.ponyorm.com/database.html#database-providers). Пример для MySQL есть в `local_settings_example.py`. По умолчанию используется `sqlite3`.
+You can specify any Python object.
 
-
-### Смайлики
-
-Смайлики нужно где-то хранить. Способ загрузки устанавливается через `UPLOAD_METHOD`:
-
-* `None` (по умолчанию) — не сохранять смайлики самостоятельно. Все, в том числе создаваемые пользователями, должны быть заранее опубликованы на каких-нибудь хостингах картинок.
-
-* `'imgur'` — смайлики будут заливаться на хостинг Imgur. Для этого способа нужно указать параметр `IMGUR_ID`, содержащий id приложения для доступа к API хостинга. Для использования нужно доустановить `Flask-Imgur`.
-
-* `'directory'` — смайлики будут сохраняться в директории, указанной в параметре `SMILES_DIRECTORY`.
-
-Если способ загрузки указан, то можно запретить добавление смайликов по сторонним ссылкам параметром `ALLOW_CUSTOM_URLS = True`. Тогда если пользователь добавит смайлик по ссылке, он будет скачан и пересохранён согласно указанному способу загрузки; по умолчанию этот параметр отключен и ссылки сохраняются как есть.
-
-`SMILE_URL` — параметр, отвечающий за формирование ссылок на смайлики, сохранённые в `SMILES_DIRECTORY`. По умолчанию это `/smiles/images/{filename}`; если вы раздаёте смайлики через nginx и хотите использовать другой URL или используете CDN, можете указать здесь любой другой шаблон ссылки по своему усмотрению. Настройка `ICON_URL` для иконок аналогична.
+For development you can inherit class `smilepack.settings.Development`, for production use `smilepack.settings.Config`.
 
 
-### Смайлопаки
+### Database
 
-* `MAX_LIFETIME` — максимальное время (в секундах), которое созданные смайлопаки будут доступны для просмотра и скачивания. Ноль (по умолчанию) отключает ограничение. Параметр действует только на новые смайлопаки, не трогая те, которые были созданы до его изменения.
-
-* `HID_LENGTH` — длина идентификаторов смайлопаков (по умолчанию 6). Тоже применяется только к новым смайлопакам.
-
-* `SYMBOLS_FOR_HID` — символы, используемые для генерации идентификаторов смайлопаков (по умолчанию цифры и латиница). Тоже применяется только к новым смайлопакам.
-
-* `ALLOW_LIFETIME_SELECT` (по умолчанию `True`) — разрешает указание пользователем времени жизни (в пределах от 1 до `MAX_LIFETIME`). При отключении (`False`) все новые смайлопаки будут создаваться с временем жизни `MAX_LIFETIME`.
+* `DATABASE_ENGINE` и `DATABASE` are [Pony ORM connection settings](http://doc.ponyorm.com/database.html#database-providers). `examples/settings.py` has example for MySQL. Default database is `sqlite3`.
 
 
-### Кэширование и оптимизация
+### Smiles
 
-* `MEMCACHE_SERVERS` — список хостов memcached, по умолчанию `['127.0.0.1:11211']`. Пустой параметр отключает использование memcached.
+Smiles need to be stored somewhere. Use `UPLOAD_METHOD`:
 
-* `USE_BUNDLER = True` — включает минификацию и сборку в один js-файл скриптов в каталог, указанный в параметре `BUNDLE_PATH` (по умолчанию `media/bundle`). После включения нужно выполнить сборку командой `smilepack bundle`. Для использования нужно доустановить `jsmin`.
+* `None` (default) — don't save. All smiles should be uploaded to some hosting in advance.
 
-* `RATELIMIT_ENABLED = True` включает ограничение числа запросов Flask-Limiter. В качестве хранилища по умолчанию используется memcached. Более подробное описание настроек смотрите в [родной документации](https://flask-limiter.readthedocs.org/en/stable/).
+* `'imgur'` — upload to Imgur. For this, set `IMGUR_ID` of API application. You need to install `Flask-Imgur`.
 
+* `'directory'` — upload to `SMILES_DIRECTORY`.
 
-### Прочее
+If upload method is set, you can disable custom urls of smiles by `ALLOW_CUSTOM_URLS = True`. Then all links of user will reuploaded.
 
-* `PROXIES_COUNT` — указывает число прокси-серверов, находящимся перед приложением. Например, если используется nginx, который перенаправляет запросы на это приложение, то нужно указать `PROXIES_COUNT = 1`. Это требуется для корректного определения IP-адресов пользователей.
-
-* `MAX_CONTENT_LENGTH` — максимальный размер (в байтах) отправляемых приложению запросов (в том числе файлов; по умолчанию 4 МиБ). При использовании nginx не забудьте проверить ограничение и в его конфигурации тоже.
-
-* `ADMINS` – список e-mail, куда будут отправляться сообщения об ошибках.
-
-* `ERROR_EMAIL_FROM` – с какого адреса отправлять сообщения об ошибках.
-
-* `ERROR_EMAIL_HANDLER_PARAMS = {'mailhost': '127.0.0.1'}` – параметры для [logging.handlers.SMTPHandler](https://docs.python.org/3/library/logging.handlers.html#smtphandler), который будет отправлять сообщения об ошибках.
-
-Другие параметры, не указанные здесь, можно посмотреть самостоятельно в файле `smilepack/settings.py`.
+`SMILE_URL` — template for links of smiles stored in `SMILES_DIRECTORY`. Default `/smiles/images/{filename}`; if you use another url (CDN for example), you can set another template here. `ICON_URL` setting is similar.
 
 
-## Утилиты
+## Utilites
 
-* `smilepack status` — проверяет (частично) работоспособность конфигурации и доступность базы данных;
+* `smilepack status` — partly verifies the operability of configuration and database;
 
-* `smilepack shell` — загружает приложение и запускает интерактивную консоль;
-
-* `smilepack rehash_custom_urls` — пересчитать хэши кастомных ссылок на смайлики (скорее всего выполнять не потребуется);
-
-* `smilepack rehash_smiles [путь/к/файлику_с_хэшами.txt]` — считает sha256-хэши смайликов, которые по каким-то причинам хэша ещё не имеют. Файлик с хэшами (со строками в формате `id sha256sum`) пригодится, если пересчитывать много, а смайлики есть локально: для расчёта хэша смайлики будут качаться и из интернета в том числе (по пользовательским ссылкам), а это долго.
+* `smilepack shell` — runs interactive console with application.
