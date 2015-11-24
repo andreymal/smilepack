@@ -109,5 +109,3 @@ window.addEventListener('load', function(){
         setTimeout(function(){shuffle.fetchAndStart();}, 3500);
     }
 });
-
-window.shuffle = shuffle;

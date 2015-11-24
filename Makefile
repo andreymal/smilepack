@@ -41,7 +41,7 @@ clean-frontend:
 	npm run-script clean
 
 clean-translations:
-	rm smilepack/translations/*/LC_MESSAGES/*.mo
+	rm -f smilepack/translations/*/LC_MESSAGES/*.mo
 
 lint:
 	python setup.py lint \

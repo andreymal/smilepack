@@ -7,7 +7,7 @@
     "manifest-revision-webpack-plugin": "0.0.5",
     "file-loader": "~0.8.4",
     "style-loader": "~0.13.0",
-    "css-loader": "^0.18.0",
+    "css-loader": "~0.18.0",
     "webpack": "~1.12.2"
   },
   "scripts": {
@@ -22,6 +22,6 @@
   "author": "andreymal",
   "license": "MIT",
   "bugs": {
-    "url": "https://bitbucket.org/andreymal/issues"
+    "url": "https://bitbucket.org/andreymal/smilepack/issues"
   }
 }
