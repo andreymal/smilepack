@@ -141,7 +141,8 @@ var dragdrop = {
                 y: event.clientY,
                 mouseOver: this._mouseOver,
                 oldMouseOver: oldMouseOver,
-                starting: starting
+                starting: starting,
+                overlay: this._overlay
             });
         }
 
@@ -153,6 +154,7 @@ var dragdrop = {
                 x: event.clientX,
                 y: event.clientY,
                 mouseOver: this._mouseOver,
+                overlay: this._overlay
             });
         }
 

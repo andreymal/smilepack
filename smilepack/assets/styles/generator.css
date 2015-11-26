@@ -248,6 +248,12 @@ border-bottom: 0.2em solid #ccf;
 .smile {
     padding: 0.25em;
     cursor: pointer;
+    transition: background-color 0.25s ease;
+}
+
+.smile-loading {
+    background-color: #eee;
+    border-radius: 0.3em;
 }
 
 .smile.dragged {

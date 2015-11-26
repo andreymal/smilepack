@@ -25,6 +25,17 @@ widgets.Collection = function(hierarchy, options){
     this._smileMovePosId = null; /* для dragdrop */
     this._lastSmileId = 0;
 
+    this._lazyCategoriesQueue = [];
+    this._lazyProcessing = 0;
+    if(options.lazyStep){
+        this._lazyStep = options.lazyStep;
+    }else if(navigator.userAgent.toLowerCase().indexOf('chrome') >= 0){
+        this._lazyStep = 15;
+    }else{
+        this._lazyStep = 3;
+    }
+    this._lazyCallback = this._lazyLoaded.bind(this);
+
     /* Выбранные категории на каджом из уровней */
     this._selectedIds = [];
 
@@ -164,7 +175,8 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         smileIds: null,
         childrenIds: level + 1 < this._depth ? [] : null,
         childrenDom: null,
-        smilesDom: null
+        smilesDom: null,
+        lazyQueue: []
     };
     this._buildCategoryDom(level, id, true);
 
@@ -343,16 +355,23 @@ widgets.Collection.prototype._addSmileDom = function(smile_id){
     var img = document.createElement('img');
     img.alt = "";
     img.title = (item.tags || []).join(", ") || item.description || item.url;
-    img.src = item.url;
     img.width = item.width;
     img.height = item.height;
-    img.className = "smile";
+    img.classList.add('smile');
+    img.classList.add('smile-loading');
     img.dataset.id = item.id.toString();
     if(item.dragged) img.classList.add('dragged');
     if(item.selected) img.classList.add('selected');
 
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+    img.dataset.src = item.url;
+    category.lazyQueue.push(smile_id);
+
     category.smilesDom.appendChild(img);
     item.dom = img;
+    if(this._lazyProcessing < this._lazyStep){
+        this._lazyNext();
+    }
     return true;
 };
 
@@ -479,7 +498,10 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
                 this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
             }
             category.smilesDom = dom_smiles;
+
+            category.lazyQueue = [];
             for(var i=0; i<category.smileIds.length; i++) this._addSmileDom(category.smileIds[i]);
+            if(category.lazyQueue.length > 0) this._lazyCategoriesQueue.push(categoryId);
         }
 
         this.deselectAll();
@@ -864,7 +886,11 @@ widgets.Collection.prototype._dragMove = function(options){
     var e = options.element;
     if(e.classList.contains('smile')){
         if(options.starting && !e.classList.contains('dragged')) this.setDragged(parseInt(e.dataset.id), true);
-
+        if(options.starting && options.overlay && options.overlay.dataset.src){
+            options.overlay.src = options.overlay.dataset.src;
+            delete options.overlay.dataset.src;
+            options.overlay.classList.remove('smile-loading');
+        }
     }else if(e.classList.contains('tab-btn')){
         if(options.starting && !e.classList.contains('dragged')) e.classList.add('dragged');
     }
@@ -992,6 +1018,51 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
         smileOver.dom.parentNode.appendChild(this._dom.dropHint);
     }
     this._dom.dropHint.style.display = '';
+};
+
+
+/* lazy loading of smiles */
+
+
+widgets.Collection.prototype._lazyNext = function(){
+    /* В первую очередь загружаем смайлики текущей категории */
+    var categoryId = this._selectedIds[this._depth - 1];
+    /* Если текущей категории нет и очереди нет, выходим */
+    if(categoryId === null && this._lazyCategoriesQueue.length == 0){
+        return;
+    }else if(categoryId === null){
+        categoryId = this._lazyCategoriesQueue[0];
+    }
+    /* Если категория загружена полностью, берём следующую из очереди, а текущую из неё удаляем */
+    var category = this._categories[this._depth - 1][categoryId];
+    while(category.lazyQueue.length == 0){
+        var i = this._lazyCategoriesQueue.indexOf(categoryId);
+        if(i >= 0 ) this._lazyCategoriesQueue.splice(i, 1);
+        if(this._lazyCategoriesQueue.length == 0) return;
+        categoryId = this._lazyCategoriesQueue[0];
+        category = this._categories[this._depth - 1][categoryId];
+    }
+
+    /* Загружаем */
+    var smile_id = category.lazyQueue.splice(0, 1)[0];
+    var dom = this._smiles[smile_id].dom;
+
+    dom.addEventListener('load', this._lazyCallback);
+    dom.addEventListener('error', this._lazyCallback);
+    this._lazyProcessing++;
+    dom.src = dom.dataset.src;
+    delete dom.dataset.src;
+};
+
+
+widgets.Collection.prototype._lazyLoaded = function(event){
+    event.target.classList.remove('smile-loading');
+    this._lazyProcessing--;
+    event.target.removeEventListener('load', this._lazyCallback);
+    event.target.removeEventListener('error', this._lazyCallback);
+    if(this._lazyProcessing < this._lazyStep){
+        setTimeout(this._lazyNext.bind(this), 0);
+    }
 };
 
 module.exports = widgets;
