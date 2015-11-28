@@ -22,7 +22,7 @@ extra_requirements = read("requirements.extra.txt").splitlines(),
 
 setup(
     name='smilepack',
-    version='0.1',
+    version='0.1.0',
     description='A website where you can create collections on smiles and use it on other sites',
     long_description=readme,
     author='andreymal',

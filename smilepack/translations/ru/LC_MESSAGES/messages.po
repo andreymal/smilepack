@@ -4,7 +4,7 @@
 # andreymal <andriyano-31@mail.ru>, 2015.
 msgid ""
 msgstr ""
-"Project-Id-Version: smilepack 0.1\n"
+"Project-Id-Version: smilepack 0.1.0\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
 "POT-Creation-Date: 2015-11-12 22:29+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
