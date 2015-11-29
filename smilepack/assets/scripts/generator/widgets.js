@@ -18,12 +18,18 @@ widgets.Collection = function(hierarchy, options){
     this._rootChildren = [];
     this._lastIds = [];
 
-    /* Объекты со смайликами; нумерация общая для всех категорий */
+    /* Группы смайликов, которые привязываются к категориям */
+    this._groups = {};
+    this._lastGroupId = 0;
+    this._currentGroupId = null;
+    this._currentCategoryId = null; /* На случай, если текущая группа относится к категории */
+
+    /* Объекты со смайликами; нумерация общая для всех групп */
     this._smiles = {};
     this._selectedSmileIds = [];
     this._lastSelectedSmileId = null;
     this._smileMovePosId = null; /* для dragdrop */
-    this._lastSmileId = 0;
+    this._lastCreatedSmileId = 0;
 
     this._lazyCategoriesQueue = [];
     this._lazyProcessing = 0;
@@ -70,9 +76,6 @@ widgets.Collection = function(hierarchy, options){
     }else{
         this._dom.title = null;
     }
-
-    /* Категория, смайлики которой сейчас отображаются (из-за ajax может не совпадать с this._selectedIds[this._depth - 1]) */
-    this._dom.smiles_current_id = null;
 
     /* Описание категории */
     this._dom.category_description = document.createElement('div');
@@ -172,11 +175,8 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item){
         dom: null,
         iconId: item.icon ? item.icon.id : -1,
         iconUrl: item.icon ? item.icon.url : null,
-        smileIds: null,
         childrenIds: level + 1 < this._depth ? [] : null,
-        childrenDom: null,
-        smilesDom: null,
-        lazyQueue: []
+        groupId: null
     };
     this._buildCategoryDom(level, id, true);
 
@@ -263,29 +263,25 @@ widgets.Collection.prototype.removeCategory = function(level, categoryId){
     var category = this._categories[level][categoryId];
     if(!category) return null;
 
-    var deletedSmiles = [];
+    var unusedSmiles = [];
 
     /* Первым делом снимаем выделение */
     if(this._selectedIds[level] == categoryId){
         this.set(level, null);
     }
 
+    if(this._currentCategoryId == categoryId) this.setSmiles(null);
+
     /* Потом удаляем все дочерние категории */
-    if(level + 1 >= this._depth){
-        if(this._dom.smiles_current_id == categoryId) this.setSmiles(null);
-    }else{
+    if(level + 1 < this._depth){
         while(category.childrenIds.length > 0){
-            Array.prototype.push.apply(deletedSmiles, this.removeCategory(level + 1, category.childrenIds[0]));
+            Array.prototype.push.apply(unusedSmiles, this.removeCategory(level + 1, category.childrenIds[0]));
         }
     }
 
     /* И смайлики тоже, да */
-    if(category.smilesDom){
-        category.smilesDom.parentNode.removeChild(category.smilesDom);
-    }
-    for(var i=0; category.smileIds && i<category.smileIds.length; i++){
-        delete this._smiles[category.smileIds[i]];
-        deletedSmiles.push(category.smileIds[i]);
+    if(category.groupId !== null){
+        Array.prototype.push.apply(unusedSmiles, this.removeGroup(category.groupId));
     }
 
     /* И только теперь можно прибрать всё за текущим элементом */
@@ -310,47 +306,128 @@ widgets.Collection.prototype.removeCategory = function(level, categoryId){
         }
     }
 
-    return deletedSmiles;
+    return unusedSmiles;
 };
 
 
-widgets.Collection.prototype.addSmile = function(categoryId, item){
-    if(!item) return null;
-    var category = this._categories[this._depth - 1][categoryId];
-    if(!category) return null;
+widgets.Collection.prototype.createGroup = function(item){
+    var groupId = ++this._lastGroupId;
+    item = item || {};
+    this._groups[groupId] = {
+        id: groupId,
+        dom: null,
+        smileIds: [],
+        lazyQueue: [],
+        additionalDom: item.additionalDom || false,
+        description: item.description || ''
+    }
+    return groupId;
+};
 
-    var id = item.id;
-    if(id == null || isNaN(id)){
-        this._lastSmileId--;
-        id = this._lastSmileId;
+
+widgets.Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId, item){
+    var category = this._categories[categoryLevel][categoryId];
+    if(!category || category.groupId != null) return null;
+
+    item = item || {};
+    if(item.description === undefined) item.description = category.description;
+    if(item.additionalDom === undefined) item.additionalDom = true;
+    category.groupId = this.createGroup(item);
+    return category.groupId;
+};
+
+
+widgets.Collection.prototype.removeGroup = function(groupId){
+    var group = this._groups[groupId];
+    if(!group) return null;
+
+    if(this._currentGroupId == group.id){
+        this.setSmiles(null);
     }
 
+    for(var i=0; i<group.smileIds.length; i++){
+        var smile = this._smiles[group.smileIds[i]];
+        delete smile.groups[group.id];
+    }
+    if(group.dom){
+        group.dom.parentNode.removeChild(group.dom);
+    }
+    // TODO: check categories
+    delete this._groups[groupId];
+    return group.smileIds;
+};
+
+
+widgets.Collection.prototype.addSmile = function(item, nolazy){
+    if(!item) return null;
+
+    /* Генерируем id смайлика, если его нам не предоставили */
+    var id = item.id;
+    if(id == null || isNaN(id)){
+        this._lastCreatedSmileId--;
+        id = this._lastCreatedSmileId;
+    }
+    if(this._smiles[id]) return null;
+
+    /* Смайлик можно привязать к нескольким группам */
+    var groupIds = [], group, groupId;
+    for(var i=0; item.groupIds && i<item.groupIds.length; i++){
+        groupId = item.groupIds[i];
+        if(this._groups[groupId]) groupIds.push(groupId);
+    }
+
+    /* Смайлик можно привязать к одной категории */
+    var categoryLevel = item.categoryLevel;
+    var categoryId = item.categoryId;
+    if(groupIds.length == 0 && categoryId != null){
+        if(isNaN(categoryLevel) || categoryLevel < 0 || categoryLevel >= this._depth){
+            return null;
+        }
+        if(!this._categories[categoryLevel][categoryId]) return null;
+        groupIds.push(this._categories[categoryLevel][categoryId].groupId);
+        if(groupIds[0] === null) return null;
+    }else{
+        categoryLevel = null;
+        categoryId = null;
+    }
+
+    /* Сохраняем */
     this._smiles[id] = {
         id: id,
+        groups: {},
+        categoryLevel: categoryLevel,
         categoryId: categoryId,
         url: item.url,
         description: item.description,
         tags: item.tags,
         width: item.w,
         height: item.h,
-        dom: null,
         dragged: item.dragged || false,
         selected: item.selected || false
     };
-    if(category.smileIds === null) category.smileIds = [];
-    category.smileIds.push(id);
-    if(category.smilesDom) this._addSmileDom(id);
-    if(this._smiles[id].selected) this._selectedSmileIds.push(id);
+
+    /* Проверяем выделение */
+    if(this._smiles[id].selected){
+        if(this._currentGroupId !== null && this._smiles[id].groups[this._currentGroupId] !== undefined){
+            this._selectedSmileIds.push(id);
+        }else{
+            this._smiles[id].selected = false;
+        }
+    }
+
+    /* Добавляем в группы */
+    for(var i=0; i<groupIds.length; i++){
+        this.addSmileToGroup(id, groupIds[i], nolazy);
+    }
 
     return id;
 };
 
 
-widgets.Collection.prototype._addSmileDom = function(smile_id){
+widgets.Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy){
     var item = this._smiles[smile_id];
-    var category = this._categories[this._depth - 1][item.categoryId];
-    if(item.dom || category.smileIds.indexOf(item.id) < 0) return false;
-
+    var group = this._groups[groupId];
+    if(item.groups[groupId] || group.smileIds.indexOf(item.id) < 0) return false;
 
     var img = document.createElement('img');
     img.alt = "";
@@ -358,20 +435,55 @@ widgets.Collection.prototype._addSmileDom = function(smile_id){
     img.width = item.width;
     img.height = item.height;
     img.classList.add('smile');
-    img.classList.add('smile-loading');
+    if(!nolazy) img.classList.add('smile-loading');
     img.dataset.id = item.id.toString();
+    img.dataset.groupId = group.id.toString();
     if(item.dragged) img.classList.add('dragged');
-    if(item.selected) img.classList.add('selected');
+    if(item.selected && this._currentGroupId == group.id) img.classList.add('selected');
 
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-    img.dataset.src = item.url;
-    category.lazyQueue.push(smile_id);
+    if(!nolazy){
+        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+        img.dataset.src = item.url;
+        group.lazyQueue.push(smile_id);
+        // TODO: optimize for multiple _addSmileDom calls
+        if(this._lazyCategoriesQueue.indexOf(group.id) < 0){
+            this._lazyCategoriesQueue.push(group.id);
+        }
+    }else{
+        img.src = item.url;
+    }
 
-    category.smilesDom.appendChild(img);
-    item.dom = img;
-    if(this._lazyProcessing < this._lazyStep){
+    group.dom.appendChild(img);
+    item.groups[group.id] = img;
+    if(!nolazy && this._lazyProcessing < this._lazyStep){
         this._lazyNext();
     }
+    return true;
+};
+
+
+widgets.Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy){
+    var smile = this._smiles[smileId];
+    var group = this._groups[groupId];
+    if(!smile || !group) return false;
+    if(smile.groups[group.id] !== undefined) return true;
+
+    smile.groups[group.id] = null;
+    group.smileIds.push(smile.id);
+    if(group.dom) this._addSmileDom(smile.id, group.id, nolazy);
+    return true;
+}
+
+
+widgets.Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categoryId){
+    var smile = this._smiles[smileId];
+    var category = this._categories[cateogryLevel][categoryId];
+    if(!smile || !category) return false;
+
+    if(category.groupId === null) return false;
+    if(!this.addSmileToGroup(smile.id, category.groupId)) return false;
+    smile.categoryLevel = categoryLevel;
+    smile.categoryId = category.id;
     return true;
 };
 
@@ -379,40 +491,82 @@ widgets.Collection.prototype._addSmileDom = function(smile_id){
 widgets.Collection.prototype.removeSmile = function(id){
     var smile = this._smiles[id];
     if(!smile) return false;
-    var category = this._categories[this._depth - 1][smile.categoryId];
-    category.smilesDom.removeChild(smile.dom);
-    var i = category.smileIds.indexOf(id);
-    if(i >= 0) category.smileIds.splice(i, 1);
-    i = this._selectedSmileIds.indexOf(id);
+
+    var group, i;
+    for(var groupId in smile.groups){
+        group = this._groups[groupId];
+        if(smile.groups[groupId]){
+            group.dom.removeChild(smile.groups[groupId]);
+        }
+        
+        i = group.smileIds.indexOf(smile.id);
+        if(i >= 0) group.smileIds.splice(i, 1);
+    }
+
+    i = this._selectedSmileIds.indexOf(smile.id);
     if(i >= 0) this._selectedSmileIds.splice(i, 1);
+    if(this._lastSelectedSmileId == smile.id) this._lastSelectedSmileId = null;
+
     delete this._smiles[id];
     return true;
 };
 
 
-widgets.Collection.prototype.moveSmile = function(smileId, beforeSmileId){
+widgets.Collection.prototype.removeSmileFromGroup = function(id, groupId){
+    var smile = this._smiles[id];
+    if(!smile) return null;
+
+    var group = this._groups[groupId];
+    if(!group) return Object.keys(smile.groups).length;
+
+    var i = group.smileIds.indexOf(smile.id);
+    if(i >= 0) group.smileIds.splice(i, 1);
+    else return Object.keys(smile.groups).length;
+
+    if(smile.groups[group.id]) group.dom.removeChild(smile.groups[group.id]);
+    delete smile.groups[group.id];
+
+    if(this._currentGroupId == group.id && smile.selected){
+        i = this._selectedSmileIds.indexOf(id);
+        if(i >= 0) this._selectedSmileIds.splice(i, 1);
+        smile.selected = false;
+    }
+
+    if(smile.categoryId !== null && this._categories[smile.categoryLevel][smile.categoryId].groupId === group.id){
+        smile.categoryLevel = null;
+        smile.categoryId = null;
+    }
+
+    return Object.keys(smile.groups).length;
+}
+
+
+widgets.Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId){
+    if(groupId == undefined) groupId = this._currentGroupId;
+    var group = this._groups[groupId];
+    if(!group) return false;
+
     if(smileId == beforeSmileId) return false;
     var smile = this._smiles[smileId];
-    var beforeSmile = beforeSmileId != null ? this._smiles[beforeSmileId] : null;
+    var beforeSmile = beforeSmileId !== null ? this._smiles[beforeSmileId] : null;
     /* beforeSmile null - перемещаем смайлик в конец; undefined - не перемещаем, ибо смайлик не нашелся */
-    if(!smile || beforeSmileId != null && !beforeSmile) return false;
-    /* За пределы категории не перемещаем */
-    if(beforeSmile && beforeSmile.categoryId != smile.categoryId) return false;
+    if(!smile || beforeSmileId !== null && !beforeSmile) return false;
+    /* За пределы группы не перемещаем */
+    if(beforeSmile && !beforeSmile.groups[group.id]) return false;
 
-    var category = this._categories[this._depth - 1][smile.categoryId];
-    var i = category.smileIds.indexOf(smile.id);
-    /* Не забываем пересортировать айдишники в категории */
-    if(i >= 0) category.smileIds.splice(i, 1);
+    var i = group.smileIds.indexOf(smile.id);
+    /* Не забываем пересортировать айдишники в группе */
+    if(i >= 0) group.smileIds.splice(i, 1);
 
     if(beforeSmile){
         /* Перемещаем смайлик перед указанным */
-        smile.dom.parentNode.insertBefore(smile.dom, beforeSmile.dom);
-        i = category.smileIds.indexOf(beforeSmile.id);
-        category.smileIds.splice(i, 0, smile.id);
+        if(group.dom) group.dom.insertBefore(smile.groups[group.id], beforeSmile.groups[group.id]);
+        i = group.smileIds.indexOf(beforeSmile.id);
+        group.smileIds.splice(i, 0, smile.id);
     }else{
         /* Перемещаем смайлик в конец */
-        smile.dom.parentNode.appendChild(smile.dom);
-        category.smileIds.push(smile.id);
+        if(group.dom) group.dom.appendChild(smile.groups[group.id]);
+        group.smileIds.push(smile.id);
     }
 
     return true;
@@ -445,21 +599,55 @@ widgets.Collection.prototype.set = function(level, categoryId){
     /* Подсвечиваем кнопку в текущем уровне и отображаем уровень ниже */
     category.dom.classList.add('tab-btn-active');
     this._selectedIds[level] = categoryId;
-    if(level + 1 < this._depth){
+    if(level + 1 < this._depth && category.childrenDom){
         this._dom.tabs_containers[level + 1].style.display = '';
         category.childrenDom.style.display = '';
-    }else{
-        this.setSmiles(categoryId);
+    }else if(category.groupId != null){
+        this.setCategorySmiles(level, category.id);
     }
     return true;
 };
 
 
-widgets.Collection.prototype.setSmiles = function(categoryId, force){
-    if(categoryId === null){
-        if(this._dom.smiles_current_id !== null){
-            this._categories[this._depth - 1][this._dom.smiles_current_id].smilesDom.style.display = 'none';
-            this._dom.smiles_current_id = null;
+widgets.Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, force){
+    if(categoryId == null){
+        return this.setSmiles(null);
+    }
+
+    if(isNaN(categoryLevel) || categoryLevel < 0 || categoryLevel >= this._depth){
+        return false;
+    }
+    var category = this._categories[categoryLevel][categoryId];
+    if(!category || category.groupId == null) return false;
+
+    var group = this._groups[category.groupId];
+
+    /* Если смайлики группы не загружены, запрашиваем их, упомянув категорию */
+    if(group.dom === null && !force && this.options.get_smiles_func){
+        if(this._currentGroupId){
+            this._groups[this._currentGroupId].dom.classList.add('processing');
+        }else{
+            this._dom.category_description.textContent = group.description || '';
+        }
+        this.options.get_smiles_func(this, {
+            groupId: group.id,
+            categoryLevel: categoryLevel,
+            categoryId: categoryId
+        });
+        return true;
+    }
+
+    return this.setSmiles(category.groupId, force);
+};
+
+
+widgets.Collection.prototype.setSmiles = function(groupId, force){
+    if(groupId === null){
+        if(this._currentGroupId !== null){
+            this.deselectAll();
+            this._groups[this._currentGroupId].dom.style.display = 'none';
+            this._currentGroupId = null;
+            this._currentCategoryId = null;
             this._dom.category_description.textContent = '';
             this._dom.additionalContainer.style.display = 'none';
         }
@@ -467,58 +655,54 @@ widgets.Collection.prototype.setSmiles = function(categoryId, force){
     }
 
     var smiles_current = null; 
-    if(this._dom.smiles_current_id !== null){
-        smiles_current = this._categories[this._depth - 1][this._dom.smiles_current_id].smilesDom;
+    if(this._currentGroupId !== null){
+        smiles_current = this._groups[this._currentGroupId].dom;
     }
 
-    var category = this._categories[this._depth - 1][categoryId];
-    if(!category) return false;
+    var group = this._groups[groupId];
+    if(!group) return false;
 
-    this._dom.category_description.textContent = category.description || '';
-
-    if(category.smileIds === null){
-        if(force || !this.options.get_smiles_func){
-            /* В кэше нет, но надобно отобразить пустоту */
-            category.smileIds = [];
+    /* Если смайлики группы не загружены, запрашиваем их */
+    if(!group.dom && !force && this.options.get_smiles_func){
+        /* Создаём видимость загрузки */
+        if(this._currentGroupId){
+            this._groups[this._currentGroupId].dom.classList.add('processing');
         }else{
-            /* В кэше нет — запрашиваем смайлики */
-            if(smiles_current) smiles_current.classList.add('processing');
-            this.options.get_smiles_func(this, categoryId);
+            this._dom.category_description.textContent = group.description || '';
         }
+        /* Сам запрос */
+        this.options.get_smiles_func(this, {groupId: group.id});
+        return true;
     }
 
-    if(category.smileIds !== null && categoryId !== this._dom.smiles_current_id){
-        if(!category.smilesDom){
-            var dom_smiles = document.createElement('div');
-            dom_smiles.className = 'smiles-list';
-            dom_smiles.style.display = 'none';
-            if(this.options.additionalOnTop){
-                this._dom.container.appendChild(dom_smiles);
-            }else{
-                this._dom.container.insertBefore(dom_smiles, this._dom.additionalContainer);
-            }
-            category.smilesDom = dom_smiles;
+    if(this._currentGroupId == group.id) return true;
 
-            category.lazyQueue = [];
-            for(var i=0; i<category.smileIds.length; i++) this._addSmileDom(category.smileIds[i]);
-            if(category.lazyQueue.length > 0) this._lazyCategoriesQueue.push(categoryId);
-        }
-
-        this.deselectAll();
-
-        if(smiles_current){
-            if(smiles_current.classList.contains('processing')){
-                smiles_current.classList.remove('processing');
-            }
-            smiles_current.style.display = 'none';
-        }
-        smiles_current = category.smilesDom;
-        this._dom.smiles_current_id = categoryId;
-        smiles_current.style.display = '';
-
-        if(this.options.onchange) this.options.onchange(this, categoryId);
-        this._dom.additionalContainer.style.display = '';
+    this.deselectAll();
+    if(smiles_current){
+        smiles_current.classList.remove('processing');
+        smiles_current.style.display = 'none';
     }
+    this._currentGroupId = group.id;
+    this._dom.category_description.textContent = group.description || '';
+
+    if(!group.dom){
+        /* Если мы попали сюда, значит нас просят игнорировать отсутствие смайликов */
+        group.dom = document.createElement('div');
+        group.dom.className = 'smiles-list';
+        if(this.options.additionalOnTop){
+            this._dom.container.appendChild(group.dom);
+        }else{
+            this._dom.container.insertBefore(group.dom, this._dom.additionalContainer);
+        }
+
+        for(var i=0; i<group.smileIds.length; i++){
+            this._addSmileDom(group.smileIds[i], group.id);
+        }
+    }
+    group.dom.style.display = '';
+
+    if(this.options.onchange) this.options.onchange(this, group.id);
+    this._dom.additionalContainer.style.display = group.additionalDom ? '' : 'none';
 
     return true;
 };
@@ -534,7 +718,10 @@ widgets.Collection.prototype.setDragged = function(id, dragged){
     if(!smile) return false;
     if(smile.dragged != dragged){
         smile.dragged = !smile.dragged;
-        if(smile.dom) smile.dom.classList.toggle('dragged');
+        for(var groupId in smile.groups){
+            if(smile.groups[groupId] == null) continue;
+            smile.groups[groupId].classList.toggle('dragged');
+        }
     }
     return true;
 };
@@ -548,14 +735,17 @@ widgets.Collection.prototype.getSelected = function(id){
 
 widgets.Collection.prototype.setSelected = function(id, selected){
     var smile = this._smiles[id];
-    /* Смайлики в скрытых категориях не выделяем */
-    if(!smile || selected && smile.categoryId != this._selectedIds[this._depth - 1]) return false;
+    /* Смайлики в скрытых группах не выделяем */
+    if(this._currentGroupId === null) return false;
+    if(!smile || selected && smile.groups[this._currentGroupId] === undefined) return false;
     if(selected && smile.dragged && !options.selectableDragged) return false;
 
     /* Переключаем выделение */
     if(smile.selected != selected){
         smile.selected = !smile.selected;
-        if(smile.dom) smile.dom.classList.toggle('selected');
+        if(smile.groups[this._currentGroupId]){
+            smile.groups[this._currentGroupId].classList.toggle('selected');
+        }
     }
 
     /* Обновляем список выделенных смайликов */
@@ -579,11 +769,15 @@ widgets.Collection.prototype.toggleSelected = function(id){
 
 widgets.Collection.prototype.deselectAll = function(){
     var smile;
-    if(this._selectedSmileIds.length == 0) return false;
+    if(this._currentGroupId === null || this._selectedSmileIds.length == 0){
+        return false;
+    }
     for(var i=0; i<this._selectedSmileIds.length; i++){
         smile = this._smiles[this._selectedSmileIds[i]];
         smile.selected = false;
-        if(smile.dom) smile.dom.classList.toggle('selected');
+        if(smile.groups[this._currentGroupId]){
+            smile.groups[this._currentGroupId].classList.remove('selected');
+        }
     }
     this._selectedSmileIds = [];
     this._lastSelectedSmileId = null;
@@ -597,7 +791,7 @@ widgets.Collection.prototype.getDropPosition = function(){
 
 
 widgets.Collection.prototype.getLastInternalIds = function(){
-    return [this._lastIds, this._lastSmileId];
+    return [this._lastIds, this._lastCreatedSmileId];
 };
 
 
@@ -605,7 +799,7 @@ widgets.Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId)
     for(var i=0; i<this._depth; i++){
         this._lastIds[i] = parseInt(lastIds[i]);
     }
-    this._lastSmileId = parseInt(lastSmileId);
+    this._lastCreatedSmileId = parseInt(lastSmileId);
 };
 
 
@@ -628,6 +822,9 @@ widgets.Collection.prototype.getCategoryInfo = function(level, categoryId, optio
     }
     if(!options || !options.withoutIds){
         info.id = category.id;
+    }
+    if(options && options.withGroupId){
+        info.groupId = category.groupId;
     }
 
     return info;
@@ -662,6 +859,16 @@ widgets.Collection.prototype.getCategoriesWithHierarchy = function(options){
 };
 
 
+widgets.Collection.prototype.getCategoryIds = function(){
+    var result = [];
+    for(var i=0; i<this._categories.length; i++){
+        var ids = Object.keys(this._categories[i]).map(function(x){return parseInt(x);});
+        Array.prototype.push(ids);
+    }
+    return result;
+}
+
+
 widgets.Collection.prototype.getSmileInfo = function(smileId, options){
     var smile = this._smiles[smileId];
     if(!smile) return null;
@@ -678,7 +885,9 @@ widgets.Collection.prototype.getSmileInfo = function(smileId, options){
         info.id = smile.id;
     }
     if(options && options.withParent){
+        info.categoryLevel = smile.categoryLevel;
         info.categoryId = smile.categoryId;
+        info.groups = Object.keys(smile.groups).map(function(x){return parseInt(x);});
     }
 
     return info;
@@ -692,26 +901,50 @@ widgets.Collection.prototype.getSmileIdByDom = function(element){
 };
 
 
-widgets.Collection.prototype.getSmileIds = function(categoryId){
-    if(!this._categories[this._depth - 1][categoryId]) return null;
-    return Array.prototype.slice.apply(this._categories[this._depth - 1][categoryId].smileIds);
+widgets.Collection.prototype.getSmileIdsOfCategory = function(level, categoryId){
+    if(!this._categories[level][categoryId]) return null;
+    return this.getSmileIds(this._categories[level][categoryId].groupId);
 };
 
 
-widgets.Collection.prototype.getAllCategorizedSmileIds = function(){
+widgets.Collection.prototype.getSmileIds = function(groupId){
+    if(!this._groups[groupId]) return null;
+    return Array.prototype.slice.apply(this._groups[groupId].smileIds);
+};
+
+
+widgets.Collection.prototype.getAllCategorizedSmileIds = function(level){
     var result = {};
-    for(var categoryId in this._categories[this._depth - 1]){
-        result[categoryId] = Array.prototype.slice.apply(this._categories[this._depth - 1][categoryId].smileIds);
+    if(level == null || isNaN(level)) level = this._depth - 1;
+    else if(level < 0 || level >= this._depth) return result;
+
+    var group;
+    for(var categoryId in this._categories[level]){
+        if(this._categories[level][categoryId].groupId === null){
+            continue;
+        }
+        group = this._categories[level][categoryId].groupId;
+        group = this._groups[group];
+        result[categoryId] = Array.prototype.slice.apply(group.smileIds);
     }
     return result;
 };
 
 
-widgets.Collection.prototype.getAllSmileIds = function(){
+widgets.Collection.prototype.getLevelSmileIds = function(level){
     var result = [];
+    if(level == null || isNaN(level)) level = this._depth - 1;
+    else if(level < 0 || level >= this._depth) return result;
+
     /* Выдираем из категорий для сохранения порядка */
-    for(var categoryId in this._categories[this._depth - 1]){
-        result.push.apply(result, this._categories[this._depth - 1][categoryId].smileIds);
+    var group;
+    for(var categoryId in this._categories[level]){
+        if(this._categories[level][categoryId].groupId === null){
+            continue;
+        }
+        group = this._categories[level][categoryId].groupId;
+        group = this._groups[group];
+        Array.prototype.push.apply(result, group.smileIds);
     }
     return result;
 };
@@ -722,20 +955,41 @@ widgets.Collection.prototype.getSelectedCategory = function(level){
 };
 
 
+widgets.Collection.prototype.getCurrentGroupId = function(){
+    return this._currentGroupId;
+};
+
+
+widgets.Collection.prototype.getGroupOfCategory = function(level, categoryId){
+    if(level == null || isNaN(level) || level < 0 || level >= this._depth){
+        return null;
+    }
+    var category = this._categories[level][categoryId];
+    return category ? category.groupId : null;
+};
+
+
 widgets.Collection.prototype.getParentId = function(level, categoryId){
-    if(level <= 0 || level >= this._depth || !this._categories[level][categoryId]) return null;
+    if(level <= 0 || level >= this._depth || !this._categories[level][categoryId]){
+        return null;
+    }
     return this._categories[level][categoryId].parentId;
 };
 
 
 widgets.Collection.prototype.typeOfElement = function(element){
     if(!element) return null;
-    if(element.classList.contains('smile') && this._smiles[parseInt(element.dataset.id)].dom === element){
+    if(element.classList.contains('smile')){
         var id = parseInt(element.dataset.id);
+        var groupId = parseInt(element.dataset.groupId);
+        var smile = this._smiles[id];
+        if(!smile || smile.groups[groupId] !== element){
+            return null;
+        }
         return {
             type: 'smile',
             id: id,
-            categoryId: this._smiles[id].categoryId
+            groupId: groupId
         };
     }
     return null;
@@ -831,18 +1085,18 @@ widgets.Collection.prototype._smileClickEvent = function(options){
     var smile = this._smiles[parseInt(options.element.dataset.id)];
     if(!smile) return;
     if(!this.options.selectable) return;
-    var category = this._categories[this._depth - 1][smile.categoryId];
+    var group = this._groups[this._currentGroupId];
 
     if(options.event.shiftKey && this._lastSelectedSmileId != null) {
-        var pos1 = category.smileIds.indexOf(this._lastSelectedSmileId);
-        var pos2 = category.smileIds.indexOf(smile.id);
+        var pos1 = group.smileIds.indexOf(this._lastSelectedSmileId);
+        var pos2 = group.smileIds.indexOf(smile.id);
         if(pos1 > pos2){
             var tmp = pos2;
             pos2 = pos1;
             pos1 = tmp;
         }
         for(var i=pos1; i<=pos2; i++){
-            this.setSelected(category.smileIds[i], true);
+            this.setSelected(group.smileIds[i], true);
         }
     }else if(!options.event.ctrlKey && !options.event.metaKey && (this._selectedSmileIds.length > 1 || !smile.selected)){
         this.deselectAll();
@@ -917,16 +1171,15 @@ widgets.Collection.prototype._dragDropTo = function(options){
     this._smileMovePosId = null;
     this._dom.dropHint.style.display = 'none';
 
-    if(!this.options.ondropto) return null;
-    if(options.sourceContainer === this._dom.container && this.options.editable){
+    if(options.sourceContainer === this._dom.container && this.options.editable ){
         if(!options.element.classList.contains('smile')) return null;
         var smile = this._smiles[options.element.dataset.id];
         if(!smile) return null;
 
-        var category = this._categories[this._depth - 1][smile.categoryId];
+        var group = this._groups[this._currentGroupId   ];
         if(smileMovePosId == null){
-            var lastSmile = this._smiles[category.smileIds[category.smileIds.length - 1]];
-            var rect = lastSmile.dom.getBoundingClientRect();
+            var lastSmile = this._smiles[group.smileIds[group.smileIds.length - 1]];
+            var rect = lastSmile.groups[this._currentGroupId].getBoundingClientRect();
             if(options.y >= rect.bottom || options.y >= rect.top && options.x >= rect.left){
                 this.moveSmile(smile.id, null);
             }
@@ -939,6 +1192,7 @@ widgets.Collection.prototype._dragDropTo = function(options){
 
     /* Что делать при перетаскивании DOM-элементов (включая смайлики) между ними, решает владелец коллекции */
     /* Коллекция руководит только сама собой, но не взаимодействием с другими коллекциями */
+    if(!this.options.ondropto) return null;
     var dropAction = this.options.ondropto({
         sourceContainerElement: options.sourceContainer,
         targetContainer: this,
@@ -947,7 +1201,7 @@ widgets.Collection.prototype._dragDropTo = function(options){
         dropPosition: smileMovePosId
     });
     if(dropAction && dropAction.name == 'animateToSmile'){
-        return {name: 'animate', targetElement: this._smiles[dropAction.id].dom};
+        return {name: 'animate', targetElement: this._smiles[dropAction.id].groups[this._currentGroupId]};
     }
     return dropAction;
 };
@@ -974,18 +1228,18 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
     }
 
     var smileOver = this._smiles[smileOverId];
-    var category = this._categories[this._depth - 1][smileOver.categoryId];
+    var group = this._groups[this._currentGroupId];
 
     /* Считаем, на какую половину смайлика наведён курсор */
-    var rect = smileOver.dom.getBoundingClientRect();
+    var rect = smileOver.groups[this._currentGroupId].getBoundingClientRect();
     var relPos = (x - rect.left) / rect.width;
 
     var newMovePosId;
     if(relPos >= 0.5){
         /* На правую — будем дропать смайлик после него */
-        var newMovePosId = category.smileIds.indexOf(smileOver.id) + 1;
-        if(newMovePosId >= category.smileIds.length) newMovePosId = null;
-        else newMovePosId = category.smileIds[newMovePosId];
+        var newMovePosId = group.smileIds.indexOf(smileOver.id) + 1;
+        if(newMovePosId >= group.smileIds.length) newMovePosId = null;
+        else newMovePosId = group.smileIds[newMovePosId];
     }else{
         /* На левую — перед ним */
         newMovePosId = smileOverId;
@@ -997,14 +1251,14 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
     /* Ищем соседний смайлик для расчёта высоты подсветки */
     var nearSmile = null;
     if(newMovePosId == smileOverId){
-        nearSmile = category.smileIds.indexOf(smileOverId) - 1;
-        nearSmile  = nearSmile >= 0 ? this._smiles[category.smileIds[nearSmile]] : null;
+        nearSmile = group.smileIds.indexOf(smileOverId) - 1;
+        nearSmile  = nearSmile >= 0 ? this._smiles[group.smileIds[nearSmile]] : null;
     }else if(newMovePosId != null){
         nearSmile = this._smiles[newMovePosId];
     }
 
     /* За высоту подсветки берём высоту меньшего смайлика */
-    var nearRect = nearSmile ? nearSmile.dom.getBoundingClientRect() : null;
+    var nearRect = nearSmile ? nearSmile.groups[this._currentGroupId].getBoundingClientRect() : null;
     if(nearRect && nearRect.height < rect.height) {
         this._dom.dropHint.style.height = nearRect.height + 'px';
     }else{
@@ -1013,9 +1267,9 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
 
     /* Отображаем подсветку */
     if(newMovePosId != null) {
-        smileOver.dom.parentNode.insertBefore(this._dom.dropHint, this._smiles[newMovePosId].dom);
+        smileOver.groups[this._currentGroupId].parentNode.insertBefore(this._dom.dropHint, this._smiles[newMovePosId].groups[this._currentGroupId]);
     }else{
-        smileOver.dom.parentNode.appendChild(this._dom.dropHint);
+        smileOver.groups[this._currentGroupId].parentNode.appendChild(this._dom.dropHint);
     }
     this._dom.dropHint.style.display = '';
 };
@@ -1026,7 +1280,7 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileId, smile
 
 widgets.Collection.prototype._lazyNext = function(){
     /* В первую очередь загружаем смайлики текущей категории */
-    var categoryId = this._selectedIds[this._depth - 1];
+    var categoryId = this._currentGroupId;
     /* Если текущей категории нет и очереди нет, выходим */
     if(categoryId === null && this._lazyCategoriesQueue.length == 0){
         return;
@@ -1034,18 +1288,18 @@ widgets.Collection.prototype._lazyNext = function(){
         categoryId = this._lazyCategoriesQueue[0];
     }
     /* Если категория загружена полностью, берём следующую из очереди, а текущую из неё удаляем */
-    var category = this._categories[this._depth - 1][categoryId];
+    var category = this._groups[categoryId];
     while(category.lazyQueue.length == 0){
         var i = this._lazyCategoriesQueue.indexOf(categoryId);
         if(i >= 0 ) this._lazyCategoriesQueue.splice(i, 1);
         if(this._lazyCategoriesQueue.length == 0) return;
         categoryId = this._lazyCategoriesQueue[0];
-        category = this._categories[this._depth - 1][categoryId];
+        category = this._groups[categoryId];
     }
 
     /* Загружаем */
     var smile_id = category.lazyQueue.splice(0, 1)[0];
-    var dom = this._smiles[smile_id].dom;
+    var dom = this._smiles[smile_id].groups[categoryId];
 
     dom.addEventListener('load', this._lazyCallback);
     dom.addEventListener('error', this._lazyCallback);
@@ -1064,5 +1318,6 @@ widgets.Collection.prototype._lazyLoaded = function(event){
         setTimeout(this._lazyNext.bind(this), 0);
     }
 };
+
 
 module.exports = widgets;

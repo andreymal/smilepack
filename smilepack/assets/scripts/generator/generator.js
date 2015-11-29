@@ -9,6 +9,7 @@ var widgets = require('./widgets.js'),
     ImportUserscriptDialog = require('./dialogs/ImportUserscriptDialog.js'),
     SmilepackDialog = require('./dialogs/SmilepackDialog.js');
 
+
 var generator = {
     storageVersion: 1,
 
@@ -30,31 +31,38 @@ var generator = {
         var categoryId = this.smilepack.getSelectedCategory(0);
         if(categoryId === null) return null;
 
-        var origId = parseInt(options.element.dataset.id);
-        if(this.usedSmiles.indexOf(origId) >= 0) return;
+        var elem = this.collection.typeOfElement(options.element);
+        if(elem.type != 'smile' || this.usedSmiles.indexOf(elem.id) >= 0){
+            return null;
+        }
 
-        this.collection.setSelected(origId, false);
-        var smile = this.collection.getSmileInfo(origId);
+        this.collection.setSelected(elem.id, false);
+        var smile = this.collection.getSmileInfo(elem.id);
         smile.dragged = true;
-        var id = this.smilepack.addSmile(categoryId, smile);
+        smile.categoryLevel = 0;
+        smile.categoryId = categoryId;
+        var id = this.smilepack.addSmile(smile, true);
         if(options.dropPosition != null) this.smilepack.moveSmile(id, options.dropPosition);
-        if(id === origId){
-            this.usedSmiles.push(origId);
+        if(id === elem.id){
+            this.usedSmiles.push(elem.id);
             this.modified = true;
             return {name: 'animateToSmile', id: id};
         }
     },
 
     dropToCollectionEvent: function(options){
-        var id = parseInt(options.element.dataset.id);
+        var elem = this.smilepack.typeOfElement(options.element);
+        if(!elem) return;
+        var id = elem.id;
+
         var i = this.usedSmiles.indexOf(id);
         if(i < 0) return;
         this.smilepack.removeSmile(id);
         this.usedSmiles.splice(i, 1);
+        this.modified = true;
 
         var smile = this.collection.getSmileInfo(id, {withParent: true});
-        this.modified = true;
-        if(smile && smile.categoryId == this.collection.getSelectedCategory(2)){ // кастомных смайликов в коллекции нет
+        if(smile && smile.groups.indexOf(this.collection.getCurrentGroupId()) >= 0){
             return {name: 'animateToSmile', id: id};
         }else{
             if(smile) this.collection.setDragged(id, false);
@@ -64,9 +72,9 @@ var generator = {
 
     /* actions */
 
-    onchange: function(container, elem_id){
-        generator.current_id = elem_id;
-        window.location.hash = '#' + elem_id.toString();
+    onchange: function(container, groupId){
+        generator.current_id = this.collection.getSelectedCategory(2);
+        window.location.hash = '#' + generator.current_id.toString();
     },
 
     onaction: function(options){
@@ -137,7 +145,7 @@ var generator = {
     },
 
     saveSmilepack: function(){
-        var smileIds = this.smilepack.getAllSmileIds();
+        var smileIds = this.smilepack.getLevelSmileIds(0);
         if(!smileIds || smileIds.length < 1){
             alert('Добавьте хотя бы один смайлик!');
             return;
@@ -156,17 +164,20 @@ var generator = {
                 smilesToCreate.push(smile);
             }
             smile.category_name = this.smilepack.getCategoryInfo(0, smile.categoryId).name;
+            delete smile.cateogryLevel;
             delete smile.categoryId;
             smiles.push(smile);
         }
 
         dialogsManager.open('smilepack', {mode: 'saving'});
 
-        var lifetime_elem = document.getElementById('lifetime');
+        var lifetime = document.getElementById('lifetime');
+        if(lifetime) lifetime = parseInt(lifetime.value);
+        if(lifetime == null || isNaN(lifetime ) || lifetime < 0) lifetime = 0;
 
         this.saveStatus = {
             name: document.getElementById('name').value || undefined,
-            lifetime: lifetime_elem ? parseInt(lifetime_elem.value) : 0,
+            lifetime: lifetime,
             categories: categories,
             smiles: smiles,
             smilesToCreate: smilesToCreate,
@@ -272,6 +283,7 @@ var generator = {
                 name: options.name,
                 icon: {id: options.iconId, url: options.iconUrl}
             });
+            this.smilepack.createGroupForCategory(0, id);
         }else{
             id = this.smilepack.editCategory(0, options.categoryId, {
                 name: options.name,
@@ -289,10 +301,11 @@ var generator = {
         if(interactive && !confirm('Удалить категорию «' + this.smilepack.getCategoryInfo(0, categoryId).name + '»?')){
             return false;
         }
-        var deleted_smiles = this.smilepack.removeCategory(0, categoryId);
-        for(var i=0; deleted_smiles && i<deleted_smiles.length; i++){
-            generator.collection.setDragged(deleted_smiles[i], false);
-            var j = this.usedSmiles.indexOf(deleted_smiles[i]);
+        var unusedSmiles = this.smilepack.removeCategory(0, categoryId);
+        for(var i=0; unusedSmiles && i<unusedSmiles.length; i++){
+            generator.collection.setDragged(unusedSmiles[i], false);
+            generator.smilepack.removeSmile(unusedSmiles[i]);
+            var j = this.usedSmiles.indexOf(unusedSmiles[i]);
             if(j >= 0) this.usedSmiles.splice(j, 1);
         }
         this.modified = true;
@@ -300,17 +313,23 @@ var generator = {
     },
 
     moveAllSmiles: function(){
-        var categoryId = this.collection.getSelectedCategory(2);
-        if(categoryId == null) return false;
-        var smpCategoryId = this.smilepack.getSelectedCategory(0);
-        if(smpCategoryId == null) return false;
+        var groupId = this.collection.getCurrentGroupId();
+        if(groupId === null) return false;
+        var smpId = this.smilepack.getSelectedCategory(0);
+        if(smpId == null) return false;
 
-        var smileIds = this.collection.getSmileIds(categoryId);
+        var smileIds = this.collection.getSmileIds(groupId);
         if(smileIds == null) return false;
         for(var i=0; i<smileIds.length; i++){
             if(this.usedSmiles.indexOf(smileIds[i]) >= 0) continue;
-            var newId = this.smilepack.addSmile(smpCategoryId, this.collection.getSmileInfo(smileIds[i]));
+
+            var smile = this.collection.getSmileInfo(smileIds[i]);
+            smile.categoryLevel = 0;
+            smile.categoryId = smpId;
+
+            var newId = this.smilepack.addSmile(smile, true);
             if(newId != smileIds[i]) continue;
+
             this.usedSmiles.push(smileIds[i]);
             this.collection.setDragged(smileIds[i], true);
             this.modified = true;
@@ -366,13 +385,15 @@ var generator = {
             return;
         }
 
-        var id = generator.smilepack.addSmile(categoryId, {
+        var id = generator.smilepack.addSmile({
             id: data.smile.id,
             url: data.smile.url,
             description: data.smile.description,
             w: options.w,
-            h: options.h
-        });
+            h: options.h,
+            categoryLevel: 0,
+            categoryId: categoryId
+        }, true);
 
         if(id != null){
             this.usedSmiles.push(id);
@@ -385,7 +406,7 @@ var generator = {
     storageSave: function(interactive){
         var data = {storageVersion: this.storageVersion, ids: this.smilepack.getLastInternalIds()};
 
-        var smileIds = this.smilepack.getAllSmileIds();
+        var smileIds = this.smilepack.getLevelSmileIds(0);
         if(smileIds.length < 1){
             if(interactive && !confirm("Нет ни одного смайлика. Сохранить пустоту?")) return;
         }
@@ -435,7 +456,11 @@ var generator = {
     replaceSmilepackData: function(data, lastIds){
         var oldCategories = this.smilepack.getCategoriesWithHierarchy({short: true, withoutIconUrl: true});
         for(var i=0; i<oldCategories.length; i++) this.smilepack.removeCategory(0, oldCategories[i].id);
-        for(var i=0; i<this.usedSmiles.length; i++) this.collection.setDragged(this.usedSmiles[i], false);
+        for(var i=0; i<this.usedSmiles.length; i++){
+            this.collection.setDragged(this.usedSmiles[i], false);
+            this.smilepack.removeSmile(this.usedSmiles[i]);
+        }
+
         this.usedSmiles = [];
         this.smilepack.setLastInternalIds([0], 0);
 
@@ -443,13 +468,16 @@ var generator = {
 
         for(var i=0; i<data.categories.length; i++){
             var cat = data.categories[i];
+            this.smilepack.createGroupForCategory(0, cat.id);
             for(var j=0; j<cat.smiles.length; j++){
                 var sm = cat.smiles[j];
-                this.smilepack.addSmile(cat.id, sm);
+                sm.categoryLevel = 0;
+                sm.categoryId = cat.id;
+                this.smilepack.addSmile(sm, false);
             }
         }
 
-        this.usedSmiles = this.smilepack.getAllSmileIds();
+        this.usedSmiles = this.smilepack.getLevelSmileIds(0);
         for(var i=0; i<this.usedSmiles.length; i++){
             this.collection.setDragged(this.usedSmiles[i], true);
         }
@@ -461,22 +489,28 @@ var generator = {
         if(lastIds) this.smilepack.setLastInternalIds(lastIds[0], lastIds[1]);
     },
 
-    set_collection_smiles: function(collection, category_id){
-        ajax.get_smiles(category_id, function(data){
+    set_collection_smiles: function(collection, options){
+        ajax.get_smiles(options.categoryId, function(data){
             for(var i=0; i<data.smiles.length; i++){
-                var localId = this.collection.addSmile(category_id, data.smiles[i]);
+                data.smiles[i].categoryLevel = 2;
+                data.smiles[i].categoryId = options.categoryId;
+                var localId = this.collection.addSmile(data.smiles[i]);
                 if(localId === null) continue;
 
                 if(this.usedSmiles.indexOf(data.smiles[i].id) >= 0){
                     this.collection.setDragged(localId, true);
                 }
             }
-            collection.setSmiles(category_id, true);
+            collection.setCategorySmiles(2, options.categoryId, true);
         }.bind(this));
     },
 
     initCollectionData: function(){
         this.collection.loadData(this.collectionData);
+        var categories = this.collection.getCategoryIds()[2];
+        for(var i=0; i<categories.length; i++){
+            this.collection.createGroupForCategory(2, categories[i]);
+        }
         if(this.collectionData.sections.length == 1){
             this.collection.set(0, this.collectionData.sections[0].id);
         }
