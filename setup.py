@@ -5,8 +5,8 @@ import sys
 from os.path import dirname, join
 from setuptools import setup, find_packages
 
-if sys.version_info < (3, 4):
-    print("Smilepack requires Python 3.4 or later.")
+if sys.version_info < (3, 3):
+    print("Smilepack requires Python 3.3 or later.")
     sys.exit(1)
 
 
@@ -49,6 +49,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         "Topic :: Internet :: WWW/HTTP :: WSGI",
