@@ -27,126 +27,156 @@ var generator = {
 
     /* dragdrop */
 
-    dropToSmilepackEvent: function(options){
+    dropToSmilepackEvent: function(options) {
         var categoryId = this.smilepack.getSelectedCategory(0);
-        if(categoryId === null) return null;
+        if (categoryId === null) {
+            return null;
+        }
 
         var elem = this.collection.typeOfElement(options.element);
-        if(elem.type != 'smile' || this.usedSmiles.indexOf(elem.id) >= 0){
+        if (elem.type != 'smile' || this.usedSmiles.indexOf(elem.id) >= 0) {
             return null;
         }
 
         this.collection.setSelected(elem.id, false);
+
         var smile = this.collection.getSmileInfo(elem.id);
         smile.dragged = true;
         smile.categoryLevel = 0;
         smile.categoryId = categoryId;
+
         var id = this.smilepack.addSmile(smile, true);
-        if(options.dropPosition != null) this.smilepack.moveSmile(id, options.dropPosition);
-        if(id === elem.id){
-            this.usedSmiles.push(elem.id);
-            this.modified = true;
-            return {name: 'animateToSmile', id: id};
+        if (options.dropPosition !== undefined && options.dropPosition !== null) {
+            this.smilepack.moveSmile(id, options.dropPosition);
         }
+
+        this.usedSmiles.push(elem.id);
+        this.modified = true;
+        return {name: 'animateToSmile', id: id};
     },
 
-    dropToCollectionEvent: function(options){
+    dropToCollectionEvent: function(options) {
         var elem = this.smilepack.typeOfElement(options.element);
-        if(!elem) return;
+        if (!elem) {
+            return;
+        }
         var id = elem.id;
 
         var i = this.usedSmiles.indexOf(id);
-        if(i < 0) return;
+        if (i < 0) {
+            return;
+        }
+
         this.smilepack.removeSmile(id);
         this.usedSmiles.splice(i, 1);
         this.modified = true;
 
         var smile = this.collection.getSmileInfo(id, {withParent: true});
-        if(smile && smile.groups.indexOf(this.collection.getCurrentGroupId()) >= 0){
+        if (smile && smile.groups.indexOf(this.collection.getCurrentGroupId()) >= 0) {
             return {name: 'animateToSmile', id: id};
-        }else{
-            if(smile) this.collection.setDragged(id, false);
-            return {name: 'fadeOut'}
+        } else if (smile) {
+            this.collection.setDragged(id, false);
+            return {name: 'fadeOut'};
+        } else {
+            return {name: 'fadeOut'};
         }
     },
 
     /* actions */
 
-    onchange: function(container, groupId){
-        generator.current_id = this.collection.getSelectedCategory(2);
-        window.location.hash = '#' + generator.current_id.toString();
+    onchange: function(container, options) {
+        window.location.hash = '#' + options.categoryId.toString();
     },
 
-    onaction: function(options){
+    onaction: function(options) {
         var action = options.action;
         var categoryId = options.categoryId;
 
-        if(options.container !== this.smilepack || options.level != 0) return;
+        if (options.container !== this.smilepack || options.level !== 0) {
+            return;
+        }
 
-        if(action == 'delete' && categoryId != null){
+        if (action == 'delete' && categoryId !== undefined && categoryId !== null) {
             this.deleteSmilepackCategory(categoryId, true);
-        }else if(action == 'add') {
+        } else if (action == 'add') {
             dialogsManager.open('category', {}, this.modifySmilepackCategory.bind(this));
-        }else if(action == 'edit'){
-            dialogsManager.open('category', {edit: true, category: this.smilepack.getCategoryInfo(0, options.categoryId)}, this.modifySmilepackCategory.bind(this));
+        } else if (action == 'edit') {
+            dialogsManager.open('category', {
+                edit: true,
+                category: this.smilepack.getCategoryInfo(0, options.categoryId)
+            }, this.modifySmilepackCategory.bind(this));
         }
     },
 
-    onerror: function(data){
+    onerror: function(data) {
         console.log(data);
         alert(data.error || 'Кажется, что-то пошло не так');
     },
 
-    check_hash: function(){
-        if(!window.location.hash) return;
-        var cat_id = window.location.hash.substring(1);
-        if(isNaN(cat_id)) return;
+    check_hash: function() {
+        if (!window.location.hash) {
+            return;
+        }
+        var categoryId = window.location.hash.substring(1);
+        if (isNaN(categoryId)) {
+            return;
+        }
 
-        cat_id = parseInt(cat_id);
-        if(cat_id == generator.current_id) return;
+        categoryId = parseInt(categoryId);
+        if (categoryId == generator.current_id) {
+            return;
+        }
 
-        generator.collection.set(2, cat_id);
+        generator.collection.set(2, categoryId);
     },
 
-    toggleDark: function(){
+    toggleDark: function() {
         document.body.classList.toggle('dark');
         window.localStorage.generatorDark = document.body.classList.contains('dark') ? '1' : '0';
     },
 
-    importUserscript: function(options){
-        if(!options.form || !options.form.file.value) return {error: 'Выберите файл'};
+    importUserscript: function(options) {
+        if (!options.form || !options.form.file.value) {
+            return {error: 'Выберите файл'};
+        }
 
         var onend = options.onend;
         ajax.import_userscript(
             options.form,
-            function(data){
+            function(data) {
                 this.importedUserscriptEvent(data, onend);
             }.bind(this),
-            function(data){
+            function(data) {
                 console.log(data);
-                if(onend) onend({error: data.error || data});
+                if (onend) {
+                    onend({error: data.error || data});
+                }
             }
         );
         return {success: true};
     },
 
-    importedUserscriptEvent: function(data, onend){
-        if(!data.categories || data.categories.length < 1){
+    importedUserscriptEvent: function(data, onend) {
+        if (!data.categories || data.categories.length < 1) {
             console.log(data);
-            if(onend) onend({error: data.notice || 'Кажется, что-то пошло не так'});
+            if (onend) {
+                onend({error: data.notice || 'Кажется, что-то пошло не так'});
+            }
             return;
         }
-        if(data.notice) console.log(data.notice);
+        if (data.notice) {
+            console.log(data.notice);
+        }
         this.replaceSmilepackData({categories: data.categories}, data.ids);
 
-        if(onend){
+        if (onend) {
             onend({success: true, data: data, notice: data.notice});
         }
     },
 
-    saveSmilepack: function(){
+    saveSmilepack: function() {
         var smileIds = this.smilepack.getLevelSmileIds(0);
-        if(!smileIds || smileIds.length < 1){
+        if (!smileIds || smileIds.length < 1) {
             alert('Добавьте хотя бы один смайлик!');
             return;
         }
@@ -154,13 +184,13 @@ var generator = {
 
         var smiles = [];
         var smilesToCreate = [];
-        for(var i=0; i<smileIds.length; i++){
+        for (var i = 0; i < smileIds.length; i++) {
             var smile = this.smilepack.getSmileInfo(smileIds[i], {withoutIds: true, withParent: true});
-            if(smileIds[i] >= 0){
+            if (smileIds[i] >= 0) {
                 smile.id = smileIds[i];
                 delete smile.url;
                 delete smile.description;
-            }else{
+            } else {
                 smilesToCreate.push(smile);
             }
             smile.category_name = this.smilepack.getCategoryInfo(0, smile.categoryId).name;
@@ -172,8 +202,12 @@ var generator = {
         dialogsManager.open('smilepack', {mode: 'saving'});
 
         var lifetime = document.getElementById('lifetime');
-        if(lifetime) lifetime = parseInt(lifetime.value);
-        if(lifetime == null || isNaN(lifetime ) || lifetime < 0) lifetime = 0;
+        if (lifetime) {
+            lifetime = parseInt(lifetime.value);
+        }
+        if (lifetime === null || isNaN(lifetime) || lifetime < 0) {
+            lifetime = 0;
+        }
 
         this.saveStatus = {
             name: document.getElementById('name').value || undefined,
@@ -186,18 +220,21 @@ var generator = {
         this._saveSmilepackProcessing();
     },
 
-    _saveSmilepackProcessing: function(data){
-        if(data !== undefined) {
-            var pos = this.saveStatus.createPos;
-            if(data.error || !data.smile) return this._saveSmilepackError(data);
+    _saveSmilepackProcessing: function(data) {
+        var pos = null;
+        if (data !== undefined) {
+            pos = this.saveStatus.createPos;
+            if (data.error || !data.smile) {
+                return this._saveSmilepackError(data);
+            }
             this.saveStatus.smilesToCreate[pos].id = data.smile.id;
             delete this.saveStatus.smilesToCreate[pos].url;
             this.saveStatus.createPos++;
         }
 
-        if(this.saveStatus.createPos < this.saveStatus.smilesToCreate.length){
-            var pos = this.saveStatus.createPos;
-            setTimeout(function(){
+        if (this.saveStatus.createPos < this.saveStatus.smilesToCreate.length){
+            pos = this.saveStatus.createPos;
+            setTimeout(function() {
                 ajax.create_smile(
                     {
                         url: this.saveStatus.smilesToCreate[pos].url,
@@ -228,13 +265,15 @@ var generator = {
         );
     },
 
-    _saveSmilepackProcessingSmileError: function(data){
-        if(!data.error) return this._saveSmilepackError(data);
+    _saveSmilepackProcessingSmileError: function(data) {
+        if (!data.error) {
+            return this._saveSmilepackError(data);
+        }
         var smile = this.saveStatus.smilesToCreate[this.saveStatus.createPos];
         var msg = 'Не удалось создать смайлик ' + smile.url + ':\n';
         msg += data.error;
         msg += '\nПропустить его и продолжить?';
-        if(confirm(msg)){
+        if (confirm(msg)) {
             this.saveStatus.smiles.splice(this.saveStatus.smiles.indexOf(smile), 1);
             this.saveStatus.smilesToCreate.splice(this.saveStatus.createPos, 1);
             return this._saveSmilepackProcessing();
@@ -243,14 +282,14 @@ var generator = {
         dialogsManager.close('smilepack');
     },
 
-    _saveSmilepackError: function(data){
+    _saveSmilepackError: function(data) {
         this.onerror(data);
         this.saveStatus = null;
         dialogsManager.close('smilepack');
     },
 
-    savedSmilepackEvent: function(data){
-        if(data.path && window.history){
+    savedSmilepackEvent: function(data) {
+        if (data.path && window.history) {
             document.title = document.getElementById('name').value;
             window.history.replaceState(null, null, data.path + location.hash);
         }
@@ -263,72 +302,95 @@ var generator = {
         lastUrl.style.display = '';
 
         var deletionDate = document.getElementById('smp-delete-container');
-        if(options.savedData.fancy_deletion_date){
+        if (options.savedData.fancy_deletion_date) {
             deletionDate.style.display = '';
             document.getElementById('smp-delete-date').textContent = options.savedData.fancy_deletion_date;
-        }else{
+        } else {
             deletionDate.style.display = 'none';
         }
         this.modified = false;
     },
 
-    modifySmilepackCategory: function(options){
-        if(!options.name) return {error: 'Введите имя категории'};
-        if(options.name.length > 128) return {error: 'Длинновато имя у категории!'};
-        if(!options.iconId || !options.iconUrl) return {error: 'Не выбрана иконка'};
+    modifySmilepackCategory: function(options) {
+        if (!options.name) {
+            return {error: 'Введите имя категории'};
+        }
+        if (options.name.length > 128) {
+            return {error: 'Длинновато имя у категории!'};
+        }
+        if (options.iconId === undefined || options.iconId === null || !options.iconUrl) {
+            return {error: 'Не выбрана иконка'};
+        }
 
         var id;
-        if(options.categoryId == null){
+        if (options.categoryId === undefined || options.categoryId === null) {
             id = this.smilepack.addCategory(0, 0, {
                 name: options.name,
                 icon: {id: options.iconId, url: options.iconUrl}
             });
             this.smilepack.createGroupForCategory(0, id);
-        }else{
+        } else {
             id = this.smilepack.editCategory(0, options.categoryId, {
                 name: options.name,
                 icon: {id: options.iconId, url: options.iconUrl}
             });
         }
 
-        if(id == null) return {error: 'Кажется, что-то пошло не так'};
-        if(options.categoryId == null) this.smilepack.set(0, id);
+        if (id === null) {
+            return {error: 'Кажется, что-то пошло не так'};
+        }
+        if (options.categoryId === undefined || options.categoryId === null) {
+            this.smilepack.set(0, id);
+        }
         this.modified = true;
         return {success: true, categoryId: id};
     },
 
-    deleteSmilepackCategory: function(categoryId, interactive){
-        if(interactive && !confirm('Удалить категорию «' + this.smilepack.getCategoryInfo(0, categoryId).name + '»?')){
+    deleteSmilepackCategory: function(categoryId, interactive) {
+        if (interactive && !confirm('Удалить категорию «' + this.smilepack.getCategoryInfo(0, categoryId).name + '»?')) {
             return false;
         }
         var unusedSmiles = this.smilepack.removeCategory(0, categoryId);
-        for(var i=0; unusedSmiles && i<unusedSmiles.length; i++){
+        for (var i = 0; unusedSmiles && i < unusedSmiles.length; i++) {
             generator.collection.setDragged(unusedSmiles[i], false);
             generator.smilepack.removeSmile(unusedSmiles[i]);
             var j = this.usedSmiles.indexOf(unusedSmiles[i]);
-            if(j >= 0) this.usedSmiles.splice(j, 1);
+            if (j >= 0) {
+                this.usedSmiles.splice(j, 1);
+            }
         }
         this.modified = true;
         return true;
     },
 
-    moveAllSmiles: function(){
+    moveAllSmiles: function() {
         var groupId = this.collection.getCurrentGroupId();
-        if(groupId === null) return false;
+        if (groupId === null) {
+            return false;
+        }
         var smpId = this.smilepack.getSelectedCategory(0);
-        if(smpId == null) return false;
+        if (smpId === null) {
+            return false;
+        }
 
         var smileIds = this.collection.getSmileIds(groupId);
-        if(smileIds == null) return false;
-        for(var i=0; i<smileIds.length; i++){
-            if(this.usedSmiles.indexOf(smileIds[i]) >= 0) continue;
+        if (smileIds === null) {
+            return false;
+        }
+
+        for (var i = 0; i < smileIds.length; i++){
+            if (this.usedSmiles.indexOf(smileIds[i]) >= 0) {
+                continue;
+            }
 
             var smile = this.collection.getSmileInfo(smileIds[i]);
             smile.categoryLevel = 0;
             smile.categoryId = smpId;
 
             var newId = this.smilepack.addSmile(smile, true);
-            if(newId != smileIds[i]) continue;
+            if (newId === null) {
+                continue;
+            }
 
             this.usedSmiles.push(smileIds[i]);
             this.collection.setDragged(smileIds[i], true);
@@ -337,51 +399,58 @@ var generator = {
         return true;
     },
 
-    addCustomSmile: function(options){
-        if(!options.file && (!options.url || options.url.length < 9)){
+    addCustomSmile: function(options) {
+        if (!options.file && (!options.url || options.url.length < 9)) {
             return {error: 'Надо бы смайлик'};
         }
-        if(options.url && options.url.length > 512){
+        if (options.url && options.url.length > 512) {
             return {error: 'Длинновата ссылка, перезалейте на что-нибудь поадекватнее'};
         }
-        if(isNaN(options.w) || options.w < 1 || isNaN(options.h) || options.h < 1){
+        if (isNaN(options.w) || options.w < 1 || isNaN(options.h) || options.h < 1) {
             return {error: 'Размеры смайлика кривоваты'};
         }
 
         var onend = options.onend;
         var categoryId = generator.smilepack.getSelectedCategory(0);
 
-        var onload = function(data){
+        var onload = function(data) {
             this._addCustomSmileEvent(data, options, categoryId, onend);
         }.bind(this);
-        var onerror = function(data, x){
+        var onerror = function(data, x) {
             this.onerror(data, x);
-            if(onend) onend({success: false, error: data.error || data});
+            if (onend) {
+                onend({success: false, error: data.error || data});
+            }
         }.bind(this);
 
-        if(options.url){
+        if (options.url) {
             ajax.create_smile({
                 url: options.url,
                 w: options.w,
                 h: options.h
             }, onload, onerror);
-        }else if(options.file){
+        } else if (options.file) {
             ajax.upload_smile({
                 file: options.file,
                 w: options.w,
                 h: options.h
             }, onload, onerror);
         }
+
         return {success: true};
     },
 
-    _addCustomSmileEvent: function(data, options, categoryId, onend){
-        if(!data.smile){
+    _addCustomSmileEvent: function(data, options, categoryId, onend) {
+        if (!data.smile) {
             console.log(data);
-            if(onend) onend({error: data.error || data});
+            if (onend) {
+                onend({error: data.error || data});
+            }
         }
-        if(this.usedSmiles.indexOf(data.smile.id) >= 0){
-            if(onend) onend({error: 'Этот смайлик уже используется!'});
+        if (this.usedSmiles.indexOf(data.smile.id) >= 0) {
+            if (onend) {
+                onend({error: 'Этот смайлик уже используется!'});
+            }
             return;
         }
 
@@ -395,31 +464,38 @@ var generator = {
             categoryId: categoryId
         }, true);
 
-        if(id != null){
+        if (id !== null) {
             this.usedSmiles.push(id);
             this.modified = true;
-            if(!data.created && data.smile.category != null) this.collection.setDragged(data.smile.id, true);
+            if (!data.created && data.smile.category !== undefined && data.smile.category !== null) {
+                this.collection.setDragged(data.smile.id, true);
+            }
         }
-        if(onend) onend({success: true, smileId: id});
+        if (onend) {
+            onend({success: true, smileId: id});
+        }
     },
 
-    storageSave: function(interactive){
+    storageSave: function(interactive) {
         var data = {storageVersion: this.storageVersion, ids: this.smilepack.getLastInternalIds()};
 
         var smileIds = this.smilepack.getLevelSmileIds(0);
-        if(smileIds.length < 1){
-            if(interactive && !confirm("Нет ни одного смайлика. Сохранить пустоту?")) return;
+        if (smileIds.length < 1) {
+            if (interactive && !confirm("Нет ни одного смайлика. Сохранить пустоту?")) {
+                return;
+            }
         }
 
         var categories = this.smilepack.getCategoriesWithHierarchy({short: true});
 
+        var i;
         var catsById = {};
-        for(var i=0; i<categories.length; i++){
+        for (i = 0; i < categories.length; i++) {
             catsById[categories[i].id] = categories[i];
             categories[i].smiles = [];
         }
 
-        for(var i=0; i<smileIds.length; i++){
+        for (i = 0; i < smileIds.length; i++) {
             var smile = this.smilepack.getSmileInfo(smileIds[i], {withParent: true});
             catsById[smile.categoryId].smiles.push(smile);
             delete smile.categoryId;
@@ -428,35 +504,47 @@ var generator = {
         data.categories = categories;
         window.localStorage.smiles = JSON.stringify(data);
         this.modified = false;
-        if(interactive) alert('Сохранено!');
+        if (interactive) {
+            alert('Сохранено!');
+        }
     },
 
-    storageLoad: function(interactive){
+    storageLoad: function(interactive) {
         var data = window.localStorage.smiles;
-        if(!data || data.length < 3){
-            if(interactive) alert('Нечего загружать!');
+        if (!data || data.length < 3) {
+            if (interactive) {
+                alert('Нечего загружать!');
+            }
             return false;
         }
 
         data = JSON.parse(data);
-        if(data.storageVersion != this.storageVersion){
-            if(interactive) alert('С момента сохранения база данных поменялась, не могу загрузить :(');
+        if (data.storageVersion != this.storageVersion) {
+            if (interactive) {
+                alert('С момента сохранения база данных поменялась, не могу загрузить :(');
+            }
             return false;
         }
 
-        if(interactive && this.modified && !confirm('При загрузке потеряются несохранённые изменения, продолжить?')) return false;
+        if (interactive && this.modified && !confirm('При загрузке потеряются несохранённые изменения, продолжить?')) {
+            return false;
+        }
 
         this.replaceSmilepackData({categories: data.categories}, data.ids);
         this.modified = false;
+
         return true;
     },
 
     /* data management */
 
-    replaceSmilepackData: function(data, lastIds){
+    replaceSmilepackData: function(data, lastIds) {
+        var i;
         var oldCategories = this.smilepack.getCategoriesWithHierarchy({short: true, withoutIconUrl: true});
-        for(var i=0; i<oldCategories.length; i++) this.smilepack.removeCategory(0, oldCategories[i].id);
-        for(var i=0; i<this.usedSmiles.length; i++){
+        for (i = 0; i < oldCategories.length; i++) {
+            this.smilepack.removeCategory(0, oldCategories[i].id);
+        }
+        for (i = 0; i < this.usedSmiles.length; i++) {
             this.collection.setDragged(this.usedSmiles[i], false);
             this.smilepack.removeSmile(this.usedSmiles[i]);
         }
@@ -466,10 +554,10 @@ var generator = {
 
         this.smilepack.loadData(data);
 
-        for(var i=0; i<data.categories.length; i++){
+        for (i = 0; i < data.categories.length; i++) {
             var cat = data.categories[i];
             this.smilepack.createGroupForCategory(0, cat.id);
-            for(var j=0; j<cat.smiles.length; j++){
+            for (var j = 0; j < cat.smiles.length; j++) {
                 var sm = cat.smiles[j];
                 sm.categoryLevel = 0;
                 sm.categoryId = cat.id;
@@ -478,26 +566,30 @@ var generator = {
         }
 
         this.usedSmiles = this.smilepack.getLevelSmileIds(0);
-        for(var i=0; i<this.usedSmiles.length; i++){
+        for (i = 0; i < this.usedSmiles.length; i++) {
             this.collection.setDragged(this.usedSmiles[i], true);
         }
 
-        if(data.categories.length == 1){
+        if (data.categories.length == 1) {
             this.smilepack.set(0, data.categories[0].id);
         }
 
-        if(lastIds) this.smilepack.setLastInternalIds(lastIds[0], lastIds[1]);
+        if (lastIds) {
+            this.smilepack.setLastInternalIds(lastIds[0], lastIds[1]);
+        }
     },
 
-    set_collection_smiles: function(collection, options){
-        ajax.get_smiles(options.categoryId, function(data){
-            for(var i=0; i<data.smiles.length; i++){
+    set_collection_smiles: function(collection, options) {
+        ajax.get_smiles(options.categoryId, function(data) {
+            for (var i = 0; i < data.smiles.length; i++) {
                 data.smiles[i].categoryLevel = 2;
                 data.smiles[i].categoryId = options.categoryId;
                 var localId = this.collection.addSmile(data.smiles[i]);
-                if(localId === null) continue;
+                if (localId === null) {
+                    continue;
+                }
 
-                if(this.usedSmiles.indexOf(data.smiles[i].id) >= 0){
+                if (this.usedSmiles.indexOf(data.smiles[i].id) >= 0) {
                     this.collection.setDragged(localId, true);
                 }
             }
@@ -505,19 +597,19 @@ var generator = {
         }.bind(this));
     },
 
-    initCollectionData: function(){
+    initCollectionData: function() {
         this.collection.loadData(this.collectionData);
         var categories = this.collection.getCategoryIds()[2];
-        for(var i=0; i<categories.length; i++){
+        for (var i = 0; i < categories.length; i++) {
             this.collection.createGroupForCategory(2, categories[i]);
         }
-        if(this.collectionData.sections.length == 1){
+        if (this.collectionData.sections.length == 1) {
             this.collection.set(0, this.collectionData.sections[0].id);
         }
         this.check_hash();
     },
 
-    initCollections: function(){
+    initCollections: function() {
         this.collection =  new widgets.Collection(
             [
                 ['sections', 'section_id', 'Разделы:'],
@@ -555,64 +647,70 @@ var generator = {
         );
     },
 
-    initData: function(){
-        if(this.collectionData){
+    initData: function() {
+        if (this.collectionData) {
             this.initCollectionData();
-        }else{
-            ajax.get_categories(function(data){
+        } else {
+            ajax.get_categories(function(data) {
                 this.collectionData = data;
                 this.initCollectionData();
             }.bind(this));
         }
-        if(this.smilepackData){
+        if (this.smilepackData) {
             this.replaceSmilepackData(this.smilepackData);
         }
     },
 
-    bindButtonEvents: function(){
+    bindButtonEvents: function() {
         var moveBtn = this.collection.getAdditionalContainer().querySelector('.action-move-all');
         moveBtn.addEventListener('click', this.moveAllSmiles.bind(this));
 
         var addSmileBtn = this.smilepack.getAdditionalContainer().querySelector('.action-add-smile');
-        addSmileBtn.addEventListener('click', function(){
+        addSmileBtn.addEventListener('click', function() {
             dialogsManager.open('smile', {}, this.addCustomSmile.bind(this));
         }.bind(this));
 
         document.querySelector('.action-save').addEventListener('click', this.saveSmilepack.bind(this));
 
-        document.getElementById('action-storage-save').addEventListener('click', function(){this.storageSave(true)}.bind(this));
-        document.getElementById('action-storage-load').addEventListener('click', function(){this.storageLoad(true)}.bind(this));
+        document.getElementById('action-storage-save').addEventListener('click', function() {this.storageSave(true);}.bind(this));
+        document.getElementById('action-storage-load').addEventListener('click', function() {this.storageLoad(true);}.bind(this));
 
         var importBtn = document.getElementById('action-import-userscript');
-        importBtn.addEventListener('click', function(){
+        importBtn.addEventListener('click', function() {
             dialogsManager.open('import_userscript', {}, this.importUserscript.bind(this));
         }.bind(this));
 
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
     },
 
-    registerDialogs: function(){
+    registerDialogs: function() {
         dialogsManager.init(document.getElementById('dialog-background'), {
-            'category': new CategoryDialog(),
-            'smile': new SmileDialog(),
-            'import_userscript': new ImportUserscriptDialog(),
-            'smilepack': new SmilepackDialog()
+            category: new CategoryDialog(),
+            smile: new SmileDialog(),
+            import_userscript: new ImportUserscriptDialog(),
+            smilepack: new SmilepackDialog()
         });
     },
 
-    init: function(){
+    init: function() {
         this.initCollections();
         this.initData();
         this.bindButtonEvents();
         this.registerDialogs();
 
-        if(window.localStorage.generatorDark == '1') this.toggleDark();
+        if (window.localStorage.generatorDark == '1') {
+            this.toggleDark();
+        }
 
         window.addEventListener('hashchange', this.check_hash);
-        window.addEventListener('beforeunload', function(e){
-            if(!this.modified) return;
+        window.addEventListener('beforeunload', function(e) {
+            if (!this.modified) {
+                return;
+            }
             var s = 'Есть несохранённые изменения в смайлопаке.';
-            if(e) e.returnValue = s;
+            if (e) {
+                e.returnValue = s;
+            }
             return s;
         }.bind(this));
     }

@@ -62,7 +62,7 @@ var shuffle = {
 
         x.onreadystatechange = function(){
             if(x.readyState != 4) return;
-            if(x.status == 0 || x.status >= 400){
+            if(x.status === 0 || x.status >= 400){
                 if(callback) callback(false, x);
                 return;
             }
@@ -73,7 +73,7 @@ var shuffle = {
             }catch(e){
                 console.error(e);
                 if(callback) callback(false, x);
-            };
+            }
             for(var i=0; i<data.smiles.length; i++){
                 var smile = data.smiles[i];
                 if(!this.smiles[smile.id]) this.smiles[smile.id] = {dom: null, smile: null};
@@ -87,7 +87,7 @@ var shuffle = {
     },
 
     fetchAndStart: function(){
-        this.fetch(function(success, x){this.start();}.bind(this));
+        this.fetch(function(){this.start();}.bind(this));
     },
 
     init: function(start_now){

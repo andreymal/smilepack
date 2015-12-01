@@ -1,8 +1,8 @@
 'use strict';
 
 var ajax = {
-    getXmlHttp: function(){
-        if(typeof XMLHttpRequest != 'undefined'){
+    getXmlHttp: function() {
+        if (typeof XMLHttpRequest != 'undefined') {
             return new XMLHttpRequest();
         }
         var xmlhttp;
@@ -18,47 +18,53 @@ var ajax = {
         return xmlhttp;
     },
 
-    request: function(options){
+    request: function(options) {
         var x = this.getXmlHttp();
         x.open(options.method || 'GET', options.url);
-        for(var header in options.headers || {}){
+        for (var header in options.headers || {}) {
             x.setRequestHeader(header, options.headers[header]);
         }
 
-        x.onreadystatechange = function(){
+        x.onreadystatechange = function() {
             var data;
             var error = false;
-            if(x.readyState != 4) return;
+            if (x.readyState != 4) {
+                return;
+            }
 
-            if(x.status >= 400){
+            if (x.status >= 400) {
                 error = true;
-                if(options.onerror){
+                if (options.onerror) {
                     data = x.responseText;
-                    if(options.format == 'json' && data.length > 1 && data[0] == '{'){
-                        try{
+                    if (options.format == 'json' && data.length > 1 && data[0] == '{') {
+                        try {
                             data = JSON.parse(x.responseText);
-                        }catch(e){}
+                        } catch (e) {}
                     }
                     options.onerror(data, x);
                 }
 
-            }else{
-                if(options.format == 'json'){
+            } else {
+                if (options.format == 'json') {
                     data = JSON.parse(x.responseText);
-                }else{
+                } else {
                     data = x.responseText;
                 }
-                if(options.onload) options.onload(data, x);
+                if (options.onload) {
+                    options.onload(data, x);
+                }
             }
 
-            if(options.onend) options.onend(error, data, x);
+            if (options.onend) {
+                options.onend(error, data, x);
+            }
         };
 
         x.send(options.data || null);
         return x;
     },
 
-    get_categories: function(onload, onerror, onend){
+    get_categories: function(onload, onerror, onend) {
         return this.request({
             url: '/smiles/',
             format: 'json',
@@ -68,7 +74,7 @@ var ajax = {
         });
     },
 
-    get_smiles: function(categoryId, onload, onerror, onend){
+    get_smiles: function(categoryId, onload, onerror, onend) {
         return this.request({
             url: '/smiles/' + parseInt(categoryId).toString(),
             format: 'json',
@@ -78,7 +84,7 @@ var ajax = {
         });
     },
 
-    create_smilepack: function(name, lifetime, categories, smiles, onload, onerror, onend){
+    create_smilepack: function(name, lifetime, categories, smiles, onload, onerror, onend) {
         return this.request({
             method: 'POST',
             url: '/smilepack/',
@@ -96,7 +102,7 @@ var ajax = {
         });
     },
 
-    import_userscript: function(form, onload, onerror, onend){
+    import_userscript: function(form, onload, onerror, onend) {
         return this.request({
             method: 'POST',
             url: '/smilepack/import',
@@ -108,7 +114,7 @@ var ajax = {
         });
     },
 
-    create_smile: function(data, onload, onerror, onend){
+    create_smile: function(data, onload, onerror, onend) {
         return this.request({
             method: 'POST',
             url: '/smiles/',
@@ -121,9 +127,11 @@ var ajax = {
         });
     },
 
-    upload_smile: function(data, onload, onerror, onend){
+    upload_smile: function(data, onload, onerror, onend) {
         var fdata = new FormData();
-        for(var x in data) fdata.append(x, data[x]);
+        for (var x in data) {
+            fdata.append(x, data[x]);
+        }
 
         return this.request({
             method: 'POST',
@@ -136,5 +144,6 @@ var ajax = {
         });
     }
 };
+
 
 module.exports = ajax;
