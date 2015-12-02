@@ -468,20 +468,20 @@ Collection.prototype.addSmile = function(item, nolazy) {
         selected: item.selected || false
     };
 
-    /* Проверяем выделение */
-    if (this._smiles[id].selected) {
-        if (this._currentGroupId !== null && this._smiles[id].groups[this._currentGroupId] !== undefined) {
-            this._selectedSmileIds.push(id);
-        } else {
-            this._smiles[id].selected = false;
-        }
-    }
-
     /* Добавляем в группы */
     for (i = 0; i < groupIds.length; i++) {
         this.addSmileToGroup(id, groupIds[i], nolazy);
     }
 
+    /* Проверяем выделение, если смайлик добавлен в текущую группу */
+    if (this._smiles[id].selected) {
+        if (this._currentGroupId !== null && this._smiles[id].groups[this._currentGroupId] !== undefined) {
+            this._selectedSmileIds.push(id);
+            this._selectUpdated([id], []);
+        } else {
+            this._smiles[id].selected = false;
+        }
+    }
     return id;
 };
 
@@ -568,34 +568,70 @@ Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categ
 
 
 Collection.prototype.removeSmile = function(id) {
-    var smile = this._smiles[id];
-    if (!smile) {
+    if (!this._smiles[id]) {
         return false;
     }
 
+    var i = this._selectedSmileIds.indexOf(id);
+    if (i >= 0) {
+        this._selectedSmileIds.splice(i, 1);
+
+        if (this._lastSelectedSmileId == id) {
+            this._lastSelectedSmileId = null;
+        }
+
+        this._selectUpdated([], [id]);
+    }
+
+    this._removeSmileRaw(id);
+
+    return true;
+};
+
+
+Collection.prototype.removeManySmiles = function(smileIds) {
+    var reallyDeleted = [];
+    var id, j;
+
+    for (var i = 0; i < smileIds.length; i++) {
+        id = smileIds[i];
+        if (!this._smiles[id]) {
+            continue;
+        }
+
+        j = this._selectedSmileIds.indexOf(id);
+        if (j >= 0) {
+            this._selectedSmileIds.splice(j, 1);
+            if (this._lastSelectedSmileId === id) {
+                this._lastSelectedSmileId = null;
+            }
+        }
+
+        this._removeSmileRaw(id);
+        reallyDeleted.push(id);
+    }
+
+    this._selectUpdated([], reallyDeleted);
+
+    return reallyDeleted;
+};
+
+
+Collection.prototype._removeSmileRaw = function(id) {
+    var smile = this._smiles[id];
     var group, i;
     for (var groupId in smile.groups) {
         group = this._groups[groupId];
         if (smile.groups[groupId]) {
             group.dom.removeChild(smile.groups[groupId]);
         }
-        
+
         i = group.smileIds.indexOf(smile.id);
         if (i >= 0) {
             group.smileIds.splice(i, 1);
         }
     }
-
-    i = this._selectedSmileIds.indexOf(smile.id);
-    if (i >= 0) {
-        this._selectedSmileIds.splice(i, 1);
-    }
-    if (this._lastSelectedSmileId == smile.id) {
-        this._lastSelectedSmileId = null;
-    }
-
     delete this._smiles[id];
-    return true;
 };
 
 
@@ -621,12 +657,13 @@ Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     }
     delete smile.groups[group.id];
 
-    if (this._currentGroupId == group.id && smile.selected) {
+    if (this._currentGroupId === group.id && smile.selected) {
         index = this._selectedSmileIds.indexOf(id);
         if (index >= 0) {
             this._selectedSmileIds.splice(index, 1);
         }
         smile.selected = false;
+        this._selectUpdated([], [id]);
     }
 
     if (smile.categoryId !== null && this._categories[smile.categoryLevel][smile.categoryId].groupId === group.id) {
@@ -896,6 +933,17 @@ Collection.prototype.setSelected = function(id, selected) {
         return false;
     }
 
+    /* После всех проверок применяем выделение */
+    this._setSelectedRaw(smile.id, selected);
+
+    return true;
+};
+
+
+Collection.prototype._setSelectedRaw = function(id, selected, noEvent) {
+    var smile = this._smiles[id];
+    var changed = false;
+
     /* Переключаем выделение */
     if (smile.selected != selected) {
         smile.selected = !smile.selected;
@@ -908,18 +956,29 @@ Collection.prototype.setSelected = function(id, selected) {
     var i = this._selectedSmileIds.indexOf(smile.id);
     if (selected && i < 0) {
         this._selectedSmileIds.push(smile.id);
+        changed = true;
     } else if (!selected && i >= 0) {
         this._selectedSmileIds.splice(i, 1);
+        changed = true;
     }
 
     /* Запоминаем последний выделенный смайлик для shift+ЛКМ */
     if (selected) {
         this._lastSelectedSmileId = smile.id;
-    } else if (this._selectedSmileIds.length === 0) {
+    } else if (this._selectedSmileIds.length === 0 || this._lastSelectedSmileId === smile.id) {
         this._lastSelectedSmileId = null;
     }
 
-    return true;
+    /* Оповещаем слушателей события о данном событии */
+    if (changed && !noEvent) {
+        if (selected) {
+            this._selectUpdated([smile.id], []);
+        } else {
+            this._selectUpdated([], [smile.id]);
+        }
+    }
+
+    return changed;
 };
 
 
@@ -938,8 +997,10 @@ Collection.prototype.deselectAll = function() {
         return false;
     }
 
-    for (var i = 0; i < this._selectedSmileIds.length; i++) {
-        smile = this._smiles[this._selectedSmileIds[i]];
+    var deselectedSmiles = Array.prototype.slice.apply(this._selectedSmileIds);
+
+    for (var i = 0; i < deselectedSmiles.length; i++) {
+        smile = this._smiles[deselectedSmiles[i]];
         smile.selected = false;
         if (smile.groups[this._currentGroupId]) {
             smile.groups[this._currentGroupId].classList.remove('selected');
@@ -948,6 +1009,8 @@ Collection.prototype.deselectAll = function() {
 
     this._selectedSmileIds = [];
     this._lastSelectedSmileId = null;
+
+    this._selectUpdated([], deselectedSmiles);
 
     return true;
 };
@@ -1094,6 +1157,11 @@ Collection.prototype.getSmileIds = function(groupId) {
 };
 
 
+Collection.prototype.getSelectedSmileIds = function() {
+    return Array.prototype.slice.apply(this._selectedSmileIds);
+};
+
+
 Collection.prototype.getAllCategorizedSmileIds = function(level) {
     var result = {};
     if (level === undefined || level === null || isNaN(level)) {
@@ -1190,6 +1258,20 @@ Collection.prototype.typeOfElement = function(element) {
 
 
 /* private */
+
+
+Collection.prototype._selectUpdated = function(added, removed) {
+    if ((this._selectedSmileIds.length > 0) != this._dom.container.classList.contains('with-selection')) {
+        this._dom.container.classList.toggle('with-selection');
+    }
+    this.callListeners('onselect', [{
+        added: added,
+        removed: removed,
+        current: Array.prototype.slice.apply(this._selectedSmileIds),
+        groupId: this._currentGroupId,
+        container: this
+    }]);
+};
 
 
 Collection.prototype._loadDataLevel = function(items, level, parent_id) {
@@ -1292,7 +1374,11 @@ Collection.prototype._smileClickEvent = function(options) {
 
     var group = this._groups[this._currentGroupId];
 
-    if (options.event.shiftKey && this._lastSelectedSmileId !== null) {
+    if (options.event.shiftKey && this._lastSelectedSmileId === null){
+        /* Shift - выделение пачки смайликов, но если считать пачку неоткуда, то выделяем один смайлик */
+        this.setSelected(smile.id, true);
+    } else if (options.event.shiftKey && this._lastSelectedSmileId !== null) {
+        /* Shift - выделение пачки смайликов; считаем начало и конец пачки */
         var pos1 = group.smileIds.indexOf(this._lastSelectedSmileId);
         var pos2 = group.smileIds.indexOf(smile.id);
         if (pos1 > pos2) {
@@ -1300,13 +1386,25 @@ Collection.prototype._smileClickEvent = function(options) {
             pos2 = pos1;
             pos1 = tmp;
         }
+
+        /* Выделяем всю пачку */
+        var selectedSmiles = [];
         for (var i = pos1; i <= pos2; i++) {
-            this.setSelected(group.smileIds[i], true);
+            if (this._setSelectedRaw(group.smileIds[i], true, true)) {
+                selectedSmiles.push(group.smileIds[i]);
+            }
+        }
+
+        /* Если в пачке были невыделенные смайлики, то уведомляем об изменении выделения */
+        if (selectedSmiles.length > 0) {
+            this._selectUpdated(selectedSmiles, []);
         }
     } else if (!options.event.ctrlKey && !options.event.metaKey && (this._selectedSmileIds.length > 1 || !smile.selected)) {
+        /* Простой клик по смайлику - выделяем его одного */
         this.deselectAll();
         this.setSelected(smile.id, true);
     } else {
+        /* Ctrl - выделение одного смайлика или снятие выделения; также снятие выделения у единственного выделенного */
         this.setSelected(smile.id, !smile.selected);
     }
 };

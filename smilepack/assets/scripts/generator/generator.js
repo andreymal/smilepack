@@ -16,7 +16,10 @@ var generator = {
     storageVersion: 1,
 
     collection: null,
+    collectionPanel: null,
     smilepack: null,
+    smilepackPanel: null,
+
     modified: false,
     current_id: null,
 
@@ -107,6 +110,22 @@ var generator = {
                 edit: true,
                 category: this.smilepack.getCategoryInfo(0, options.categoryId)
             }, this.modifySmilepackCategory.bind(this));
+        }
+    },
+
+    onactionSmilepack: function(panel, action) {
+        var smiles = this.smilepack.getSelectedSmileIds();
+
+        if (action == 'remove') {
+            var removedSmiles = this.smilepack.removeManySmiles(smiles);
+            for (var i = 0; removedSmiles && i < removedSmiles.length; i++) {
+                var j = this.usedSmiles.indexOf(removedSmiles[i]);
+                if (j >= 0) {
+                    generator.collection.setDragged(removedSmiles[i], false);
+                    this.usedSmiles.splice(j, 1);
+                }
+            }
+            this.modified = true;
         }
     },
 
@@ -644,7 +663,20 @@ var generator = {
                 ondropto: this.dropToSmilepackEvent.bind(this),
                 onaction: this.onaction.bind(this),
                 message: this.smilepackData ? 'Выберите категорию смайлопака для просмотра' : 'Добавьте категорию здесь и заполните её перетаскиванием смайликов из коллекции',
-                selectable: false
+                selectable: true
+            }
+        );
+    },
+
+    initPanels: function() {
+        this.smilepackPanel = new ActionPanel(
+            this.smilepack,
+            [['remove']],
+            {
+                container: document.getElementById('smilepack-action-panel'),
+                hideIfEmpty: true,
+                buttonClassName: 'button',
+                onaction: this.onactionSmilepack.bind(this)
             }
         );
     },
@@ -696,6 +728,7 @@ var generator = {
 
     init: function() {
         this.initCollections();
+        this.initPanels();
         this.initData();
         this.bindButtonEvents();
         this.registerDialogs();

@@ -70,8 +70,27 @@ body.drag-enabled * {
     overflow-y: auto;
 }
 
-.container-left {
+#collection {
     overflow-y: scroll;
+}
+
+#smilepack.with-selection {
+    height: calc(100% - 4em);
+}
+
+.container-actions-left, .container-actions-right {
+    position: absolute;
+    bottom: 0;
+    width: 50%;
+    background-color: inherit;
+    box-sizing: border-box;
+    padding: 0.5em;
+    overflow: hidden;
+}
+
+.container-actions-right {
+    left: 50%;
+    height: 4em;
 }
 
 input.text {
