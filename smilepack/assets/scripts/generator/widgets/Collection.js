@@ -1,17 +1,28 @@
 'use strict';
 
-var dragdrop = require('./dragdrop.js');
-var widgets = {};
+var dragdrop = require('../dragdrop.js');
 
 
 /*
  * Виджет с коллекцией смайликов с неограниченным уровнем вложенности.
  * Формат hierarchy: [[атрибут со списком элементов, атрибут с id элемента, человекочитаемое название уровня], ...]
  */
-widgets.Collection = function(hierarchy, options) {
+var Collection = function(hierarchy, options) {
     this.hierarchy = hierarchy;
     this._depth = hierarchy.length;
     this.options = options;
+
+    this._eventListeners = {
+        onchange: [],
+        onaction: [],
+        onselect: []
+    };
+
+    for (var event in this._eventListeners) {
+        if (options[event]) {
+            this._eventListeners[event].push(options[event]);
+        }
+    }
 
     /* Многоуровневые категории с отдельной нумерацией по уровням */
     this._categories = [];
@@ -142,22 +153,38 @@ widgets.Collection = function(hierarchy, options) {
 };
 
 
-widgets.Collection.prototype.getDOM = function() {
+Collection.prototype.getDOM = function() {
     return this._dom.container;
 };
 
 
-widgets.Collection.prototype.getAdditionalContainer = function() {
+Collection.prototype.subscribe = function(event, callback) {
+    if (this._eventListeners[event] === undefined) {
+        throw new Error("Unknown event " + event);
+    }
+    this._eventListeners[event].push(callback);
+};
+
+
+Collection.prototype.callListeners = function(event, args) {
+    var funcs = this._eventListeners[event];
+    for (var i = 0; i < funcs.length; i++) {
+        funcs[i].apply(this, args);
+    }
+};
+
+
+Collection.prototype.getAdditionalContainer = function() {
     return this._dom.additionalContainer;
 };
 
 
-widgets.Collection.prototype.loadData = function(items) {
+Collection.prototype.loadData = function(items) {
     this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
 };
 
 
-widgets.Collection.prototype.addCategory = function(level, parentId, item) {
+Collection.prototype.addCategory = function(level, parentId, item) {
     var parentLevel = level - 1;
     var parent = level > 0 ? this._categories[parentLevel][parentId] : null;
     if (level > 0 && !parent) {
@@ -188,7 +215,7 @@ widgets.Collection.prototype.addCategory = function(level, parentId, item) {
 };
 
 
-widgets.Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
+Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
     var item = this._categories[level][categoryId];
 
     var btn = document.createElement('a');
@@ -241,7 +268,7 @@ widgets.Collection.prototype._buildCategoryDom = function(level, categoryId, sav
 };
 
 
-widgets.Collection.prototype.editCategory = function(level, categoryId, item) {
+Collection.prototype.editCategory = function(level, categoryId, item) {
     if (level < 0 || level >= this._depth || !this._categories[level][categoryId]) {
         return null;
     }
@@ -266,7 +293,7 @@ widgets.Collection.prototype.editCategory = function(level, categoryId, item) {
 };
 
 
-widgets.Collection.prototype.removeCategory = function(level, categoryId) {
+Collection.prototype.removeCategory = function(level, categoryId) {
     if (level < 0 || level >= this._depth) {
         return null;
     }
@@ -325,7 +352,7 @@ widgets.Collection.prototype.removeCategory = function(level, categoryId) {
 };
 
 
-widgets.Collection.prototype.createGroup = function(item) {
+Collection.prototype.createGroup = function(item) {
     var groupId = ++this._lastGroupId;
     item = item || {};
     this._groups[groupId] = {
@@ -340,7 +367,7 @@ widgets.Collection.prototype.createGroup = function(item) {
 };
 
 
-widgets.Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId, item) {
+Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId, item) {
     var category = this._categories[categoryLevel][categoryId];
     if (!category || category.groupId !== null) {
         return null;
@@ -358,7 +385,7 @@ widgets.Collection.prototype.createGroupForCategory = function(categoryLevel, ca
 };
 
 
-widgets.Collection.prototype.removeGroup = function(groupId) {
+Collection.prototype.removeGroup = function(groupId) {
     var group = this._groups[groupId];
     if (!group) {
         return null;
@@ -381,7 +408,7 @@ widgets.Collection.prototype.removeGroup = function(groupId) {
 };
 
 
-widgets.Collection.prototype.addSmile = function(item, nolazy) {
+Collection.prototype.addSmile = function(item, nolazy) {
     if (!item) {
         return null;
     }
@@ -459,7 +486,7 @@ widgets.Collection.prototype.addSmile = function(item, nolazy) {
 };
 
 
-widgets.Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
+Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
     var item = this._smiles[smile_id];
     var group = this._groups[groupId];
     if (item.groups[groupId] || group.smileIds.indexOf(item.id) < 0) {
@@ -506,7 +533,7 @@ widgets.Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) 
 };
 
 
-widgets.Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
+Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
     var smile = this._smiles[smileId];
     var group = this._groups[groupId];
     if (!smile || !group) {
@@ -525,7 +552,7 @@ widgets.Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy
 };
 
 
-widgets.Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categoryId) {
+Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categoryId) {
     var smile = this._smiles[smileId];
     var category = this._categories[categoryLevel][categoryId];
     if (!smile || !category || category.groupId === null) {
@@ -540,7 +567,7 @@ widgets.Collection.prototype.addSmileToCategory = function(smileId, categoryLeve
 };
 
 
-widgets.Collection.prototype.removeSmile = function(id) {
+Collection.prototype.removeSmile = function(id) {
     var smile = this._smiles[id];
     if (!smile) {
         return false;
@@ -572,7 +599,7 @@ widgets.Collection.prototype.removeSmile = function(id) {
 };
 
 
-widgets.Collection.prototype.removeSmileFromGroup = function(id, groupId) {
+Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     var smile = this._smiles[id];
     if (!smile) {
         return null;
@@ -611,7 +638,7 @@ widgets.Collection.prototype.removeSmileFromGroup = function(id, groupId) {
 };
 
 
-widgets.Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
+Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
     if (groupId === undefined) {
         groupId = this._currentGroupId;
     }
@@ -659,7 +686,7 @@ widgets.Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupI
 };
 
 
-widgets.Collection.prototype.set = function(level, categoryId) {
+Collection.prototype.set = function(level, categoryId) {
     if (level < 0 || level >= this._depth) {
         return false;
     }
@@ -709,7 +736,7 @@ widgets.Collection.prototype.set = function(level, categoryId) {
 };
 
 
-widgets.Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, force) {
+Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, force) {
     if (categoryId === undefined || categoryId === null) {
         return this.setSmiles(null);
     }
@@ -748,7 +775,7 @@ widgets.Collection.prototype.setCategorySmiles = function(categoryLevel, categor
 };
 
 
-widgets.Collection.prototype.setSmiles = function(groupId, force) {
+Collection.prototype.setSmiles = function(groupId, force) {
     if (groupId === null) {
         if (this._currentGroupId !== null) {
             this.deselectAll();
@@ -812,26 +839,25 @@ widgets.Collection.prototype.setSmiles = function(groupId, force) {
     }
     group.dom.style.display = '';
 
-    if (this.options.onchange) {
-        var options = {groupId: group.id};
-        if (this._currentCategory !== null) {
-            options.categoryLevel = this._currentCategory[0];
-            options.categoryId = this._currentCategory[1];
-        }
-        this.options.onchange(this, options);
+    var options = {groupId: group.id};
+    if (this._currentCategory !== null) {
+        options.categoryLevel = this._currentCategory[0];
+        options.categoryId = this._currentCategory[1];
     }
+    this.callListeners('onchange', [options]);
+
     this._dom.additionalContainer.style.display = group.additionalDom ? '' : 'none';
 
     return true;
 };
 
-widgets.Collection.prototype.getDragged = function(id) {
+Collection.prototype.getDragged = function(id) {
     var smile = this._smiles[id];
     return smile ? smile.dragged : null;
 };
 
 
-widgets.Collection.prototype.setDragged = function(id, dragged) {
+Collection.prototype.setDragged = function(id, dragged) {
     var smile = this._smiles[id];
     if (!smile) {
         return false;
@@ -849,13 +875,13 @@ widgets.Collection.prototype.setDragged = function(id, dragged) {
 };
 
 
-widgets.Collection.prototype.getSelected = function(id) {
+Collection.prototype.getSelected = function(id) {
     var smile = this._smiles[id];
     return smile ? smile.selected : null;
 };
 
 
-widgets.Collection.prototype.setSelected = function(id, selected) {
+Collection.prototype.setSelected = function(id, selected) {
     var smile = this._smiles[id];
     /* Смайлики в скрытых группах не выделяем */
     if (this._currentGroupId === null) {
@@ -897,7 +923,7 @@ widgets.Collection.prototype.setSelected = function(id, selected) {
 };
 
 
-widgets.Collection.prototype.toggleSelected = function(id) {
+Collection.prototype.toggleSelected = function(id) {
     var smile = this._smiles[id];
     if (!smile) {
         return false;
@@ -906,7 +932,7 @@ widgets.Collection.prototype.toggleSelected = function(id) {
 };
 
 
-widgets.Collection.prototype.deselectAll = function() {
+Collection.prototype.deselectAll = function() {
     var smile;
     if (this._currentGroupId === null || this._selectedSmileIds.length === 0) {
         return false;
@@ -927,17 +953,17 @@ widgets.Collection.prototype.deselectAll = function() {
 };
 
 
-widgets.Collection.prototype.getDropPosition = function() {
+Collection.prototype.getDropPosition = function() {
     return this._smileMovePosId;
 };
 
 
-widgets.Collection.prototype.getLastInternalIds = function() {
+Collection.prototype.getLastInternalIds = function() {
     return [this._lastIds, this._lastCreatedSmileId];
 };
 
 
-widgets.Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId) {
+Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId) {
     for (var i = 0; i < this._depth; i++) {
         this._lastIds[i] = parseInt(lastIds[i]);
     }
@@ -945,7 +971,7 @@ widgets.Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId)
 };
 
 
-widgets.Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
+Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
     }
@@ -977,7 +1003,7 @@ widgets.Collection.prototype.getCategoryInfo = function(level, categoryId, optio
 };
 
 
-widgets.Collection.prototype.getCategoriesWithHierarchy = function(options) {
+Collection.prototype.getCategoriesWithHierarchy = function(options) {
     var root = [];
     var items = [];
     var level, item, id;
@@ -1005,7 +1031,7 @@ widgets.Collection.prototype.getCategoriesWithHierarchy = function(options) {
 };
 
 
-widgets.Collection.prototype.getCategoryIds = function() {
+Collection.prototype.getCategoryIds = function() {
     var result = [];
     var parse = function(x) {return parseInt(x, 10);};
     for (var i = 0; i < this._categories.length; i++){
@@ -1016,7 +1042,7 @@ widgets.Collection.prototype.getCategoryIds = function() {
 };
 
 
-widgets.Collection.prototype.getSmileInfo = function(smileId, options) {
+Collection.prototype.getSmileInfo = function(smileId, options) {
     var smile = this._smiles[smileId];
     if (!smile) {
         return null;
@@ -1043,7 +1069,7 @@ widgets.Collection.prototype.getSmileInfo = function(smileId, options) {
 };
 
 
-widgets.Collection.prototype.getSmileIdByDom = function(element) {
+Collection.prototype.getSmileIdByDom = function(element) {
     if (!element || !this._dom.container.contains(element) || !element.classList.contains('smile')) {
         return null;
     }
@@ -1052,7 +1078,7 @@ widgets.Collection.prototype.getSmileIdByDom = function(element) {
 };
 
 
-widgets.Collection.prototype.getSmileIdsOfCategory = function(level, categoryId) {
+Collection.prototype.getSmileIdsOfCategory = function(level, categoryId) {
     if (!this._categories[level][categoryId]) {
         return null;
     }
@@ -1060,7 +1086,7 @@ widgets.Collection.prototype.getSmileIdsOfCategory = function(level, categoryId)
 };
 
 
-widgets.Collection.prototype.getSmileIds = function(groupId) {
+Collection.prototype.getSmileIds = function(groupId) {
     if (!this._groups[groupId]) {
         return null;
     }
@@ -1068,7 +1094,7 @@ widgets.Collection.prototype.getSmileIds = function(groupId) {
 };
 
 
-widgets.Collection.prototype.getAllCategorizedSmileIds = function(level) {
+Collection.prototype.getAllCategorizedSmileIds = function(level) {
     var result = {};
     if (level === undefined || level === null || isNaN(level)) {
         level = this._depth - 1;
@@ -1089,7 +1115,7 @@ widgets.Collection.prototype.getAllCategorizedSmileIds = function(level) {
 };
 
 
-widgets.Collection.prototype.getLevelSmileIds = function(level) {
+Collection.prototype.getLevelSmileIds = function(level) {
     var result = [];
     if (level === undefined || level === null || isNaN(level)){
         level = this._depth - 1;
@@ -1111,17 +1137,17 @@ widgets.Collection.prototype.getLevelSmileIds = function(level) {
 };
 
 
-widgets.Collection.prototype.getSelectedCategory = function(level) {
+Collection.prototype.getSelectedCategory = function(level) {
     return this._selectedIds[level];
 };
 
 
-widgets.Collection.prototype.getCurrentGroupId = function() {
+Collection.prototype.getCurrentGroupId = function() {
     return this._currentGroupId;
 };
 
 
-widgets.Collection.prototype.getGroupOfCategory = function(level, categoryId) {
+Collection.prototype.getGroupOfCategory = function(level, categoryId) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
     }
@@ -1130,7 +1156,7 @@ widgets.Collection.prototype.getGroupOfCategory = function(level, categoryId) {
 };
 
 
-widgets.Collection.prototype.getParentId = function(level, categoryId) {
+Collection.prototype.getParentId = function(level, categoryId) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
     }
@@ -1141,7 +1167,7 @@ widgets.Collection.prototype.getParentId = function(level, categoryId) {
 };
 
 
-widgets.Collection.prototype.typeOfElement = function(element) {
+Collection.prototype.typeOfElement = function(element) {
     if (!element) {
         return null;
     }
@@ -1166,7 +1192,7 @@ widgets.Collection.prototype.typeOfElement = function(element) {
 /* private */
 
 
-widgets.Collection.prototype._loadDataLevel = function(items, level, parent_id) {
+Collection.prototype._loadDataLevel = function(items, level, parent_id) {
     var item_id;
 
     for (var i = 0; i < items.length; i++) {
@@ -1179,7 +1205,7 @@ widgets.Collection.prototype._loadDataLevel = function(items, level, parent_id) 
     }
 };
 
-widgets.Collection.prototype._buildDomTabs = function(level, categoryId) {
+Collection.prototype._buildDomTabs = function(level, categoryId) {
     var parentLevel = level - 1;
     if (level > 0 && !this._categories[parentLevel][categoryId]) {
         return null;
@@ -1203,7 +1229,7 @@ widgets.Collection.prototype._buildDomTabs = function(level, categoryId) {
 /* events */
 
 
-widgets.Collection.prototype._onclick = function(event) {
+Collection.prototype._onclick = function(event) {
     if (event.target.classList.contains('smile')) {
         return; // смайлики обрабатывает dragdrop
     }
@@ -1235,14 +1261,12 @@ widgets.Collection.prototype._onclick = function(event) {
     var action = btn ? btn.dataset.action : null;
 
     if (action) {
-        if (this.options.onaction) {
-            this.options.onaction({
-                container: this,
-                action: action,
-                level: item ? item.level : parseInt(btn.dataset.level),
-                categoryId: categoryId
-            });
-        }
+        this.callListeners('onaction', [{
+            container: this,
+            action: action,
+            level: item ? item.level : parseInt(btn.dataset.level),
+            categoryId: categoryId
+        }]);
         event.preventDefault();
         return false;
     }
@@ -1257,7 +1281,7 @@ widgets.Collection.prototype._onclick = function(event) {
 };
 
 
-widgets.Collection.prototype._smileClickEvent = function(options) {
+Collection.prototype._smileClickEvent = function(options) {
     if (!options.element.classList.contains('smile') || !options.element.dataset.id) {
         return;
     }
@@ -1291,7 +1315,7 @@ widgets.Collection.prototype._smileClickEvent = function(options) {
 /* dragdrop */
 
 
-widgets.Collection.prototype._dragStart = function(options) {
+Collection.prototype._dragStart = function(options) {
     var e = options.element;
     if (e === this._dom.container) {
         return null;
@@ -1318,8 +1342,7 @@ widgets.Collection.prototype._dragStart = function(options) {
     return null;
 };
 
-
-widgets.Collection.prototype._dragMove = function(options) {
+Collection.prototype._dragMove = function(options) {
     if (options.targetContainer !== this._dom.container){
         this._dom.dropHint.style.display = 'none';
     }
@@ -1347,7 +1370,7 @@ widgets.Collection.prototype._dragMove = function(options) {
 };
 
 
-widgets.Collection.prototype._dragMoveTo = function(options) {
+Collection.prototype._dragMoveTo = function(options) {
     var e = options.element;
     if (e.classList.contains('smile')) {
         /* Рассчитываем, в какое место перетаскивают смайлик */
@@ -1362,7 +1385,7 @@ widgets.Collection.prototype._dragMoveTo = function(options) {
 };
 
 
-widgets.Collection.prototype._dragDropTo = function(options) {
+Collection.prototype._dragDropTo = function(options) {
     var smileMovePosId = this._smileMovePosId;
     this._smileMovePosId = null;
     this._dom.dropHint.style.display = 'none';
@@ -1409,7 +1432,7 @@ widgets.Collection.prototype._dragDropTo = function(options) {
 };
 
 
-widgets.Collection.prototype._dragEnd = function(options) {
+Collection.prototype._dragEnd = function(options) {
     if (!options.element) {
         return null;
     }
@@ -1426,7 +1449,7 @@ widgets.Collection.prototype._dragEnd = function(options) {
 };
 
 
-widgets.Collection.prototype._calculateSmileMove = function(x, y, smileOverId) {
+Collection.prototype._calculateSmileMove = function(x, y, smileOverId) {
     if (smileOverId === undefined || smileOverId === null) {
         this._dom.dropHint.style.display = 'none';
         this._smileMovePosId = null;
@@ -1489,7 +1512,7 @@ widgets.Collection.prototype._calculateSmileMove = function(x, y, smileOverId) {
 /* lazy loading of smiles */
 
 
-widgets.Collection.prototype._lazyNext = function() {
+Collection.prototype._lazyNext = function() {
     /* В первую очередь загружаем смайлики текущей категории */
     var categoryId = this._currentGroupId;
     /* Если текущей категории нет и очереди нет, выходим */
@@ -1524,7 +1547,7 @@ widgets.Collection.prototype._lazyNext = function() {
 };
 
 
-widgets.Collection.prototype._lazyLoaded = function(event) {
+Collection.prototype._lazyLoaded = function(event) {
     event.target.classList.remove('smile-loading');
     this._lazyProcessing--;
     event.target.removeEventListener('load', this._lazyCallback);
@@ -1535,4 +1558,4 @@ widgets.Collection.prototype._lazyLoaded = function(event) {
 };
 
 
-module.exports = widgets;
+module.exports = Collection;

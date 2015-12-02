@@ -1,8 +1,10 @@
 'use strict';
 
-var widgets = require('./widgets.js'),
-    ajax = require('./ajax.js'),
+var ajax = require('./ajax.js'),
     dialogsManager = require('./dialogsManager.js'),
+
+    Collection = require('./widgets/Collection.js'),
+    ActionPanel = require('./widgets/ActionPanel.js'),
 
     CategoryDialog = require('./dialogs/CategoryDialog.js'),
     SmileDialog = require('./dialogs/SmileDialog.js'),
@@ -84,7 +86,7 @@ var generator = {
 
     /* actions */
 
-    onchange: function(container, options) {
+    onchange: function(options) {
         window.location.hash = '#' + options.categoryId.toString();
     },
 
@@ -610,7 +612,7 @@ var generator = {
     },
 
     initCollections: function() {
-        this.collection =  new widgets.Collection(
+        this.collection =  new Collection(
             [
                 ['sections', 'section_id', 'Разделы:'],
                 ['subsections', 'subsection_id', 'Подразделы:'],
@@ -631,7 +633,7 @@ var generator = {
             }
         );
 
-        this.smilepack = new widgets.Collection(
+        this.smilepack = new Collection(
             [
                 ['categories', 'category_id', 'Категории:']
             ],
