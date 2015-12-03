@@ -113,12 +113,13 @@ var generator = {
         }
     },
 
-    onactionSmilepack: function(panel, action) {
+    onactionSmilepack: function(panel, action, options) {
         var smiles = this.smilepack.getSelectedSmileIds();
+        var i;
 
         if (action == 'remove') {
             var removedSmiles = this.smilepack.removeManySmiles(smiles);
-            for (var i = 0; removedSmiles && i < removedSmiles.length; i++) {
+            for (i = 0; removedSmiles && i < removedSmiles.length; i++) {
                 var j = this.usedSmiles.indexOf(removedSmiles[i]);
                 if (j >= 0) {
                     generator.collection.setDragged(removedSmiles[i], false);
@@ -126,6 +127,17 @@ var generator = {
                 }
             }
             this.modified = true;
+        } else if (action == 'move') {
+            var groupId = this.smilepack.getGroupOfCategory(options.categoryLevel, options.categoryId);
+            if (groupId === null || groupId === this.smilepack.getCurrentGroupId()) {
+                return;
+            }
+            this.smilepack.deselectAll();
+
+            for (i = 0; i < smiles.length; i++) {
+                this.smilepack.removeSmileFromGroup(smiles[i], this.smilepack.getCurrentGroupId());
+                this.smilepack.addSmileToGroup(smiles[i], groupId);
+            }
         }
     },
 
@@ -671,7 +683,10 @@ var generator = {
     initPanels: function() {
         this.smilepackPanel = new ActionPanel(
             this.smilepack,
-            [['remove']],
+            [
+                {action: 'move', categorySelect: true},
+                {action: 'remove'}
+            ],
             {
                 container: document.getElementById('smilepack-action-panel'),
                 hideIfEmpty: true,
@@ -727,15 +742,15 @@ var generator = {
     },
 
     init: function() {
+        if (window.localStorage.generatorDark == '1') {
+            this.toggleDark();
+        }
+
         this.initCollections();
         this.initPanels();
         this.initData();
         this.bindButtonEvents();
         this.registerDialogs();
-
-        if (window.localStorage.generatorDark == '1') {
-            this.toggleDark();
-        }
 
         window.addEventListener('hashchange', this.check_hash);
         window.addEventListener('beforeunload', function(e) {

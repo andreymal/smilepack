@@ -75,7 +75,7 @@ body.drag-enabled * {
 }
 
 #smilepack.with-selection {
-    height: calc(100% - 4em);
+    height: calc(100% - 7em);
 }
 
 .container-actions-left, .container-actions-right {
@@ -86,11 +86,12 @@ body.drag-enabled * {
     box-sizing: border-box;
     padding: 0.5em;
     overflow: hidden;
+    line-height: 2em;
 }
 
 .container-actions-right {
     left: 50%;
-    height: 4em;
+    height: 7em;
 }
 
 input.text {
@@ -345,6 +346,7 @@ border-bottom: 0.2em solid #ccf;
     overflow-x: hidden;
     overflow-y: auto;
     line-height: 2em;
+    color: black;
 }
 
 .dialog-title {
@@ -540,7 +542,7 @@ border-bottom: 0.2em solid #ccf;
 
 /* dark */
 
-body.dark .container {
+body.dark {
     background-color: #222;
     color: #eee;
 }
@@ -575,7 +577,7 @@ body.dark .category-description {
     color: #777;
 }
 
-body.dark .container .button {
+body.dark .container .button, body.dark .container-actions .button {
     background-color: #444;
     color: #ccc;
     border: 1px solid black;

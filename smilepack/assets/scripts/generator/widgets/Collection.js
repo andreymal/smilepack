@@ -15,7 +15,8 @@ var Collection = function(hierarchy, options) {
     this._eventListeners = {
         onchange: [],
         onaction: [],
-        onselect: []
+        onselect: [],
+        oncategoryedit: []
     };
 
     for (var event in this._eventListeners) {
@@ -211,6 +212,8 @@ Collection.prototype.addCategory = function(level, parentId, item) {
     };
     this._buildCategoryDom(level, id, true);
 
+    this.callListeners('oncategoryedit', {categoryLevel: level, categoryId: id, added: true, removed: false});
+
     return id;
 };
 
@@ -289,7 +292,9 @@ Collection.prototype.editCategory = function(level, categoryId, item) {
     domParent.removeChild(category.dom);
     category.dom = newDom;
 
-    return categoryId;
+    this.callListeners('oncategoryedit', {categoryLevel: level, categoryId: category.id, added: false, removed: false});
+
+    return category.id;
 };
 
 
@@ -329,8 +334,11 @@ Collection.prototype.removeCategory = function(level, categoryId) {
     if (category.dom.parentNode) {
         category.dom.parentNode.removeChild(category.dom);
     }
+    category.dom = null;
+
     if (category.childrenDom && category.childrenDom.parentNode) {
         category.childrenDom.parentNode.removeChild(category.childrenDom);
+        category.childrenDom = null;
     }
     delete this._categories[level][categoryId];
 
@@ -348,6 +356,8 @@ Collection.prototype.removeCategory = function(level, categoryId) {
         }
     }
 
+    this.callListeners('oncategoryedit', {categoryLevel: level, categoryId: category.id, added: false, removed: true});
+
     return unusedSmiles;
 };
 
@@ -361,7 +371,9 @@ Collection.prototype.createGroup = function(item) {
         smileIds: [],
         lazyQueue: [],
         additionalDom: item.additionalDom || false,
-        description: item.description || ''
+        description: item.description || '',
+        categoryLevel: null,
+        categoryId: null
     };
     return groupId;
 };
@@ -381,6 +393,8 @@ Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId
         item.additionalDom = true;
     }
     category.groupId = this.createGroup(item);
+    this._groups[category.groupId].categoryLevel = categoryLevel;
+    this._groups[category.groupId].categoryId = category.id;
     return category.groupId;
 };
 
@@ -545,6 +559,10 @@ Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
 
     smile.groups[group.id] = null;
     group.smileIds.push(smile.id);
+    if (group.categoryId !== null) {
+        smile.categoryLevel = group.categoryLevel;
+        smile.categoryId = group.categoryId;
+    }
     if (group.dom) {
         this._addSmileDom(smile.id, group.id, nolazy);
     }
@@ -561,8 +579,6 @@ Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categ
     if (!this.addSmileToGroup(smile.id, category.groupId)) {
         return false;
     }
-    smile.categoryLevel = categoryLevel;
-    smile.categoryId = category.id;
     return true;
 };
 
@@ -1066,6 +1082,19 @@ Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
 };
 
 
+Collection.prototype.getCategoryIdsWithSmiles = function() {
+    var result = [];
+    for (var level = 0; level < this._depth; level++) {
+        for (var id in this._categories[level]) {
+            if (this._categories[level].groupId !== null) {
+                result.push([level, id]);
+            }
+        }
+    }
+    return result;
+};
+
+
 Collection.prototype.getCategoriesWithHierarchy = function(options) {
     var root = [];
     var items = [];
@@ -1312,6 +1341,12 @@ Collection.prototype._buildDomTabs = function(level, categoryId) {
 
 
 Collection.prototype._onclick = function(event) {
+    if (event.target === this._dom.container || this._currentGroupId !== null && event.target === this._groups[this._currentGroupId].dom) {
+        /* Кликнули в пустоту */
+        this.deselectAll();
+        return false;
+    }
+
     if (event.target.classList.contains('smile')) {
         return; // смайлики обрабатывает dragdrop
     }
