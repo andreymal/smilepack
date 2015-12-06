@@ -1020,22 +1020,33 @@ Collection.prototype.selectAll = function(withDragged) {
     if (smiles.length < 1) {
         return true;
     }
+    var selectedSmiles = [];
+    var addedSmiles = [];
 
     for (var i = 0; i < smiles.length; i++) {
         smile = this._smiles[smiles[i]];
-        if (smile.selected || !withDragged && smile.dragged) {
+        if (!withDragged && smile.dragged) {
             continue;
         }
+        selectedSmiles.push(smile.id);
+        if (smile.selected) {
+            continue;
+        }
+        addedSmiles.push(smile.id);
         smile.selected = true;
         if (smile.groups[this._currentGroupId]) {
             smile.groups[this._currentGroupId].classList.add('selected');
         }
     }
 
-    this._selectedSmileIds = Array.prototype.slice.apply(smiles);
-    this._lastSelectedSmileId = smiles[smiles.length - 1];
+    if (addedSmiles.length < 1) {
+        return true;
+    }
 
-    this._selectUpdated(smiles, []);
+    this._selectedSmileIds = selectedSmiles;
+    this._lastSelectedSmileId = selectedSmiles[selectedSmiles.length - 1];
+
+    this._selectUpdated(addedSmiles, []);
 
     return true;
 };
