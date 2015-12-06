@@ -74,6 +74,10 @@ body.drag-enabled * {
     overflow-y: scroll;
 }
 
+#collection.with-selection {
+    height: calc(100% - 5em);
+}
+
 #smilepack.with-selection {
     height: calc(100% - 7em);
 }
@@ -91,6 +95,13 @@ body.drag-enabled * {
 
 .container-actions-right {
     left: 50%;
+}
+
+#collection-action-panel {
+    height: 5em;
+}
+
+#smilepack-action-panel {
     height: 7em;
 }
 

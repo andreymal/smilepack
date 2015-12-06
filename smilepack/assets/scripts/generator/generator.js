@@ -113,6 +113,38 @@ var generator = {
         }
     },
 
+    onactionCollection: function(panel, action, options) {
+        var smiles = this.collection.getSelectedSmileIds();
+
+        if (action == 'add') {
+            var smpId = this.smilepack.getSelectedCategory(0);
+            if (smpId === null) {
+                return;
+            }
+
+            this.collection.deselectAll();
+
+            for (var i = 0; i < smiles.length; i++){
+                if (this.usedSmiles.indexOf(smiles[i]) >= 0) {
+                    continue;
+                }
+
+                var smile = this.collection.getSmileInfo(smiles[i]);
+                smile.categoryLevel = 0;
+                smile.categoryId = smpId;
+
+                var newId = this.smilepack.addSmile(smile, true);
+                if (newId === null) {
+                    continue;
+                }
+
+                this.usedSmiles.push(smiles[i]);
+                this.collection.setDragged(smiles[i], true);
+                this.modified = true;
+            }
+        }
+    },
+
     onactionSmilepack: function(panel, action, options) {
         var smiles = this.smilepack.getSelectedSmileIds();
         var i;
@@ -658,7 +690,7 @@ var generator = {
                 ondropto: this.dropToCollectionEvent.bind(this),
                 message: 'Выберите раздел для просмотра смайликов',
                 additionalOnTop: true,
-                selectable: false,
+                selectable: true,
                 selectableDragged: false,
                 useCategoryLinks: true
             }
@@ -681,6 +713,18 @@ var generator = {
     },
 
     initPanels: function() {
+        this.collectionPanel = new ActionPanel(
+            this.collection,
+            [
+                {action: 'add'}
+            ],
+            {
+                container: document.getElementById('collection-action-panel'),
+                hideIfEmpty: true,
+                buttonClassName: 'button',
+                onaction: this.onactionCollection.bind(this)
+            }
+        );
         this.smilepackPanel = new ActionPanel(
             this.smilepack,
             [
@@ -747,8 +791,8 @@ var generator = {
         }
 
         this.initCollections();
-        this.initPanels();
         this.initData();
+        this.initPanels();
         this.bindButtonEvents();
         this.registerDialogs();
 

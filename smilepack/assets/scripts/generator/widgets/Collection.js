@@ -1086,7 +1086,7 @@ Collection.prototype.getCategoryIdsWithSmiles = function() {
     var result = [];
     for (var level = 0; level < this._depth; level++) {
         for (var id in this._categories[level]) {
-            if (this._categories[level].groupId !== null) {
+            if (this._categories[level][id].groupId !== null) {
                 result.push([level, id]);
             }
         }
