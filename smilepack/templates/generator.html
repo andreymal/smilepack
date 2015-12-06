@@ -62,11 +62,12 @@
 <div class="container-left" id="collection">
     <div style="text-align: center"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
     <div class="additional" style="display: none;">
-        <button class="button button action-move-all">{{ _("Move the entire category to smilepack") }}</button><br/>
+        <button class="button action-select-all">{{ _("Select all") }}</button>
+        <button class="button action-copy">{{ _("Copy category with name and icon") }}</button>
     </div>
 </div><div class="container-right" id="smilepack">
     <div class="additional" style="display: none">
-        <button class="button button action-add-smile">{{ _("Add your smile") }}</button>
+        <button class="button action-add-smile">{{ _("Add your smile") }}</button>
     </div>
 </div>
 </div><!-- /container -->

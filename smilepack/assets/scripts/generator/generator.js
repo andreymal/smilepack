@@ -123,25 +123,7 @@ var generator = {
             }
 
             this.collection.deselectAll();
-
-            for (var i = 0; i < smiles.length; i++){
-                if (this.usedSmiles.indexOf(smiles[i]) >= 0) {
-                    continue;
-                }
-
-                var smile = this.collection.getSmileInfo(smiles[i]);
-                smile.categoryLevel = 0;
-                smile.categoryId = smpId;
-
-                var newId = this.smilepack.addSmile(smile, true);
-                if (newId === null) {
-                    continue;
-                }
-
-                this.usedSmiles.push(smiles[i]);
-                this.collection.setDragged(smiles[i], true);
-                this.modified = true;
-            }
+            this.moveSmiles(smpId, smiles, false);
         }
     },
 
@@ -428,40 +410,58 @@ var generator = {
         return true;
     },
 
-    moveAllSmiles: function() {
-        var groupId = this.collection.getCurrentGroupId();
+    selectAllSmiles: function() {
+        this.collection.selectAll();
+        return false;
+    },
+
+    copyCategory: function() {
+        var category = this.collection.getCategoryInfo(2, this.collection.getSelectedCategory(2));
+        if (category === null) {
+            return false;
+        }
+
+        var smiles = this.collection.getSmileIds(this.collection.getCurrentGroupId());
+        var usedSmiles = [];
+        var i, smileId;
+        for (i = 0; i < smiles.length; i++) {
+            smileId = smiles[i];
+            if (this.usedSmiles.indexOf(smileId) >= 0) {
+                usedSmiles.push(smiles[i]);
+            }
+        }
+        if (usedSmiles.length > 0) {
+            if (!confirm('Некоторые смайлы уже есть в других категориях.\nПеренести их в новую?')) {
+                return false;
+            }
+            for (i = 0; i < usedSmiles.length; i++) {
+                smileId = usedSmiles[i];
+                this.smilepack.removeSmile(usedSmiles[i]);
+                this.usedSmiles.splice(this.usedSmiles.indexOf(smileId), 1);
+                this.collection.setDragged(usedSmiles[i], false);
+            }
+        }
+        this.modified = true;
+
+        var catId = this.smilepack.addCategory(0, null, {
+            name: category.name,
+            icon: category.icon
+        });
+        if (catId === null) {
+            alert('Кажется, что-то пошло не так');
+            return false;
+        }
+
+        var groupId = this.smilepack.createGroupForCategory(0, catId);
         if (groupId === null) {
-            return false;
-        }
-        var smpId = this.smilepack.getSelectedCategory(0);
-        if (smpId === null) {
+            alert('Кажется, что-то пошло не так');
             return false;
         }
 
-        var smileIds = this.collection.getSmileIds(groupId);
-        if (smileIds === null) {
-            return false;
-        }
-
-        for (var i = 0; i < smileIds.length; i++){
-            if (this.usedSmiles.indexOf(smileIds[i]) >= 0) {
-                continue;
-            }
-
-            var smile = this.collection.getSmileInfo(smileIds[i]);
-            smile.categoryLevel = 0;
-            smile.categoryId = smpId;
-
-            var newId = this.smilepack.addSmile(smile, true);
-            if (newId === null) {
-                continue;
-            }
-
-            this.usedSmiles.push(smileIds[i]);
-            this.collection.setDragged(smileIds[i], true);
-            this.modified = true;
-        }
-        return true;
+        this.collection.deselectAll();
+        this.moveSmiles(catId, smiles, false);
+        this.smilepack.set(0, catId);
+        return false;
     },
 
     addCustomSmile: function(options) {
@@ -602,6 +602,30 @@ var generator = {
     },
 
     /* data management */
+
+    moveSmiles: function(smpId, smiles, deselect) {
+        for (var i = 0; i < smiles.length; i++){
+            if (this.usedSmiles.indexOf(smiles[i]) >= 0) {
+                continue;
+            }
+
+            var smile = this.collection.getSmileInfo(smiles[i]);
+            smile.categoryLevel = 0;
+            smile.categoryId = smpId;
+
+            var newId = this.smilepack.addSmile(smile, true);
+            if (newId === null) {
+                continue;
+            }
+
+            this.usedSmiles.push(smiles[i]);
+            this.collection.setDragged(smiles[i], true);
+            if (deselect) {
+                this.collection.setSelected(smiles[i], false);
+            }
+            this.modified = true;
+        }
+    },
 
     replaceSmilepackData: function(data, lastIds) {
         var i;
@@ -755,8 +779,11 @@ var generator = {
     },
 
     bindButtonEvents: function() {
-        var moveBtn = this.collection.getAdditionalContainer().querySelector('.action-move-all');
-        moveBtn.addEventListener('click', this.moveAllSmiles.bind(this));
+        var moveBtn = this.collection.getAdditionalContainer().querySelector('.action-select-all');
+        moveBtn.addEventListener('click', this.selectAllSmiles.bind(this));
+
+        var copyBtn = this.collection.getAdditionalContainer().querySelector('.action-copy');
+        copyBtn.addEventListener('click', this.copyCategory.bind(this));
 
         var addSmileBtn = this.smilepack.getAdditionalContainer().querySelector('.action-add-smile');
         addSmileBtn.addEventListener('click', function() {

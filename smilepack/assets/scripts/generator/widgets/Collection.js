@@ -395,6 +395,9 @@ Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId
     category.groupId = this.createGroup(item);
     this._groups[category.groupId].categoryLevel = categoryLevel;
     this._groups[category.groupId].categoryId = category.id;
+
+    this.callListeners('oncategoryedit', {categoryLevel: categoryLevel, categoryId: category.id, added: false, removed: false});
+
     return category.groupId;
 };
 
@@ -805,7 +808,7 @@ Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, for
     var group = this._groups[category.groupId];
 
     /* Если смайлики группы не загружены, запрашиваем их, упомянув категорию */
-    if (group.dom === null && !force && this.options.get_smiles_func) {
+    if (group.dom === null && group.smileIds.length < 1 && !force && this.options.get_smiles_func) {
         if (this._currentGroupId) {
             this._groups[this._currentGroupId].dom.classList.add('processing');
         } else {
@@ -820,7 +823,7 @@ Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, for
     }
 
     this._currentCategory = [categoryLevel, category.id];
-    if (!this.setSmiles(category.groupId, force)) {
+    if (!this.setSmiles(category.groupId, true)) {
         this._currentCategory = null;
         return false;
     }
@@ -1004,6 +1007,37 @@ Collection.prototype.toggleSelected = function(id) {
         return false;
     }
     return this.setSelected(smile.id, !smile.selected);
+};
+
+
+Collection.prototype.selectAll = function(withDragged) {
+    var smile;
+    if (this._currentGroupId === null) {
+        return false;
+    }
+
+    var smiles = Array.prototype.slice.apply(this._groups[this._currentGroupId].smileIds);
+    if (smiles.length < 1) {
+        return true;
+    }
+
+    for (var i = 0; i < smiles.length; i++) {
+        smile = this._smiles[smiles[i]];
+        if (smile.selected || !withDragged && smile.dragged) {
+            continue;
+        }
+        smile.selected = true;
+        if (smile.groups[this._currentGroupId]) {
+            smile.groups[this._currentGroupId].classList.add('selected');
+        }
+    }
+
+    this._selectedSmileIds = Array.prototype.slice.apply(smiles);
+    this._lastSelectedSmileId = smiles[smiles.length - 1];
+
+    this._selectUpdated(smiles, []);
+
+    return true;
 };
 
 
