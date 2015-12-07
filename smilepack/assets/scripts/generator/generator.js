@@ -513,10 +513,24 @@ var generator = {
             }
         }
         if (this.usedSmiles.indexOf(data.smile.id) >= 0) {
-            if (onend) {
-                onend({error: 'Этот смайлик уже используется!'});
+            var usedSmile = this.smilepack.getSmileInfo(data.smile.id, {withParent: true});
+            var oldCategory = this.smilepack.getCategoryInfo(usedSmile.categoryLevel, usedSmile.categoryId);
+            var category = this.smilepack.getCategoryInfo(0, this.smilepack.getSelectedCategory(0));
+
+            if (oldCategory.id === category.id) {
+                if (onend) {
+                    onend({error: 'Этот смайлик уже есть, причём в этой самой категории!'});
+                    return;
+                }
             }
-            return;
+
+            var msg = 'Этот смайлик уже используется в категории «' + oldCategory.name + '»\n';
+            msg += 'Перенести в категорию «' + category.name + '»?';
+            if (!onend || !onend({confirm: msg})) {
+                return;
+            }
+            this.smilepack.removeSmile(data.smile.id);
+            this.usedSmiles.splice(this.usedSmiles.indexOf(data.smile.id), 1);
         }
 
         var id = generator.smilepack.addSmile({

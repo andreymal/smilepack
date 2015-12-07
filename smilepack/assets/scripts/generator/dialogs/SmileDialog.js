@@ -173,6 +173,8 @@ SmileDialog.prototype.onsubmit = function() {
         this.btn.disabled = false;
         if (options.success) {
             this.close();
+        } else if (options.confirm) {
+            return confirm(options.confirm);
         } else {
             this.error(options.error);
         }
