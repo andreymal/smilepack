@@ -482,9 +482,10 @@ var generator = {
             this._addCustomSmileEvent(data, options, categoryId, onend);
         }.bind(this);
         var onerror = function(data, x) {
-            this.onerror(data, x);
             if (onend) {
                 onend({success: false, error: data.error || data});
+            } else {
+                this.onerror(data, x);
             }
         }.bind(this);
 

@@ -176,6 +176,7 @@ SmileDialog.prototype.onsubmit = function() {
         } else if (options.confirm) {
             return confirm(options.confirm);
         } else {
+            console.log(options);
             this.error(options.error);
         }
     }.bind(this);

@@ -32,7 +32,13 @@ var ajax = {
                 return;
             }
 
-            if (x.status >= 400) {
+            if (x.status < 100) {
+                error = true;
+                data = {error: 'Request error ' + x.status.toString()};
+                if (options.onerror) {
+                    options.onerror(data, x);
+                }
+            } else if (x.status >= 400) {
                 error = true;
                 if (options.onerror) {
                     data = x.responseText;
