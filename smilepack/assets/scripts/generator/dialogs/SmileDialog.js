@@ -8,6 +8,8 @@ var SmileDialog = function(element) {
     this.form = this.dom.querySelector('form');
     this.btn = this.form.querySelector('input[type="submit"]');
 
+    this.aspect = null;
+
     var onchange = this.refresh.bind(this);
     var onfile = this.refreshFile.bind(this);
 
@@ -77,7 +79,8 @@ SmileDialog.prototype.setPreviewUrl = function(url) {
         preview.height = img.height;
         f.w.value = img.width;
         f.h.value = img.height;
-    };
+        this.aspect = img.width / img.height;
+    }.bind(this);
     img.onerror = this.clearPreview.bind(this);
     img.src = url;
 };
@@ -119,8 +122,14 @@ SmileDialog.prototype.refresh = function() {
     var f = this.form;
 
     var preview = f.querySelector('.new-smile-preview');
-    var aspect = preview.width / preview.height;
+    var aspect = this.aspect;
     var save_aspect = f.save_aspect.checked;
+    if (save_aspect && aspect === null) {
+        this.aspect = preview.width / preview.height;
+        aspect = this.aspect;
+    } else if (!save_aspect && aspect !== null) {
+        this.aspect = null;
+    }
 
     var nw = preview.width;
     var nh = preview.height;
@@ -186,14 +195,17 @@ SmileDialog.prototype.onsubmit = function() {
         result = this._submitEvent({
             url: f.url.value,
             w: w,
-            h: h, onend: onend
+            h: h,
+            onend: onend,
+            compress: f.compress.checked
         });
     } else if (this.current_uploader == 'file') {
         result = this._submitEvent({
             file: f.file.files ? f.file.files[0] : null,
             w: w,
             h: h,
-            onend: onend
+            onend: onend,
+            compress: f.compress.checked
         });
     }
     if (result.success) {

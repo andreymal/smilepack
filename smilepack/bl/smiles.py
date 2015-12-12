@@ -157,7 +157,8 @@ class SmileBL(BaseBL):
                 data.get('url') if not data.get('file') else None,
                 hashsum,
                 disable_url_upload,
-                compress=True,
+                compress=compress,
+                compress_size=(data['w'], data['h']),
             )
         except uploader.BadImageError as exc:
             raise BadRequestError(str(exc))
@@ -179,7 +180,7 @@ class SmileBL(BaseBL):
         smile.flush()
 
         # Сохраняем инфу о урле и хэшах, дабы не плодить дубликаты смайликов
-        from smilepack.models import SmileUrl
+        from smilepack.models import SmileUrl, SmileHash
 
         # Если загружен новый смайлик по урлу
         if data.get('url') and not smile_by_url:
@@ -197,11 +198,26 @@ class SmileBL(BaseBL):
                 url_hash=hash_url(upload_info['url']),
             ).flush()
 
+        SmileHash(
+            hashsum=hashsum,
+            smile=smile,
+        ).flush()
+
         # Если смайлик сжали, хэш может оказаться другим
         if hashsum != upload_info['hashsum']:
-            pass  # TODO: завести табличку с хэшами
+            SmileHash(
+                hashsum=upload_info['hashsum'],
+                smile=smile,
+            ).flush()
 
-        current_app.logger.info('Created smile %d (%s %dx%d)', smile.id, smile.url, smile.width, smile.height)
+        current_app.logger.info(
+            'Created smile %d (%s %dx%d) with compression %s',
+            smile.id,
+            smile.url,
+            smile.width,
+            smile.height,
+            upload_info.get('compression_method'),
+        )
         return smile
 
     def get_all_collection_smiles_count(self):
@@ -235,7 +251,9 @@ class SmileBL(BaseBL):
         return smiles[:count]
 
     def search_by_hashsum(self, hashsum):
-        return self._model().select(lambda x: x.hashsum == hashsum).first()
+        from smilepack.models import SmileHash
+        h = SmileHash.select(lambda x: x.hashsum == hashsum).first()
+        return h.smile if h else None
 
     def search_by_url(self, url):
         return self.search_by_urls((url,))[0]

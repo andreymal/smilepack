@@ -493,13 +493,15 @@ var generator = {
             ajax.create_smile({
                 url: options.url,
                 w: options.w,
-                h: options.h
+                h: options.h,
+                compress: options.compress
             }, onload, onerror);
         } else if (options.file) {
             ajax.upload_smile({
                 file: options.file,
                 w: options.w,
-                h: options.h
+                h: options.h,
+                compress: options.compress ? '1' : ''
             }, onload, onerror);
         }
 

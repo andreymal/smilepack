@@ -139,7 +139,9 @@
         <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _("Height") }}" class="text" />
         <label><input type="checkbox" name="save_aspect" checked />{{ _("Keep aspect ratio") }}</label>
         <br/>
-        <div class="smile-add-notice">{{ _("The actual dimensions of the image will not be changed; if necessary, compress it yourself in a graphics editor.") }}</div>
+        <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible") }}</label>
+        <br/>
+        <div class="smile-add-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
 
         <img class="new-smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" /><br/>
 

@@ -99,6 +99,7 @@ class Smile(db.Entity):
     approved_at = orm.Optional(datetime, nullable=True, index=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
     hashsum = orm.Optional(str, 128, index=True)
+    hashes = orm.Set('SmileHash')
 
     user_addr = orm.Optional(str, 255, nullable=True, default=None)  # TODO: другой тип?
     user_cookie = orm.Optional(str, 64, nullable=True, default=None)
@@ -128,6 +129,12 @@ class SmileUrl(db.Entity):
     """Ссылка, привязанная к смайлику. Чтобы не пересоздавать один и тот же смайлик несколько раз."""
     url_hash = orm.Required(str, 40, index=True, unique=True)
     url = orm.Optional(str, 512)
+    smile = orm.Required(Smile)
+
+
+class SmileHash(db.Entity):
+    """Хэш, привязанная к смайлику. Может быть несколько хэшей у смайлика (сжатый и несжатый варианты, например)."""
+    hashsum = orm.Required(str, 128, index=True, unique=True)
     smile = orm.Required(Smile)
 
 

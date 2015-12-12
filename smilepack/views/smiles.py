@@ -103,6 +103,7 @@ def create(session_id, first_visit):
             r['w'] = int(request.form['w'])
         if request.form.get('h') and request.form['h'].isdigit():
             r['h'] = int(request.form['h'])
+        r['compress'] = request.form.get('compress') in (1, True, '1', 'on')
 
     if request.files.get('file'):
         r['file'] = request.files['file']
@@ -110,9 +111,16 @@ def create(session_id, first_visit):
     elif not r.get('url'):
         raise BadRequestError('Empty request')
 
+    compress = r.pop('compress', False)
+
     # FIXME: Pony ORM with sqlite3 crashes here
     with db_session:
-        smile_id = models.Smile.bl.create(r, user_addr=request.remote_addr, session_id=session_id).id
+        smile_id = models.Smile.bl.create(
+            r,
+            user_addr=request.remote_addr,
+            session_id=session_id,
+            compress=compress
+        ).id
     with db_session:
         result = {'smile': models.Smile.get(id=smile_id).bl.as_json()}
     return result
