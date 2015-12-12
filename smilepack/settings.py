@@ -60,6 +60,7 @@ class Config(object):
     ]
 
     UPLOAD_METHOD = None
+    COMPRESSION = True
     SMILES_DIRECTORY = None
     IMGUR_ID = None
 

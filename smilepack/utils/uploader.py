@@ -188,7 +188,7 @@ def upload(image_stream=None, url=None, hashsum=None, disable_url_upload=False, 
         else:
             return {'filename': url[url.rfind('/') + 1:], 'url': url, 'hashsum': hashsum, 'compression_method': None}
 
-    if compress and current_app.config['UPLOAD_METHOD']:
+    if compress and current_app.config['UPLOAD_METHOD'] and current_app.config['COMPRESSION']:
         image_stream, hashsum, compression_method = compress_image(image_stream, hashsum, compress_size=compress_size)
     else:
         compression_method = None

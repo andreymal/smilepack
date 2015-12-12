@@ -417,6 +417,14 @@ border-bottom: 0.2em solid #ccf;
     display: none;
 }
 
+.new-smile-preview-area {
+    text-align: center;
+}
+
+.new-smile-preview {
+    margin: 0.5em;
+}
+
 .input-width-full {
     width: 100%;
 }

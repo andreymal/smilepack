@@ -65,6 +65,7 @@ SmileDialog.prototype.clearPreview = function() {
     preview.height = 0;
     f.w.value = '';
     f.h.value = '';
+    this.btn.disabled = true;
 };
 
 
@@ -75,6 +76,7 @@ SmileDialog.prototype.setPreviewUrl = function(url) {
     var img = document.createElement('img');
     img.onload = function() {
         preview.src = img.src;
+        this.btn.disabled = false;
         preview.width = img.width;
         preview.height = img.height;
         f.w.value = img.width;
@@ -82,6 +84,7 @@ SmileDialog.prototype.setPreviewUrl = function(url) {
         this.aspect = img.width / img.height;
     }.bind(this);
     img.onerror = this.clearPreview.bind(this);
+    this.btn.disabled = true;
     img.src = url;
 };
 
@@ -109,10 +112,12 @@ SmileDialog.prototype.refreshFile = function() {
         var reader = new FileReader();
         reader.onload = function() {
             this.setPreviewUrl(reader.result);
+            this.btn.disabled = false;
         }.bind(this);
         reader.onerror = function() {
             this.clearPreview();
         }.bind(this);
+        this.btn.disabled = true;
         reader.readAsDataURL(f.file.files[0]);
     }
 };
@@ -197,7 +202,7 @@ SmileDialog.prototype.onsubmit = function() {
             w: w,
             h: h,
             onend: onend,
-            compress: f.compress.checked
+            compress: f.compress ? f.compress.checked : false
         });
     } else if (this.current_uploader == 'file') {
         result = this._submitEvent({
@@ -205,7 +210,7 @@ SmileDialog.prototype.onsubmit = function() {
             w: w,
             h: h,
             onend: onend,
-            compress: f.compress.checked
+            compress: f.compress ? f.compress.checked : false
         });
     }
     if (result.success) {

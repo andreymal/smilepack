@@ -139,16 +139,20 @@
         <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _("Height") }}" class="text" />
         <label><input type="checkbox" name="save_aspect" checked />{{ _("Keep aspect ratio") }}</label>
         <br/>
+        {%- if config['COMPRESSION'] %}
         <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible") }}</label>
         <br/>
+        {%- endif %}
         <div class="smile-add-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
 
-        <img class="new-smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" /><br/>
+        <div class="new-smile-preview-area">
+            <img class="new-smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
+        </div>
 
         <input type="hidden" name="level" value="0" />
         <input type="hidden" name="category" value="0" />
 
-        <input type="submit" class="button button-primary" value="{{ _("Add") }}" />
+        <input type="submit" class="button button-primary" value="{{ _("Add") }}" disabled />
     </form>
 </div>
 
