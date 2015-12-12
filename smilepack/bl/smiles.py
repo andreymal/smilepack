@@ -123,12 +123,12 @@ class CategoryBL(BaseBL):
 
 
 class SmileBL(BaseBL):
-    def create(self, data, category=None, user_addr=None, session_id=None, check_exist=True, disable_url_upload=False):
+    def create(self, data, category=None, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
         # Ищем существующий смайлик по урлу
         smile_by_url = None
         if data.get('url') and not data.get('file'):
             smile_by_url = self.search_by_url(check_and_normalize(data['url']))
-            if smile_by_url and check_exist:
+            if smile_by_url:
                 return smile_by_url
 
         # Проверяем доступность загрузки файлов
@@ -147,23 +147,20 @@ class SmileBL(BaseBL):
 
         # Ищем смайлик по хэшу
         smile_by_hashsum = self.search_by_hashsum(hashsum)
-        if smile_by_hashsum and check_exist:
+        if smile_by_hashsum:
             return smile_by_hashsum
 
         # Раз ничего не нашлось, сохраняем смайлик себе
-        try:
-            image_format = uploader.check_image_format(image_stream)
-        except ValueError as exc:
-            raise BadRequestError(str(exc))
-
         try:
             upload_info = uploader.upload(
                 image_stream,
                 data.get('url') if not data.get('file') else None,
                 hashsum,
                 disable_url_upload,
-                image_format,
+                compress=True,
             )
+        except uploader.BadImageError as exc:
+            raise BadRequestError(str(exc))
         except OSError as exc:
             current_app.logger.error('Cannot upload image: %s', exc)
             raise InternalError('Upload error')
@@ -181,20 +178,28 @@ class SmileBL(BaseBL):
         )
         smile.flush()
 
-        # Сохраняем инфу о урле, дабы не плодить дубликаты смайликов
+        # Сохраняем инфу о урле и хэшах, дабы не плодить дубликаты смайликов
         from smilepack.models import SmileUrl
+
+        # Если загружен новый смайлик по урлу
         if data.get('url') and not smile_by_url:
             SmileUrl(
                 url=data['url'],
                 smile=smile,
                 url_hash=hash_url(data['url']),
             ).flush()
+
+        # Если смайлик перезалит на имгур
         if upload_info['url'] and upload_info['url'] != data.get('url'):
             SmileUrl(
                 url=upload_info['url'],
                 smile=smile,
                 url_hash=hash_url(upload_info['url']),
             ).flush()
+
+        # Если смайлик сжали, хэш может оказаться другим
+        if hashsum != upload_info['hashsum']:
+            pass  # TODO: завести табличку с хэшами
 
         current_app.logger.info('Created smile %d (%s %dx%d)', smile.id, smile.url, smile.width, smile.height)
         return smile

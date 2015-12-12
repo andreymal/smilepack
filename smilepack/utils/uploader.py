@@ -9,13 +9,17 @@ from urllib.request import urlopen, Request
 from flask import current_app
 
 
+class BadImageError(Exception):
+    pass
+
+
 def get_stream_and_hashsum(image_stream=None, url=None):
     if not image_stream and not url or image_stream and url:
         raise ValueError('Please set image_stream or url')
 
     if not image_stream:
         req = Request(url)
-        req.add_header('User-Agent', 'smilepack/0.0')
+        req.add_header('User-Agent', 'smilepack/0.2.0')
         image_stream = BytesIO(urlopen(req, timeout=10).read(current_app.config['MAX_CONTENT_LENGTH']))  # seek is unsupported for HTTPResponse
 
     hashsum = sha256(image_stream.read()).hexdigest()
@@ -32,27 +36,52 @@ def check_image_format(image_stream):
     try:
         image = Image.open(image_stream)
     except:
-        raise ValueError('Cannot decode image')
+        raise BadImageError('Cannot decode image')
     else:
         if image.format not in ('JPEG', 'GIF', 'PNG'):
-            raise ValueError('Invalid image format')
+            raise BadImageError('Invalid image format')
 
         w, h = image.size
         min_size = current_app.config['MIN_SMILE_SIZE']
         max_size = current_app.config['MAX_SMILE_SIZE']
         if w < min_size[0] or h < min_size[1]:
-            raise ValueError('Too small size')
+            raise BadImageError('Too small size')
         if w > max_size[0] or h > max_size[1]:
-            raise ValueError('Too big size')
+            raise BadImageError('Too big size')
 
         return image.format
     finally:
         image_stream.seek(old_seek)
 
 
-def upload(image_stream=None, url=None, hashsum=None, disable_url_upload=False, image_format=None):
+def compress_image(image_stream, hashsum, compress_size=None):
+    # TODO:
+    return image_stream, hashsum
+
+
+def upload(image_stream=None, url=None, hashsum=None, disable_url_upload=False, image_format=None, compress=False, compress_size=None):
+    """Загружает смайлик согласно настройкам и переданным аргументам.
+    Возвращает словарь, содержащий filename (для SMILE_URL), url (для custom_url при необходимости) и hashsum
+    (может не совпадать с входным аргументом при включенном сжатии).
+
+    * Если не передать image_stream, он будет автоматически получен из url. А если передать, то url необязателен.
+    * disable_url_upload=True отключает перезалив смайлика при переданном url и отключенном сжатии (compress).
+    * image_format — "JPEG", "GIF" или "PNG" — позволяет пропустить проверку формата изображения (в т.ч. проверку
+      размера). Если не задано, проверка будет проведена и формат установлен, при проблемах выбрасывается
+      BadImageError.
+    * compress=True — сжимает изображение по возможности (без изменения разрешения и без потери качества).
+    * compress_size — кортеж из двух чисел; если задан вместе с compress, то уменьшает изображение до указанного
+      разрешения, сохраняя расширение (если в итоге оно станет весить меньше, что, например, не всегда верно для
+      PNG).
+    """
     if not image_stream or not hashsum:
         image_stream, hashsum = get_stream_and_hashsum(image_stream, url)
+
+    if not image_format:
+        image_format = check_image_format(image_stream)
+
+    if compress and current_app.config['UPLOAD_METHOD']:
+        image_stream, hashsum = compress_image(image_stream, hashsum, compress_size=compress_size)
 
     if url and (disable_url_upload or not current_app.config['UPLOAD_METHOD'] or current_app.config['ALLOW_CUSTOM_URLS']):
         if '?' in url or url.endswith('/'):
