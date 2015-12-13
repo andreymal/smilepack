@@ -113,6 +113,9 @@ def create(session_id, first_visit):
 
     compress = r.pop('compress', False)
 
+    if current_app.config['COMPRESSION']:
+        compress = current_app.config['FORCE_COMPRESSION'] or compress
+
     # FIXME: Pony ORM with sqlite3 crashes here
     with db_session:
         smile_id = models.Smile.bl.create(

@@ -15,7 +15,7 @@ class BadImageError(Exception):
 
 def download(url, maxlen=None, timeout=10):
     req = Request(url)
-    req.add_header('User-Agent', 'smilepack/0.2.0')
+    req.add_header('User-Agent', 'smilepack/0.1.1')
     resp = urlopen(req, timeout=timeout)
     if maxlen is not None:
         return resp.read(maxlen)
@@ -82,7 +82,7 @@ def compress_image(image_stream, hashsum, compress_size=None):
         raise BadImageError('Cannot decode image')
 
     # Если сжимать не умеем
-    if image.format not in ('PNG', 'JPEG'):
+    if image.format != 'PNG':
         image_stream.seek(0)
         return image_stream, hashsum, None
 
@@ -95,18 +95,6 @@ def compress_image(image_stream, hashsum, compress_size=None):
     #         image2.format = image.format
     #         image = image2
     #         del image2
-
-    # Над не-PNG не работаем
-    if image.format != 'PNG':
-        test_stream = BytesIO()
-        image.save(test_stream, image.format, quality=94, optimize=True)
-        if min_size - len(test_stream.getvalue()) > 1024:
-            new_hashsum = sha256(test_stream.getvalue()).hexdigest()
-            test_stream.seek(0)
-            return test_stream, new_hashsum, 'resave'
-        else:
-            image_stream.seek(0)
-            return image_stream, hashsum, None
 
     # А PNG пробуем сжать разными методами
     test_stream, method = compress_png(image)
@@ -188,7 +176,7 @@ def upload(image_stream=None, url=None, hashsum=None, disable_url_upload=False, 
         else:
             return {'filename': url[url.rfind('/') + 1:], 'url': url, 'hashsum': hashsum, 'compression_method': None}
 
-    if compress and current_app.config['UPLOAD_METHOD'] and current_app.config['COMPRESSION']:
+    if compress and current_app.config['UPLOAD_METHOD']:
         image_stream, hashsum, compression_method = compress_image(image_stream, hashsum, compress_size=compress_size)
     else:
         compression_method = None

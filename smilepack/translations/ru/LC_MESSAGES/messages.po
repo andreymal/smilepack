@@ -186,8 +186,8 @@ msgid "Keep aspect ratio"
 msgstr "Сохранить соотн. сторон"
 
 #: smilepack/templates/generator.html:143
-msgid "Compress if possible"
-msgstr "Сжать по возможности"
+msgid "Compress if possible (lossless)"
+msgstr "Сжать по возможности (без потери качества)"
 
 #: smilepack/templates/generator.html:146
 msgid "Image will not be resized."
@@ -233,7 +233,7 @@ msgstr "Его id:"
 
 #: smilepack/templates/generator.html:180
 msgid "Now you can:"
-msgstr "Теперь вы можете"
+msgstr "Теперь вы можете:"
 
 #: smilepack/templates/generator.html:182
 msgid "Download userscript"

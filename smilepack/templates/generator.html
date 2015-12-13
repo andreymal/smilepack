@@ -139,8 +139,8 @@
         <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _("Height") }}" class="text" />
         <label><input type="checkbox" name="save_aspect" checked />{{ _("Keep aspect ratio") }}</label>
         <br/>
-        {%- if config['COMPRESSION'] %}
-        <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible") }}</label>
+        {%- if config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
+        <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
         <br/>
         {%- endif %}
         <div class="smile-add-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
