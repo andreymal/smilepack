@@ -139,7 +139,7 @@ class SmileBL(BaseBL):
 
         # Качаем смайлик и считаем хэш
         try:
-            image_stream, hashsum = uploader.get_stream_and_hashsum(data.get('file'), data.get('url'))
+            image_data, hashsum = uploader.get_data_and_hashsum(data.get('file'), data.get('url'))
         except ValueError as exc:
             raise BadRequestError(str(exc))
         except IOError as exc:
@@ -153,7 +153,7 @@ class SmileBL(BaseBL):
         # Раз ничего не нашлось, сохраняем смайлик себе
         try:
             upload_info = uploader.upload(
-                image_stream,
+                image_data,
                 data.get('url') if not data.get('file') else None,
                 hashsum,
                 disable_url_upload,
