@@ -8,6 +8,7 @@ Quick start
 -----------
 
     pip3 install smilepack
+
     smilepack runserver
 
 It creates `database.sqlite3` in current directory. Address `http://localhost:5000/`.

@@ -4,12 +4,15 @@
 import os
 import math
 from urllib.request import urlopen
+
+import jsonschema
 from pony import orm
 from flask import current_app
 
+from smilepack import schemas
 from smilepack.bl.utils import BaseBL
 from smilepack.utils.urls import parse as parse_urls, hash_url, check_and_normalize
-from smilepack.utils.exceptions import InternalError, BadRequestError
+from smilepack.utils.exceptions import InternalError, BadRequestError, JSONValidationError
 
 
 class SectionBL(BaseBL):
@@ -124,22 +127,29 @@ class CategoryBL(BaseBL):
 
 class SmileBL(BaseBL):
     def create(self, data, category=None, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
+        smile_file = data.pop('file', None)
+
+        try:
+            jsonschema.validate(data, schemas.SMILE)
+        except jsonschema.ValidationError as exc:
+            raise JSONValidationError(exc)
+
         # Ищем существующий смайлик по урлу
         smile_by_url = None
-        if data.get('url') and not data.get('file'):
+        if data.get('url') and not smile_file:
             smile_by_url = self.search_by_url(check_and_normalize(data['url']))
             if smile_by_url:
                 return smile_by_url
 
         # Проверяем доступность загрузки файлов
-        if data.get('file') and not current_app.config['UPLOAD_METHOD']:
+        if smile_file and not current_app.config['UPLOAD_METHOD']:
             raise BadRequestError('Uploading is not available')
 
         from ..utils import uploader
 
         # Качаем смайлик и считаем хэш
         try:
-            image_data, hashsum = uploader.get_data_and_hashsum(data.get('file'), data.get('url'))
+            image_data, hashsum = uploader.get_data_and_hashsum(smile_file, data.get('url'))
         except ValueError as exc:
             raise BadRequestError(str(exc))
         except IOError as exc:
@@ -154,7 +164,7 @@ class SmileBL(BaseBL):
         try:
             upload_info = uploader.upload(
                 image_data,
-                data.get('url') if not data.get('file') else None,
+                data.get('url') if not smile_file else None,
                 hashsum,
                 disable_url_upload,
                 compress=compress,
@@ -252,8 +262,7 @@ class SmileBL(BaseBL):
 
     def search_by_hashsum(self, hashsum):
         from smilepack.models import SmileHash
-        h = SmileHash.select(lambda x: x.hashsum == hashsum).first()
-        return h.smile if h else None
+        return orm.select(x.smile for x in SmileHash if x.hashsum == hashsum).first()
 
     def search_by_url(self, url):
         return self.search_by_urls((url,))[0]
@@ -406,7 +415,6 @@ class SmileBL(BaseBL):
         if not path:
             return None
         return open(path, 'rb')
-
 
 
 class TagBL(BaseBL):

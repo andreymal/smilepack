@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time
 from io import BytesIO
 from hashlib import sha256
 from urllib.request import urlopen, Request
@@ -13,14 +14,27 @@ class BadImageError(Exception):
     pass
 
 
-def download(url, maxlen=None, timeout=10):
+def download(url, maxlen=None, timeout=10, chunksize=16384):
     req = Request(url)
     req.add_header('User-Agent', 'smilepack/0.1.1')
     resp = urlopen(req, timeout=timeout)
-    if maxlen is not None:
-        return resp.read(maxlen)
-    else:
-        return resp.read()
+
+    buf = []
+    size = 0
+    started_at = time.time()
+
+    while True:
+        d = resp.read(chunksize)
+        if not d:
+            break
+        buf.append(d)
+        size += len(d)
+        if maxlen is not None and size > maxlen:
+            raise IOError('Too long response')
+        if time.time() - started_at >= timeout:
+            raise IOError('Timeout')
+
+    return b''.join(buf)
 
 
 def calc_hashsum(data):
@@ -161,7 +175,7 @@ def upload(data=None, url=None, hashsum=None, disable_url_upload=False, image_fo
     Возвращает словарь, содержащий filename (для SMILE_URL), url (для custom_url при необходимости), hashsum
     (может не совпадать с входным аргументом при включенном сжатии) и compression_method.
 
-    * Если не передать data, он будет автоматически получен из url. А если передать, то url необязателен.
+    * Если не передать содержимое файла (data), оно будет автоматически загружено по url. А если передать, то url необязателен.
     * disable_url_upload=True отключает перезалив смайлика при переданном url и отключенном сжатии (compress).
     * image_format — "JPEG", "GIF" или "PNG" — позволяет пропустить проверку формата изображения (в т.ч. проверку
       размера). Если не задано, проверка будет проведена и формат установлен, при проблемах выбрасывается
