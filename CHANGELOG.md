@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2015-12-14)
 
 * More manipulations with smiles; selection support; copying of categories
 * Real-time preview of smile size
