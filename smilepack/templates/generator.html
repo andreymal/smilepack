@@ -59,14 +59,32 @@
 </div>
 
 <div class="container">
-<div class="container-left" id="collection">
-    <div style="text-align: center"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
-    <div class="additional" style="display: none;">
+<div class="collection container-left" id="collection">
+    <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-title">{{ _("Collection of smiles") }}</div>
+    <div class="tabs-wrapper"></div>
+
+    <div class="collection-message">{{ _("Choose a section to view smiles") }}</div>
+    <div class="additional">
         <button class="button action-select-all">{{ _("Select all") }}</button>
         <button class="button action-copy">{{ _("Copy category with name and icon") }}</button>
     </div>
-</div><div class="container-right" id="smilepack">
-    <div class="additional" style="display: none">
+    <div class="collection-smiles"></div>
+
+</div><div class="collection container-right" id="smilepack">
+    <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-title">{{ _("Your smilepack") }}</div>
+    <div class="tabs-wrapper"></div>
+
+    <div class="collection-message">
+    {%- if pack -%}
+        {{ _("Choice a category of smilepack to view smiles") }}
+    {%- else -%}
+        {{ _("Add category here and fill it by dragging smiles from the collection") }}
+    {%- endif -%}
+    </div>
+    <div class="collection-smiles"></div>
+    <div class="additional">
         <button class="button action-add-smile">{{ _("Add your smile") }}</button>
     </div>
 </div>

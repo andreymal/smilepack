@@ -127,12 +127,20 @@ input.text:focus {
     box-shadow: 0 0 0.2em #88f;
 }
 
-.tabs-wrapper {
+.collection-title, .tabs-wrapper {
     background-color: #f2f2ff;
     display: block;
     font-size: 0.9em;
     color: black;
     line-height: 1.5em;
+}
+
+.collection-title {
+    font-weight: bold;
+    padding: 0.5em 0.5em 0 0.5em;
+}
+
+.tabs-wrapper {
     margin: 0;
     overflow: hidden;
 }
@@ -152,12 +160,6 @@ input.text:focus {
 
 .tabs-items {
     display: inline;
-}
-
-.collection-title {
-    font-weight: bold;
-    display: block;
-    margin: 0.5em 0.5em 0 0.5em;
 }
 
 .tab-btn, .tab-btn:visited, .tab-btn:active {
@@ -262,15 +264,15 @@ border-bottom: 0.2em solid #ccf;
     border-bottom: 0.2em solid #aae;
 }
 
-.smiles-list {
+.collection .smiles-list {
     padding: 0.5em;
 }
 
-.smiles-list.hidden {
+.collection .smiles-list.hidden {
     display: none;
 }
 
-.smiles-list.processing {
+.collection.smiles-processing .smiles-list {
     -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
     filter: alpha(opacity=50);
     opacity: 0.5;
@@ -321,16 +323,11 @@ border-bottom: 0.2em solid #ccf;
     transition-timing-function: ease-out;
 }
 
-.category-description {
+.collection .collection-message {
     color: #444;
     margin: 0.6667em;
     font-size: 0.75em;
 }
-
-.category-description.light {
-    color: #ddd;
-}
-
 
 .dialog-background {
     position: fixed;
@@ -490,9 +487,14 @@ border-bottom: 0.2em solid #ccf;
     display: none;
 }
 
-.container .additional {
+.collection .additional {
     padding: 0.5em;
     line-height: 2em;
+    display: none;
+}
+
+.collection.smiles-opened .additional {
+    display: block;
 }
 
 .header-right {
@@ -566,7 +568,7 @@ body.dark {
     color: #eee;
 }
 
-body.dark .tabs-wrapper {
+body.dark .collection-title, body.dark .tabs-wrapper {
     background-color: #334;
     color: #999;
 }
@@ -592,7 +594,7 @@ body.dark .tab-btn.overlay {
     background-color: #334;
 }
 
-body.dark .category-description {
+body.dark .collection .collection-message {
     color: #777;
 }
 

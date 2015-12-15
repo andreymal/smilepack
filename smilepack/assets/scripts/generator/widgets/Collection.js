@@ -10,6 +10,10 @@ var dragdrop = require('../dragdrop.js');
 var Collection = function(hierarchy, options) {
     this.hierarchy = hierarchy;
     this._depth = hierarchy.length;
+
+    if (!options.classes) {
+        options.classes = {};
+    }
     this.options = options;
 
     this._eventListeners = {
@@ -57,87 +61,8 @@ var Collection = function(hierarchy, options) {
     /* Выбранные категории на каджом из уровней */
     this._selectedIds = [];
 
-    this._dom = {};
-
-    this._dom.container = options.container || document.createElement('div');
-    if (options.className && !this._dom.container.classList.contains(options.className)) {
-        this._dom.container.classList.add(options.className);
-    }
-    if (this._dom.container.getElementsByClassName('additional')[0]) {
-        this._dom.additionalContainer = this._dom.container.getElementsByClassName('additional')[0];
-        this._dom.container.removeChild(this._dom.additionalContainer);
-        this._dom.additionalContainer.style.display = 'none';
-    }
-    this._dom.container.innerHTML = '';
-    this._dom.container.addEventListener('click', this._onclick.bind(this));
-
-    /* Здесь будут храниться кнопки для категорий */
-    this._dom.tabs_container = document.createElement('div');
-    this._dom.tabs_container.className = 'tabs-wrapper';
-    this._dom.container.appendChild(this._dom.tabs_container);
-
-    /* Контейнеры для кнопок по уровням, они и хранятся в контейнере выше */
-    this._dom.tabs_containers = [];
-
-    /* Заголовок коллекции */
-    if (options.title) {
-        this._dom.title = document.createElement('div');
-        this._dom.title.className = 'collection-title';
-        this._dom.title.textContent = options.title;
-        this._dom.tabs_container.appendChild(this._dom.title);
-    } else {
-        this._dom.title = null;
-    }
-
-    /* Описание категории */
-    this._dom.category_description = document.createElement('div');
-    this._dom.category_description.className = 'category-description';
-    this._dom.category_description.textContent = options.message || '';
-    this._dom.container.appendChild(this._dom.category_description);
-
-    /* Контейнер для всяких дополнительных кнопок, к контейнеру не относящихся */
-    if (!this._dom.additionalContainer) {
-        this._dom.additionalContainer = document.createElement('div');
-        this._dom.additionalContainer.className = 'additional';
-        this._dom.additionalContainer.style.display = 'none';
-    }
-    this._dom.container.appendChild(this._dom.additionalContainer);
-
-    /* Подсветка для перемещаемых смайликов */
-    this._dom.dropHint = document.createElement('div');
-    this._dom.dropHint.className = 'drop-hint';
-    this._dom.dropHint.style.display = 'none';
-    this._dom.container.appendChild(this._dom.dropHint);
-
-    for (var i = 0; i < this._depth; i++){
-        this._categories.push({});
-        this._lastIds.push(0);
-        this._selectedIds.push(null);
-
-        var tcont = document.createElement('div');
-        tcont.className = 'tabs-level';
-        tcont.dataset.level = i.toString();
-        if (i > 0) {tcont.style.display = 'none';}
-        if (this.hierarchy[i][2]) {
-            tcont.appendChild(document.createTextNode(this.hierarchy[i][2]));
-        }
-
-        if (options.editable) {
-            var add_btn = document.createElement('a');
-            add_btn.className = 'action-btn action-add';
-            add_btn.dataset.action = 'add';
-            add_btn.dataset.level = i.toString();
-            add_btn.href = '#';
-            tcont.appendChild(add_btn);
-        }
-
-        this._dom.tabs_containers.push(tcont);
-        this._dom.tabs_container.appendChild(tcont);
-    }
-
-    /* Создаём контейнер для кнопок верхнего уровня */
-    this._dom.rootCategories = this._buildDomTabs(0, 0);
-    this._dom.rootCategories.style.display = '';
+    this._initDOM();
+    this._initDOMTabs();
 
     /* Инициализируем перетаскивание смайликов */
     dragdrop.add(
@@ -151,6 +76,89 @@ var Collection = function(hierarchy, options) {
             onclick: this._smileClickEvent.bind(this)
         }
     );
+
+    /* После успешной инициализации убираем лого загрузки */
+    var tmp = Array.prototype.slice.apply(this._dom.container.querySelectorAll('.temporary'));
+    for (var i = tmp.length - 1; i >= 0; i--) {
+        tmp[i].parentNode.removeChild(tmp[i]);
+    }
+};
+
+
+Collection.prototype._initDOM = function() {
+    var options = this.options;
+    var classes = options.classes;
+
+    this._dom = {};
+    this._dom.container = options.container || document.createElement('div');
+    var cont = this._dom.container;
+    cont.addEventListener('click', this._onclick.bind(this));
+
+    if (classes.container && !cont.classList.contains(classes.container)) {
+        cont.classList.add(classes.container);
+    }
+
+    this._dom.tabsContainer = cont.getElementsByClassName(classes.tabsWrapper || 'tabs-wrapper')[0];
+    if (!this._dom.tabsContainer) {
+        this._dom.tabsContainer = document.createElement('div');
+        this._dom.tabsContainer.className = classes.tabsWrapper || 'tabs-wrapper';
+        cont.appendChild(this._dom.tabsContainer);
+    }
+
+    this._dom.message = cont.getElementsByClassName(classes.message || 'collection-message')[0];
+    if (!this._dom.message) {
+        this._dom.message = document.createElement('div');
+        this._dom.message.className = classes.message || 'collection-message';
+        this._dom.message.textContent = options.message || '';
+        cont.appendChild(this._dom.message);
+    }
+
+    this._dom.smilesContainer = cont.getElementsByClassName(classes.smilesContainer || 'collection-smiles')[0];
+    if (!this._dom.smilesContainer) {
+        this._dom.smilesContainer = document.createElement('div');
+        this._dom.smilesContainer.className = classes.smilesContainer || 'collection-smiles';
+        cont.appendChild(this._dom.smilesContainer);
+    }
+
+    this._dom.dropHint = document.createElement('div');
+    this._dom.dropHint.className = 'drop-hint';
+    this._dom.dropHint.style.display = 'none';
+    this._dom.smilesContainer.appendChild(this._dom.dropHint);
+};
+
+
+Collection.prototype._initDOMTabs = function() {
+    this._dom.tabsContainers = [];
+
+    for (var i = 0; i < this._depth; i++){
+        this._categories.push({});
+        this._lastIds.push(0);
+        this._selectedIds.push(null);
+
+        var tcont = document.createElement('div');
+        tcont.className = this.options.classes.tabsLevel || 'tabs-level';
+        tcont.dataset.level = i.toString();
+        if (i > 0) {tcont.style.display = 'none';}
+        if (this.hierarchy[i][2]) {
+            tcont.appendChild(document.createTextNode(this.hierarchy[i][2]));
+        }
+
+        if (this.options.editable) {
+            var add_btn = document.createElement('a');
+            add_btn.className = 'action-btn action-add';
+            add_btn.dataset.action = 'add';
+            add_btn.dataset.level = i.toString();
+            add_btn.href = '#';
+            tcont.appendChild(add_btn);
+        }
+
+        this._dom.tabsContainers.push(tcont);
+        this._dom.tabsContainer.appendChild(tcont);
+    }
+
+    /* Создаём контейнер для кнопок верхнего уровня */
+    this._dom.rootCategories = this._buildDomTabs(0, 0);
+    this._dom.rootCategories.style.display = '';
 };
 
 
@@ -175,13 +183,18 @@ Collection.prototype.callListeners = function(event, args) {
 };
 
 
-Collection.prototype.getAdditionalContainer = function() {
-    return this._dom.additionalContainer;
+Collection.prototype.loadData = function(items) {
+    this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
 };
 
 
-Collection.prototype.loadData = function(items) {
-    this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
+Collection.prototype.isTabsVisible = function() {
+    return this._dom.tabsContainer.style.display != 'none';
+};
+
+
+Collection.prototype.setTabsVisibility = function(visible) {
+    this._dom.tabsContainer.style.display = visible ? '' : 'none';
 };
 
 
@@ -370,7 +383,7 @@ Collection.prototype.createGroup = function(item) {
         dom: null,
         smileIds: [],
         lazyQueue: [],
-        additionalDom: item.additionalDom || false,
+        openedClass: item.openedClass || 'smiles-opened',
         description: item.description || '',
         categoryLevel: null,
         categoryId: null
@@ -389,8 +402,8 @@ Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId
     if (item.description === undefined) {
         item.description = category.description;
     }
-    if (item.additionalDom === undefined) {
-        item.additionalDom = true;
+    if (!item.openedClass) {
+        item.openedClass = 'smiles-opened';
     }
     category.groupId = this.createGroup(item);
     this._groups[category.groupId].categoryLevel = categoryLevel;
@@ -768,7 +781,7 @@ Collection.prototype.set = function(level, categoryId) {
             this._categories[i][this._selectedIds[i]].dom.classList.remove('tab-btn-active');
             if (i + 1 < this._depth) {
                 this._categories[i][this._selectedIds[i]].childrenDom.style.display = 'none';
-                this._dom.tabs_containers[i + 1].style.display = 'none';
+                this._dom.tabsContainers[i + 1].style.display = 'none';
             }
             this._selectedIds[i] = null;
         }
@@ -783,7 +796,7 @@ Collection.prototype.set = function(level, categoryId) {
     category.dom.classList.add('tab-btn-active');
     this._selectedIds[level] = categoryId;
     if (level + 1 < this._depth && category.childrenDom) {
-        this._dom.tabs_containers[level + 1].style.display = '';
+        this._dom.tabsContainers[level + 1].style.display = '';
         category.childrenDom.style.display = '';
     } else if (category.groupId !== null){
         this.setCategorySmiles(level, category.id);
@@ -812,7 +825,7 @@ Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, for
         if (this._currentGroupId) {
             this._groups[this._currentGroupId].dom.classList.add('processing');
         } else {
-            this._dom.category_description.textContent = group.description || '';
+            this._dom.message.textContent = group.description || '';
         }
         this.options.get_smiles_func(this, {
             groupId: group.id,
@@ -838,8 +851,8 @@ Collection.prototype.setSmiles = function(groupId, force) {
             this._groups[this._currentGroupId].dom.style.display = 'none';
             this._currentGroupId = null;
             this._currentCategory = null;
-            this._dom.category_description.textContent = '';
-            this._dom.additionalContainer.style.display = 'none';
+            this._dom.message.textContent = '';
+            this._dom.container.classList.remove('smiles-opened');
         }
         return true;
     }
@@ -857,10 +870,9 @@ Collection.prototype.setSmiles = function(groupId, force) {
     /* Если смайлики группы не загружены, запрашиваем их */
     if (!group.dom && !force && this.options.get_smiles_func) {
         /* Создаём видимость загрузки */
-        if (this._currentGroupId) {
-            this._groups[this._currentGroupId].dom.classList.add('processing');
-        } else {
-            this._dom.category_description.textContent = group.description || '';
+        this._dom.container.classList.add('smiles-processing');
+        if (this._dom._currentGroupId === null) {
+            this._dom.message.textContent = group.description || '';
         }
         /* Сам запрос */
         this.options.get_smiles_func(this, {groupId: group.id});
@@ -873,21 +885,17 @@ Collection.prototype.setSmiles = function(groupId, force) {
 
     this.deselectAll();
     if (smiles_current) {
-        smiles_current.classList.remove('processing');
+        this._dom.container.classList.remove('smiles-processing');
         smiles_current.style.display = 'none';
     }
     this._currentGroupId = group.id;
-    this._dom.category_description.textContent = group.description || '';
+    this._dom.message.textContent = group.description || '';
 
     if (!group.dom) {
         /* Если мы попали сюда, значит нас просят игнорировать отсутствие смайликов */
         group.dom = document.createElement('div');
         group.dom.className = 'smiles-list';
-        if (this.options.additionalOnTop) {
-            this._dom.container.appendChild(group.dom);
-        } else {
-            this._dom.container.insertBefore(group.dom, this._dom.additionalContainer);
-        }
+        this._dom.smilesContainer.appendChild(group.dom);
 
         for (var i = 0; i < group.smileIds.length; i++) {
             this._addSmileDom(group.smileIds[i], group.id);
@@ -902,7 +910,7 @@ Collection.prototype.setSmiles = function(groupId, force) {
     }
     this.callListeners('onchange', [options]);
 
-    this._dom.additionalContainer.style.display = group.additionalDom ? '' : 'none';
+    this._dom.container.classList.add(group.openedClass || 'smiles-opened');
 
     return true;
 };
@@ -1207,7 +1215,7 @@ Collection.prototype.getSmileInfo = function(smileId, options) {
 
 
 Collection.prototype.getSmileIdByDom = function(element) {
-    if (!element || !this._dom.container.contains(element) || !element.classList.contains('smile')) {
+    if (!element || !this._dom.smilesContainer.contains(element) || !element.classList.contains('smile')) {
         return null;
     }
     var smile = this._smiles[parseInt(element.dataset.id)];
@@ -1367,16 +1375,16 @@ Collection.prototype._buildDomTabs = function(level, categoryId) {
         return null;
     }
     var tabs = document.createElement('div');
-    tabs.className = 'tabs-items';
+    tabs.className = this.options.classes.tabsItems || 'tabs-items';
     tabs.style.display = 'none';
     if (level > 0) {
         tabs.dataset.id = 'tabs-' + categoryId.toString();
     }
 
     if (this.options.editable) {
-        this._dom.tabs_containers[level].insertBefore(tabs, this._dom.tabs_containers[level].lastElementChild);
+        this._dom.tabsContainers[level].insertBefore(tabs, this._dom.tabsContainers[level].lastElementChild);
     } else {
-        this._dom.tabs_containers[level].appendChild(tabs);
+        this._dom.tabsContainers[level].appendChild(tabs);
     }
 
     return tabs;
@@ -1469,8 +1477,10 @@ Collection.prototype._smileClickEvent = function(options) {
 
         /* Выделяем всю пачку */
         var selectedSmiles = [];
+        var selSmile;
         for (var i = pos1; i <= pos2; i++) {
-            if (this._setSelectedRaw(group.smileIds[i], true, true)) {
+            selSmile = this._smiles[group.smileIds[i]];
+            if ((this.options.selectableDragged || !selSmile.dragged) && this._setSelectedRaw(group.smileIds[i], true, true)) {
                 selectedSmiles.push(group.smileIds[i]);
             }
         }
@@ -1495,7 +1505,7 @@ Collection.prototype._smileClickEvent = function(options) {
 
 Collection.prototype._dragStart = function(options) {
     var e = options.element;
-    if (e === this._dom.container) {
+    if (e === this._dom.container || e === this._dom.smilesContainer) {
         return null;
     }
 
@@ -1515,7 +1525,7 @@ Collection.prototype._dragStart = function(options) {
             }
         }
         e = e.parentNode;
-    } while (e && e !== this._dom.container);
+    } while (e && e !== this._dom.container && e !== this._dom.smilesContainer);
 
     return null;
 };

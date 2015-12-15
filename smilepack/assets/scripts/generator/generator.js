@@ -723,14 +723,11 @@ var generator = {
                 ['categories', 'category_id', 'Категории:']
             ],
             {
-                title: "Коллекция смайликов",
                 editable: false,
                 container: document.getElementById('collection'),
                 get_smiles_func: this.set_collection_smiles.bind(this),
                 onchange: this.onchange.bind(this),
                 ondropto: this.dropToCollectionEvent.bind(this),
-                message: 'Выберите раздел для просмотра смайликов',
-                additionalOnTop: true,
                 selectable: true,
                 selectableDragged: false,
                 useCategoryLinks: true
@@ -742,12 +739,10 @@ var generator = {
                 ['categories', 'category_id', 'Категории:']
             ],
             {
-                title: "Ваш смайлопак",
                 editable: true,
                 container: document.getElementById('smilepack'),
                 ondropto: this.dropToSmilepackEvent.bind(this),
                 onaction: this.onaction.bind(this),
-                message: this.smilepackData ? 'Выберите категорию смайлопака для просмотра' : 'Добавьте категорию здесь и заполните её перетаскиванием смайликов из коллекции',
                 selectable: true
             }
         );
@@ -796,13 +791,13 @@ var generator = {
     },
 
     bindButtonEvents: function() {
-        var moveBtn = this.collection.getAdditionalContainer().querySelector('.action-select-all');
+        var moveBtn = this.collection.getDOM().querySelector('.additional .action-select-all');
         moveBtn.addEventListener('click', this.selectAllSmiles.bind(this));
 
-        var copyBtn = this.collection.getAdditionalContainer().querySelector('.action-copy');
+        var copyBtn = this.collection.getDOM().querySelector('.additional .action-copy');
         copyBtn.addEventListener('click', this.copyCategory.bind(this));
 
-        var addSmileBtn = this.smilepack.getAdditionalContainer().querySelector('.action-add-smile');
+        var addSmileBtn = this.smilepack.getDOM().querySelector('.additional .action-add-smile');
         addSmileBtn.addEventListener('click', function() {
             dialogsManager.open('smile', {}, this.addCustomSmile.bind(this));
         }.bind(this));
