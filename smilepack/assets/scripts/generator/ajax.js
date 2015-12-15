@@ -90,6 +90,16 @@ var ajax = {
         });
     },
 
+    get_new_smiles: function(onload, onerror, onend) {
+        return this.request({
+            url: '/smiles/new',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend
+        });
+    },
+
     create_smilepack: function(name, lifetime, categories, smiles, onload, onerror, onend) {
         return this.request({
             method: 'POST',

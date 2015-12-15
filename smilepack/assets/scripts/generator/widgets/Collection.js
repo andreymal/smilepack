@@ -516,6 +516,24 @@ Collection.prototype.addSmile = function(item, nolazy) {
 };
 
 
+Collection.prototype.addSmileIfNotExists = function(item, nolazy) {
+    if (item.id !== undefined && item.id !== null && this._smiles[item.id]) {
+        if (this._smiles[item.id].url !== item.url) {
+            throw new Error('Conflict');
+        }
+        if (item.categoryLevel !== undefined && item.categoryId !== undefined) {
+            this.addSmileToCategory(item.id, item.categoryLevel, item.categoryId);
+        } else if (item.groupIds && item.groupIds.length > 0) {
+            for (var i = 0; i < item.groupIds.length; i++) {
+                this.addSmileToGroup(item.id, item.groupIds[i], nolazy);
+            }
+        }
+        return item.id;
+    }
+    return this.addSmile(item, nolazy);
+};
+
+
 Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
     var item = this._smiles[smile_id];
     var group = this._groups[groupId];
@@ -849,10 +867,10 @@ Collection.prototype.setSmiles = function(groupId, force) {
         if (this._currentGroupId !== null) {
             this.deselectAll();
             this._groups[this._currentGroupId].dom.style.display = 'none';
+            this._dom.container.classList.remove(this._groups[this._currentGroupId].openedClass);
             this._currentGroupId = null;
             this._currentCategory = null;
             this._dom.message.textContent = '';
-            this._dom.container.classList.remove('smiles-opened');
         }
         return true;
     }
@@ -884,33 +902,44 @@ Collection.prototype.setSmiles = function(groupId, force) {
     }
 
     this.deselectAll();
+    this._dom.container.classList.remove('smiles-processing');
     if (smiles_current) {
-        this._dom.container.classList.remove('smiles-processing');
         smiles_current.style.display = 'none';
     }
+    if (this._currentGroupId !== null) {
+        this._dom.container.classList.remove(this._groups[this._currentGroupId].openedClass);
+    }
     this._currentGroupId = group.id;
+    this._dom.container.classList.add(group.openedClass);
     this._dom.message.textContent = group.description || '';
 
+    var i;
     if (!group.dom) {
         /* Если мы попали сюда, значит нас просят игнорировать отсутствие смайликов */
         group.dom = document.createElement('div');
         group.dom.className = 'smiles-list';
         this._dom.smilesContainer.appendChild(group.dom);
 
-        for (var i = 0; i < group.smileIds.length; i++) {
+        for (i = 0; i < group.smileIds.length; i++) {
             this._addSmileDom(group.smileIds[i], group.id);
         }
     }
     group.dom.style.display = '';
 
     var options = {groupId: group.id};
+    var cat = this._currentCategory;
+    if (cat !== null && this._categories[cat[0]][cat[1]].groupId !== group.id) {
+        this._categories[cat[0]][cat[1]].dom.classList.remove('tab-btn-active');
+        for (i = cat[0]; i < this._depth; i++) {
+            this._selectedIds[i] = null;
+        }
+        this._currentCategory = null;
+    }
     if (this._currentCategory !== null) {
         options.categoryLevel = this._currentCategory[0];
         options.categoryId = this._currentCategory[1];
     }
     this.callListeners('onchange', [options]);
-
-    this._dom.container.classList.add(group.openedClass || 'smiles-opened');
 
     return true;
 };
@@ -1184,6 +1213,11 @@ Collection.prototype.getCategoryIds = function() {
         Array.prototype.push(ids);
     }
     return result;
+};
+
+
+Collection.prototype.hasSmile = function(smileId) {
+    return this._smiles[smileId] !== undefined;
 };
 
 

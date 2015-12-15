@@ -22,6 +22,10 @@ var generator = {
 
     modified: false,
     current_id: null,
+    newSmilesGroup: null,
+
+    tabs: {},
+    currentTab: 'collection',
 
     collectionData: null,
     smilepackData: null,
@@ -90,7 +94,11 @@ var generator = {
     /* actions */
 
     onchange: function(options) {
-        window.location.hash = '#' + options.categoryId.toString();
+        if (options.categoryId === undefined || options.categoryId === null) {
+            window.history.replaceState("", document.title, window.location.pathname + window.location.search);
+            return;
+        }
+        window.history.replaceState("", document.title, window.location.pathname + window.location.search + '#' + options.categoryId.toString());
     },
 
     onaction: function(options) {
@@ -180,6 +188,26 @@ var generator = {
     toggleDark: function() {
         document.body.classList.toggle('dark');
         window.localStorage.generatorDark = document.body.classList.contains('dark') ? '1' : '0';
+    },
+
+    changeTab: function(tab) {
+        var oldTab = this.currentTab;
+        if (tab == oldTab) {
+            return;
+        }
+        
+        if (tab == 'collection') {
+            this.collection.setTabsVisibility(true);
+        } else if (tab == 'new_smiles') {
+            this.collection.setTabsVisibility(false);
+            this.collection.setSmiles(this.newSmilesGroup);
+        } else {
+            return;
+        }
+
+        this.tabs[oldTab].classList.remove('current');
+        this.tabs[tab].classList.add('current');
+        this.currentTab = tab;
     },
 
     importUserscript: function(options) {
@@ -686,11 +714,17 @@ var generator = {
     },
 
     set_collection_smiles: function(collection, options) {
-        ajax.get_smiles(options.categoryId, function(data) {
+        var toNewSmiles = options.groupId === this.newSmilesGroup;
+
+        var callback = function(data) {
             for (var i = 0; i < data.smiles.length; i++) {
-                data.smiles[i].categoryLevel = 2;
-                data.smiles[i].categoryId = options.categoryId;
-                var localId = this.collection.addSmile(data.smiles[i]);
+                if (toNewSmiles) {
+                    data.smiles[i].groupIds = [options.groupId];
+                } else {
+                    data.smiles[i].categoryLevel = 2;
+                    data.smiles[i].categoryId = options.categoryId;
+                }
+                var localId = this.collection.addSmileIfNotExists(data.smiles[i]);
                 if (localId === null) {
                     continue;
                 }
@@ -699,8 +733,18 @@ var generator = {
                     this.collection.setDragged(localId, true);
                 }
             }
-            collection.setCategorySmiles(2, options.categoryId, true);
-        }.bind(this));
+            if (toNewSmiles) {
+                collection.setSmiles(this.newSmilesGroup, true);
+            } else {
+                collection.setCategorySmiles(2, options.categoryId, true);
+            }
+        }.bind(this);
+
+        if (toNewSmiles) {
+            ajax.get_new_smiles(callback);
+        } else {
+            ajax.get_smiles(options.categoryId, callback);
+        }
     },
 
     initCollectionData: function() {
@@ -733,6 +777,8 @@ var generator = {
                 useCategoryLinks: true
             }
         );
+
+        this.newSmilesGroup = this.collection.createGroup({openedClass: 'new-smiles-opened'});
 
         this.smilepack = new Collection(
             [
@@ -813,6 +859,19 @@ var generator = {
         }.bind(this));
 
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
+
+        var tabs = this.collection.getDOM().querySelectorAll('.collection-tabs > li');
+        var changeTabEvent = function(event) {
+            if (!event.target.dataset.tab) {
+                return;
+            }
+            this.changeTab(event.target.dataset.tab);
+            return false;
+        }.bind(this);
+        for (var i = 0; i < tabs.length; i++) {
+            this.tabs[tabs[i].dataset.tab] = tabs[i];
+            tabs[i].addEventListener('click', changeTabEvent);
+        }
     },
 
     registerDialogs: function() {

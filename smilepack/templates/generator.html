@@ -61,7 +61,10 @@
 <div class="container">
 <div class="collection container-left" id="collection">
     <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
-    <div class="collection-title">{{ _("Collection of smiles") }}</div>
+    <ul class="collection-tabs">
+        <li class="current" data-tab="collection">{{ _("Collection of smiles") }}</li>
+        <li data-tab="new_smiles">{{ _("New smiles") }}</li>
+    </ul>
     <div class="tabs-wrapper"></div>
 
     <div class="collection-message">{{ _("Choose a section to view smiles") }}</div>
