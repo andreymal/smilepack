@@ -182,7 +182,7 @@ var generator = {
             return;
         }
 
-        generator.collection.set(2, categoryId);
+        generator.collection.selectCategory(2, categoryId);
     },
 
     toggleDark: function() {
@@ -200,7 +200,7 @@ var generator = {
             this.collection.setTabsVisibility(true);
         } else if (tab == 'new_smiles') {
             this.collection.setTabsVisibility(false);
-            this.collection.setSmiles(this.newSmilesGroup);
+            this.collection.showGroup(this.newSmilesGroup);
         } else {
             return;
         }
@@ -415,7 +415,7 @@ var generator = {
             return {error: 'Кажется, что-то пошло не так'};
         }
         if (options.categoryId === undefined || options.categoryId === null) {
-            this.smilepack.set(0, id);
+            this.smilepack.selectCategory(0, id);
         }
         this.modified = true;
         return {success: true, categoryId: id};
@@ -488,7 +488,7 @@ var generator = {
 
         this.collection.deselectAll();
         this.moveSmiles(catId, smiles, false);
-        this.smilepack.set(0, catId);
+        this.smilepack.selectCategory(0, catId);
         return false;
     },
 
@@ -705,7 +705,7 @@ var generator = {
         }
 
         if (data.categories.length == 1) {
-            this.smilepack.set(0, data.categories[0].id);
+            this.smilepack.selectCategory(0, data.categories[0].id);
         }
 
         if (lastIds) {
@@ -734,9 +734,9 @@ var generator = {
                 }
             }
             if (toNewSmiles) {
-                collection.setSmiles(this.newSmilesGroup, true);
+                collection.showGroup(this.newSmilesGroup, true);
             } else {
-                collection.setCategorySmiles(2, options.categoryId, true);
+                collection.showCategory(2, options.categoryId, true);
             }
         }.bind(this);
 
@@ -754,7 +754,7 @@ var generator = {
             this.collection.createGroupForCategory(2, categories[i]);
         }
         if (this.collectionData.sections.length == 1) {
-            this.collection.set(0, this.collectionData.sections[0].id);
+            this.collection.selectCategory(0, this.collectionData.sections[0].id);
         }
         this.check_hash();
     },

@@ -167,6 +167,9 @@ Collection.prototype.getDOM = function() {
 };
 
 
+/* Collection management */
+
+
 Collection.prototype.subscribe = function(event, callback) {
     if (this._eventListeners[event] === undefined) {
         throw new Error("Unknown event " + event);
@@ -196,6 +199,34 @@ Collection.prototype.isTabsVisible = function() {
 Collection.prototype.setTabsVisibility = function(visible) {
     this._dom.tabsContainer.style.display = visible ? '' : 'none';
 };
+
+
+Collection.prototype.getLoadingVisibility = function() {
+    return this._dom.container.classList.contains('smiles-processing');
+};
+
+
+Collection.prototype.setLoadingVisibility = function(isLoading) {
+    if (this._dom.container.classList.contains('smiles-processing') !== isLoading) {
+        this._dom.container.classList.toggle('smiles-processing');
+    }
+};
+
+
+Collection.prototype.getLastInternalIds = function() {
+    return [this._lastIds, this._lastCreatedSmileId];
+};
+
+
+Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId) {
+    for (var i = 0; i < this._depth; i++) {
+        this._lastIds[i] = parseInt(lastIds[i], 10);
+    }
+    this._lastCreatedSmileId = parseInt(lastSmileId, 10);
+};
+
+
+/* Categories and groups management */
 
 
 Collection.prototype.addCategory = function(level, parentId, item) {
@@ -228,59 +259,6 @@ Collection.prototype.addCategory = function(level, parentId, item) {
     this.callListeners('oncategoryedit', {categoryLevel: level, categoryId: id, added: true, removed: false});
 
     return id;
-};
-
-
-Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
-    var item = this._categories[level][categoryId];
-
-    var btn = document.createElement('a');
-    btn.className = 'tab-btn';
-    btn.dataset.id = categoryId.toString();
-    btn.dataset.level = level.toString();
-    btn.href = (!this.options.useCategoryLinks || level < this._depth - 1) ? '#' : ('#' + categoryId);
-    btn.title = item.description || '';
-    if (item.iconUrl) {
-        var icon = document.createElement('img');
-        icon.src = item.iconUrl;
-        icon.className = 'tab-icon';
-        icon.dataset.id = item.iconId;
-        btn.appendChild(icon);
-    }
-    btn.appendChild(document.createTextNode(item.name));
-
-    if (this.options.editable) {
-        var actions = document.createElement('span');
-        actions.className = 'actions';
-
-        var editbtn = document.createElement('a');
-        editbtn.className = 'action-btn action-edit';
-        editbtn.dataset.action = 'edit';
-        actions.appendChild(editbtn); 
-
-        var delbtn = document.createElement('a');
-        delbtn.className = 'action-btn action-delete';
-        delbtn.dataset.action = 'delete';
-        actions.appendChild(delbtn);
-
-        btn.appendChild(actions);
-    }
-
-    if (save) {
-        if (level > 0) {
-            var parent = this._categories[level - 1][item.parentId];
-            if (!parent.childrenDom) {
-                parent.childrenDom = this._buildDomTabs(level, item.parentId);
-            }
-            parent.childrenIds.push(categoryId);
-            parent.childrenDom.appendChild(btn);
-        } else {
-            this._rootChildren.push(categoryId);
-            this._dom.rootCategories.appendChild(btn);
-        }
-        item.dom = btn;
-    }
-    return btn;
 };
 
 
@@ -324,11 +302,11 @@ Collection.prototype.removeCategory = function(level, categoryId) {
 
     /* Первым делом снимаем выделение */
     if (this._selectedIds[level] == categoryId) {
-        this.set(level, null);
+        this.selectCategory(level, null);
     }
 
     if (this._currentCategory && this._currentCategory[0] == level && this._currentCategory[1] == categoryId) {
-        this.setSmiles(null);
+        this._showGroupNow(null);
     }
 
     /* Потом удаляем все дочерние категории */
@@ -421,8 +399,8 @@ Collection.prototype.removeGroup = function(groupId) {
         return null;
     }
 
-    if (this._currentGroupId == group.id) {
-        this.setSmiles(null);
+    if (this._currentGroupId === group.id) {
+        this.showGroup(null);
     }
 
     for (var i = 0; i < group.smileIds.length; i++) {
@@ -436,6 +414,250 @@ Collection.prototype.removeGroup = function(groupId) {
     delete this._groups[groupId];
     return group.smileIds;
 };
+
+
+Collection.prototype.selectCategory = function(level, categoryId, force) {
+    if (level < 0 || level >= this._depth) {
+        return false;
+    }
+    var category = this._categories[level][categoryId];
+    if (categoryId !== null && !category) {
+        return false;
+    }
+    if (this._selectedIds[level] == categoryId) {
+        return true;
+    }
+
+    /* Рекурсивно проверяем уровни выше, если это не снятие выделения */
+    if (category && level > 0) {
+        this.selectCategory(level - 1, category.parentId);
+    }
+
+    /* Отключаем уровни ниже */
+    if (this._selectedIds[level] !== null) {
+        for (var i = level; i < this._depth; i++){
+            if (this._selectedIds[i] === null) {
+                break;
+            }
+            this._categories[i][this._selectedIds[i]].dom.classList.remove('tab-btn-active');
+            if (i + 1 < this._depth) {
+                this._categories[i][this._selectedIds[i]].childrenDom.style.display = 'none';
+                this._dom.tabsContainers[i + 1].style.display = 'none';
+            }
+            this._selectedIds[i] = null;
+        }
+    }
+
+    /* Если это снятие выделения, то всё */
+    if (!category) {
+        return true;
+    }
+
+    /* Подсвечиваем кнопку в текущем уровне и отображаем уровень ниже */
+    category.dom.classList.add('tab-btn-active');
+    this._selectedIds[level] = categoryId;
+    if (level + 1 < this._depth && category.childrenDom) {
+        this._dom.tabsContainers[level + 1].style.display = '';
+        category.childrenDom.style.display = '';
+    } else if (category.groupId !== null){
+        this.showGroup(category.groupId, force);
+    }
+
+    /* Для последнего уровня подсветим ещё категорию, смайлики которой сейчас отображаются */
+    if (level + 1 === this._depth - 1 && this._currentCategory !== null && this._currentCategory[0] === level + 1) {
+        this._categories[level + 1][this._currentCategory[1]].dom.classList.add('tab-btn-active');
+    }
+
+    return true;
+};
+
+
+Collection.prototype.showCategory = function(level, categoryId, force) {
+    if (categoryId === undefined || categoryId === null) {
+        return this._showGroupNow(null);
+    }
+
+    if (isNaN(level) || level < 0 || level >= this._depth) {
+        return false;
+    }
+    var category = this._categories[level][categoryId];
+    if (!category || category.groupId === null) {
+        return false;
+    }
+
+    if (category.groupId === null) {
+        return false;
+    }
+
+    return this.showGroup(category.groupId, force);
+};
+
+
+Collection.prototype.showGroup = function(groupId, force) {
+    if (groupId === undefined || groupId === null) {
+        return this._showGroupNow(null);
+    }
+
+    var group = this._groups[groupId];
+    if (!group) {
+        return false;
+    }
+
+    /* Если смайлики группы не загружены, запрашиваем их */
+    if (!group.dom && group.smileIds.length < 1 && !force && this.options.get_smiles_func) {
+        /* Создаём видимость загрузки */
+        this.setLoadingVisibility(true);
+        if (this._dom._currentGroupId === null) {
+            this._dom.message.textContent = group.description || '';
+        }
+        /* Сам запрос */
+        var options = {groupId: group.id};
+        if (group.categoryId !== null) {
+            options.categoryLevel = group.categoryLevel;
+            options.categoryId = group.categoryId;
+        }
+        this.options.get_smiles_func(this, options);
+        return true;
+    }
+
+    /* Убираем выделение у кнопки категории, если таковая была установлена */
+    var cat = this._currentCategory;
+    if (cat !== null) {
+        this._categories[cat[0]][cat[1]].dom.classList.remove('tab-btn-active');
+        if (this._selectedIds[this._depth - 1] === cat[1]) {
+            this._selectedIds[this._depth - 1] = null;
+        }
+    }
+
+    /* Отображаем группу */
+    if (!this._showGroupNow(group.id)) {
+        return false;
+    }
+
+    /* Добавляем выделение у кнопки новой категории */
+    if (group.categoryId !== null) {
+        this._categories[group.categoryLevel][group.categoryId].dom.classList.add('tab-btn-active');
+    }
+
+    return true;
+};
+
+
+Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
+    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
+        return null;
+    }
+    var category = this._categories[level][categoryId];
+    if (!category) {
+        return null;
+    }
+
+    var info = {
+        name: category.name,
+        description: category.description,
+        icon: !category.iconUrl ? null : {
+            id: category.iconId !== null ? parseInt(category.iconId) : null,
+            url: (!options || !options.withoutIconUrl) ? category.iconUrl : undefined
+        }
+    };
+
+    if (!options || !options.short) {
+        info.level = category.level;
+    }
+    if (!options || !options.withoutIds) {
+        info.id = category.id;
+    }
+    if (options && options.withGroupId) {
+        info.groupId = category.groupId;
+    }
+
+    return info;
+};
+
+
+Collection.prototype.getCategoryIdsWithSmiles = function() {
+    var result = [];
+    for (var level = 0; level < this._depth; level++) {
+        for (var id in this._categories[level]) {
+            if (this._categories[level][id].groupId !== null) {
+                result.push([level, id]);
+            }
+        }
+    }
+    return result;
+};
+
+
+Collection.prototype.getCategoriesWithHierarchy = function(options) {
+    var root = [];
+    var items = [];
+    var level, item, id;
+
+    for (level = 0; level < this._depth; level++) {
+        items.push({});
+
+        for (id in this._categories[level]) {
+            item = this.getCategoryInfo(level, id, options);
+
+            if (level + 1 < this._depth) {
+                item[this.hierarchy[level + 1][0]] = [];
+            }
+
+            if (level > 0) {
+                items[level - 1][this._categories[level][id].parentId][this.hierarchy[level][0]].push(item);
+            } else {
+                root.push(item);
+            }
+            items[level][item.id] = item;
+        }
+    }
+
+    return root;
+};
+
+
+Collection.prototype.getCategoryIds = function() {
+    var result = [];
+    var parse = function(x) {return parseInt(x, 10);};
+    for (var i = 0; i < this._categories.length; i++){
+        var ids = Object.keys(this._categories[i]).map(parse);
+        Array.prototype.push(ids);
+    }
+    return result;
+};
+
+
+Collection.prototype.getSelectedCategory = function(level) {
+    return this._selectedIds[level];
+};
+
+
+Collection.prototype.getCurrentGroupId = function() {
+    return this._currentGroupId;
+};
+
+
+Collection.prototype.getGroupOfCategory = function(level, categoryId) {
+    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
+        return null;
+    }
+    var category = this._categories[level][categoryId];
+    return category ? category.groupId : null;
+};
+
+
+Collection.prototype.getParentId = function(level, categoryId) {
+    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
+        return null;
+    }
+    if (!this._categories[level][categoryId]) {
+        return null;
+    }
+    return this._categories[level][categoryId].parentId;
+};
+
+
+/* Smiles management */
 
 
 Collection.prototype.addSmile = function(item, nolazy) {
@@ -534,53 +756,6 @@ Collection.prototype.addSmileIfNotExists = function(item, nolazy) {
 };
 
 
-Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
-    var item = this._smiles[smile_id];
-    var group = this._groups[groupId];
-    if (item.groups[groupId] || group.smileIds.indexOf(item.id) < 0) {
-        return false;
-    }
-
-    var img = document.createElement('img');
-    img.alt = "";
-    img.title = (item.tags || []).join(", ") || item.description || item.url;
-    img.width = item.width;
-    img.height = item.height;
-    img.classList.add('smile');
-    img.dataset.id = item.id.toString();
-    img.dataset.groupId = group.id.toString();
-
-    if (!nolazy) {
-        img.classList.add('smile-loading');
-    }
-    if (item.dragged) {
-        img.classList.add('dragged');
-    }
-    if (item.selected && this._currentGroupId == group.id) {
-        img.classList.add('selected');
-    }
-
-    if (!nolazy) {
-        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-        img.dataset.src = item.url;
-        group.lazyQueue.push(smile_id);
-        // TODO: optimize for multiple _addSmileDom calls
-        if (this._lazyCategoriesQueue.indexOf(group.id) < 0) {
-            this._lazyCategoriesQueue.push(group.id);
-        }
-    } else {
-        img.src = item.url;
-    }
-
-    group.dom.appendChild(img);
-    item.groups[group.id] = img;
-    if (!nolazy && this._lazyProcessing < this._lazyStep) {
-        this._lazyNext();
-    }
-    return true;
-};
-
-
 Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
     var smile = this._smiles[smileId];
     var group = this._groups[groupId];
@@ -667,24 +842,6 @@ Collection.prototype.removeManySmiles = function(smileIds) {
 };
 
 
-Collection.prototype._removeSmileRaw = function(id) {
-    var smile = this._smiles[id];
-    var group, i;
-    for (var groupId in smile.groups) {
-        group = this._groups[groupId];
-        if (smile.groups[groupId]) {
-            group.dom.removeChild(smile.groups[groupId]);
-        }
-
-        i = group.smileIds.indexOf(smile.id);
-        if (i >= 0) {
-            group.smileIds.splice(i, 1);
-        }
-    }
-    delete this._smiles[id];
-};
-
-
 Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     var smile = this._smiles[id];
     if (!smile) {
@@ -722,497 +879,6 @@ Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     }
 
     return Object.keys(smile.groups).length;
-};
-
-
-Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
-    if (groupId === undefined) {
-        groupId = this._currentGroupId;
-    }
-    var group = this._groups[groupId];
-    if (!group) {
-        return false;
-    }
-
-    if (smileId == beforeSmileId) {
-        return false;
-    }
-    var smile = this._smiles[smileId];
-    var beforeSmile = beforeSmileId !== null ? this._smiles[beforeSmileId] : null;
-    /* beforeSmile null - перемещаем смайлик в конец; undefined - не перемещаем, ибо смайлик не нашелся */
-    if (!smile || beforeSmileId !== null && !beforeSmile) {
-        return false;
-    }
-    /* За пределы группы не перемещаем */
-    if (beforeSmile && !beforeSmile.groups[group.id]) {
-        return false;
-    }
-
-    var i = group.smileIds.indexOf(smile.id);
-    /* Не забываем пересортировать айдишники в группе */
-    if (i >= 0) {
-        group.smileIds.splice(i, 1);
-    }
-
-    if (beforeSmile) {
-        /* Перемещаем смайлик перед указанным */
-        if (group.dom) {
-            group.dom.insertBefore(smile.groups[group.id], beforeSmile.groups[group.id]);
-        }
-        i = group.smileIds.indexOf(beforeSmile.id);
-        group.smileIds.splice(i, 0, smile.id);
-    } else {
-        /* Перемещаем смайлик в конец */
-        if (group.dom) {
-            group.dom.appendChild(smile.groups[group.id]);
-        }
-        group.smileIds.push(smile.id);
-    }
-
-    return true;
-};
-
-
-Collection.prototype.set = function(level, categoryId) {
-    if (level < 0 || level >= this._depth) {
-        return false;
-    }
-    var category = this._categories[level][categoryId];
-    if (categoryId !== null && !category) {
-        return false;
-    }
-    if (this._selectedIds[level] == categoryId) {
-        return true;
-    }
-
-    /* Рекурсивно проверяем уровни выше, если это не снятие выделения */
-    if (category && level > 0) {
-        this.set(level - 1, category.parentId);
-    }
-
-    /* Отключаем уровни ниже */
-    if (this._selectedIds[level] !== null) {
-        for (var i = level; i < this._depth; i++){
-            if (this._selectedIds[i] === null) {
-                break;
-            }
-            this._categories[i][this._selectedIds[i]].dom.classList.remove('tab-btn-active');
-            if (i + 1 < this._depth) {
-                this._categories[i][this._selectedIds[i]].childrenDom.style.display = 'none';
-                this._dom.tabsContainers[i + 1].style.display = 'none';
-            }
-            this._selectedIds[i] = null;
-        }
-    }
-
-    /* Если это снятие выделения, то всё */
-    if (!category) {
-        return true;
-    }
-
-    /* Подсвечиваем кнопку в текущем уровне и отображаем уровень ниже */
-    category.dom.classList.add('tab-btn-active');
-    this._selectedIds[level] = categoryId;
-    if (level + 1 < this._depth && category.childrenDom) {
-        this._dom.tabsContainers[level + 1].style.display = '';
-        category.childrenDom.style.display = '';
-    } else if (category.groupId !== null){
-        this.setCategorySmiles(level, category.id);
-    }
-    return true;
-};
-
-
-Collection.prototype.setCategorySmiles = function(categoryLevel, categoryId, force) {
-    if (categoryId === undefined || categoryId === null) {
-        return this.setSmiles(null);
-    }
-
-    if (isNaN(categoryLevel) || categoryLevel < 0 || categoryLevel >= this._depth) {
-        return false;
-    }
-    var category = this._categories[categoryLevel][categoryId];
-    if (!category || category.groupId === null) {
-        return false;
-    }
-
-    var group = this._groups[category.groupId];
-
-    /* Если смайлики группы не загружены, запрашиваем их, упомянув категорию */
-    if (group.dom === null && group.smileIds.length < 1 && !force && this.options.get_smiles_func) {
-        if (this._currentGroupId) {
-            this._groups[this._currentGroupId].dom.classList.add('processing');
-        } else {
-            this._dom.message.textContent = group.description || '';
-        }
-        this.options.get_smiles_func(this, {
-            groupId: group.id,
-            categoryLevel: categoryLevel,
-            categoryId: categoryId
-        });
-        return true;
-    }
-
-    this._currentCategory = [categoryLevel, category.id];
-    if (!this.setSmiles(category.groupId, true)) {
-        this._currentCategory = null;
-        return false;
-    }
-    return true;
-};
-
-
-Collection.prototype.setSmiles = function(groupId, force) {
-    if (groupId === null) {
-        if (this._currentGroupId !== null) {
-            this.deselectAll();
-            this._groups[this._currentGroupId].dom.style.display = 'none';
-            this._dom.container.classList.remove(this._groups[this._currentGroupId].openedClass);
-            this._currentGroupId = null;
-            this._currentCategory = null;
-            this._dom.message.textContent = '';
-        }
-        return true;
-    }
-
-    var smiles_current = null; 
-    if (this._currentGroupId !== null) {
-        smiles_current = this._groups[this._currentGroupId].dom;
-    }
-
-    var group = this._groups[groupId];
-    if (!group) {
-        return false;
-    }
-
-    /* Если смайлики группы не загружены, запрашиваем их */
-    if (!group.dom && !force && this.options.get_smiles_func) {
-        /* Создаём видимость загрузки */
-        this._dom.container.classList.add('smiles-processing');
-        if (this._dom._currentGroupId === null) {
-            this._dom.message.textContent = group.description || '';
-        }
-        /* Сам запрос */
-        this.options.get_smiles_func(this, {groupId: group.id});
-        return true;
-    }
-
-    if (this._currentGroupId == group.id) {
-        return true;
-    }
-
-    this.deselectAll();
-    this._dom.container.classList.remove('smiles-processing');
-    if (smiles_current) {
-        smiles_current.style.display = 'none';
-    }
-    if (this._currentGroupId !== null) {
-        this._dom.container.classList.remove(this._groups[this._currentGroupId].openedClass);
-    }
-    this._currentGroupId = group.id;
-    this._dom.container.classList.add(group.openedClass);
-    this._dom.message.textContent = group.description || '';
-
-    var i;
-    if (!group.dom) {
-        /* Если мы попали сюда, значит нас просят игнорировать отсутствие смайликов */
-        group.dom = document.createElement('div');
-        group.dom.className = 'smiles-list';
-        this._dom.smilesContainer.appendChild(group.dom);
-
-        for (i = 0; i < group.smileIds.length; i++) {
-            this._addSmileDom(group.smileIds[i], group.id);
-        }
-    }
-    group.dom.style.display = '';
-
-    var options = {groupId: group.id};
-    var cat = this._currentCategory;
-    if (cat !== null && this._categories[cat[0]][cat[1]].groupId !== group.id) {
-        this._categories[cat[0]][cat[1]].dom.classList.remove('tab-btn-active');
-        for (i = cat[0]; i < this._depth; i++) {
-            this._selectedIds[i] = null;
-        }
-        this._currentCategory = null;
-    }
-    if (this._currentCategory !== null) {
-        options.categoryLevel = this._currentCategory[0];
-        options.categoryId = this._currentCategory[1];
-    }
-    this.callListeners('onchange', [options]);
-
-    return true;
-};
-
-Collection.prototype.getDragged = function(id) {
-    var smile = this._smiles[id];
-    return smile ? smile.dragged : null;
-};
-
-
-Collection.prototype.setDragged = function(id, dragged) {
-    var smile = this._smiles[id];
-    if (!smile) {
-        return false;
-    }
-    if (smile.dragged != dragged) {
-        smile.dragged = !smile.dragged;
-        for (var groupId in smile.groups) {
-            if (smile.groups[groupId] === null) {
-                continue;
-            }
-            smile.groups[groupId].classList.toggle('dragged');
-        }
-    }
-    return true;
-};
-
-
-Collection.prototype.getSelected = function(id) {
-    var smile = this._smiles[id];
-    return smile ? smile.selected : null;
-};
-
-
-Collection.prototype.setSelected = function(id, selected) {
-    var smile = this._smiles[id];
-    /* Смайлики в скрытых группах не выделяем */
-    if (this._currentGroupId === null) {
-        return false;
-    }
-    /* Смайлики, которые невозможно выделить, тоже не выделяем */
-    if (!smile || selected && smile.groups[this._currentGroupId] === undefined) {
-        return false;
-    }
-    /* Если нам запрещено выделять перемещённые смайлики, то не выделяем */
-    if (selected && smile.dragged && !this.options.selectableDragged) {
-        return false;
-    }
-
-    /* После всех проверок применяем выделение */
-    this._setSelectedRaw(smile.id, selected);
-
-    return true;
-};
-
-
-Collection.prototype._setSelectedRaw = function(id, selected, noEvent) {
-    var smile = this._smiles[id];
-    var changed = false;
-
-    /* Переключаем выделение */
-    if (smile.selected != selected) {
-        smile.selected = !smile.selected;
-        if (smile.groups[this._currentGroupId]) {
-            smile.groups[this._currentGroupId].classList.toggle('selected');
-        }
-    }
-
-    /* Обновляем список выделенных смайликов */
-    var i = this._selectedSmileIds.indexOf(smile.id);
-    if (selected && i < 0) {
-        this._selectedSmileIds.push(smile.id);
-        changed = true;
-    } else if (!selected && i >= 0) {
-        this._selectedSmileIds.splice(i, 1);
-        changed = true;
-    }
-
-    /* Запоминаем последний выделенный смайлик для shift+ЛКМ */
-    if (selected) {
-        this._lastSelectedSmileId = smile.id;
-    } else if (this._selectedSmileIds.length === 0 || this._lastSelectedSmileId === smile.id) {
-        this._lastSelectedSmileId = null;
-    }
-
-    /* Оповещаем слушателей события о данном событии */
-    if (changed && !noEvent) {
-        if (selected) {
-            this._selectUpdated([smile.id], []);
-        } else {
-            this._selectUpdated([], [smile.id]);
-        }
-    }
-
-    return changed;
-};
-
-
-Collection.prototype.toggleSelected = function(id) {
-    var smile = this._smiles[id];
-    if (!smile) {
-        return false;
-    }
-    return this.setSelected(smile.id, !smile.selected);
-};
-
-
-Collection.prototype.selectAll = function(withDragged) {
-    var smile;
-    if (this._currentGroupId === null) {
-        return false;
-    }
-
-    var smiles = Array.prototype.slice.apply(this._groups[this._currentGroupId].smileIds);
-    if (smiles.length < 1) {
-        return true;
-    }
-    var selectedSmiles = [];
-    var addedSmiles = [];
-
-    for (var i = 0; i < smiles.length; i++) {
-        smile = this._smiles[smiles[i]];
-        if (!withDragged && smile.dragged) {
-            continue;
-        }
-        selectedSmiles.push(smile.id);
-        if (smile.selected) {
-            continue;
-        }
-        addedSmiles.push(smile.id);
-        smile.selected = true;
-        if (smile.groups[this._currentGroupId]) {
-            smile.groups[this._currentGroupId].classList.add('selected');
-        }
-    }
-
-    if (addedSmiles.length < 1) {
-        return true;
-    }
-
-    this._selectedSmileIds = selectedSmiles;
-    this._lastSelectedSmileId = selectedSmiles[selectedSmiles.length - 1];
-
-    this._selectUpdated(addedSmiles, []);
-
-    return true;
-};
-
-
-Collection.prototype.deselectAll = function() {
-    var smile;
-    if (this._currentGroupId === null || this._selectedSmileIds.length === 0) {
-        return false;
-    }
-
-    var deselectedSmiles = Array.prototype.slice.apply(this._selectedSmileIds);
-
-    for (var i = 0; i < deselectedSmiles.length; i++) {
-        smile = this._smiles[deselectedSmiles[i]];
-        smile.selected = false;
-        if (smile.groups[this._currentGroupId]) {
-            smile.groups[this._currentGroupId].classList.remove('selected');
-        }
-    }
-
-    this._selectedSmileIds = [];
-    this._lastSelectedSmileId = null;
-
-    this._selectUpdated([], deselectedSmiles);
-
-    return true;
-};
-
-
-Collection.prototype.getDropPosition = function() {
-    return this._smileMovePosId;
-};
-
-
-Collection.prototype.getLastInternalIds = function() {
-    return [this._lastIds, this._lastCreatedSmileId];
-};
-
-
-Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId) {
-    for (var i = 0; i < this._depth; i++) {
-        this._lastIds[i] = parseInt(lastIds[i]);
-    }
-    this._lastCreatedSmileId = parseInt(lastSmileId);
-};
-
-
-Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
-    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
-        return null;
-    }
-    var category = this._categories[level][categoryId];
-    if (!category) {
-        return null;
-    }
-
-    var info = {
-        name: category.name,
-        description: category.description,
-        icon: !category.iconUrl ? null : {
-            id: category.iconId !== null ? parseInt(category.iconId) : null,
-            url: (!options || !options.withoutIconUrl) ? category.iconUrl : undefined
-        }
-    };
-
-    if (!options || !options.short) {
-        info.level = category.level;
-    }
-    if (!options || !options.withoutIds) {
-        info.id = category.id;
-    }
-    if (options && options.withGroupId) {
-        info.groupId = category.groupId;
-    }
-
-    return info;
-};
-
-
-Collection.prototype.getCategoryIdsWithSmiles = function() {
-    var result = [];
-    for (var level = 0; level < this._depth; level++) {
-        for (var id in this._categories[level]) {
-            if (this._categories[level][id].groupId !== null) {
-                result.push([level, id]);
-            }
-        }
-    }
-    return result;
-};
-
-
-Collection.prototype.getCategoriesWithHierarchy = function(options) {
-    var root = [];
-    var items = [];
-    var level, item, id;
-
-    for (level = 0; level < this._depth; level++) {
-        items.push({});
-
-        for (id in this._categories[level]) {
-            item = this.getCategoryInfo(level, id, options);
-
-            if (level + 1 < this._depth) {
-                item[this.hierarchy[level + 1][0]] = [];
-            }
-
-            if (level > 0) {
-                items[level - 1][this._categories[level][id].parentId][this.hierarchy[level][0]].push(item);
-            } else {
-                root.push(item);
-            }
-            items[level][item.id] = item;
-        }
-    }
-
-    return root;
-};
-
-
-Collection.prototype.getCategoryIds = function() {
-    var result = [];
-    var parse = function(x) {return parseInt(x, 10);};
-    for (var i = 0; i < this._categories.length; i++){
-        var ids = Object.keys(this._categories[i]).map(parse);
-        Array.prototype.push(ids);
-    }
-    return result;
 };
 
 
@@ -1321,33 +987,187 @@ Collection.prototype.getLevelSmileIds = function(level) {
 };
 
 
-Collection.prototype.getSelectedCategory = function(level) {
-    return this._selectedIds[level];
+/* Smiles moving and selection */
+
+
+Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
+    if (groupId === undefined) {
+        groupId = this._currentGroupId;
+    }
+    var group = this._groups[groupId];
+    if (!group) {
+        return false;
+    }
+
+    if (smileId == beforeSmileId) {
+        return false;
+    }
+    var smile = this._smiles[smileId];
+    var beforeSmile = beforeSmileId !== null ? this._smiles[beforeSmileId] : null;
+    /* beforeSmile null - перемещаем смайлик в конец; undefined - не перемещаем, ибо смайлик не нашелся */
+    if (!smile || beforeSmileId !== null && !beforeSmile) {
+        return false;
+    }
+    /* За пределы группы не перемещаем */
+    if (beforeSmile && !beforeSmile.groups[group.id]) {
+        return false;
+    }
+
+    var i = group.smileIds.indexOf(smile.id);
+    /* Не забываем пересортировать айдишники в группе */
+    if (i >= 0) {
+        group.smileIds.splice(i, 1);
+    }
+
+    if (beforeSmile) {
+        /* Перемещаем смайлик перед указанным */
+        if (group.dom) {
+            group.dom.insertBefore(smile.groups[group.id], beforeSmile.groups[group.id]);
+        }
+        i = group.smileIds.indexOf(beforeSmile.id);
+        group.smileIds.splice(i, 0, smile.id);
+    } else {
+        /* Перемещаем смайлик в конец */
+        if (group.dom) {
+            group.dom.appendChild(smile.groups[group.id]);
+        }
+        group.smileIds.push(smile.id);
+    }
+
+    return true;
 };
 
 
-Collection.prototype.getCurrentGroupId = function() {
-    return this._currentGroupId;
+Collection.prototype.getDragged = function(id) {
+    var smile = this._smiles[id];
+    return smile ? smile.dragged : null;
 };
 
 
-Collection.prototype.getGroupOfCategory = function(level, categoryId) {
-    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
-        return null;
+Collection.prototype.setDragged = function(id, dragged) {
+    var smile = this._smiles[id];
+    if (!smile) {
+        return false;
     }
-    var category = this._categories[level][categoryId];
-    return category ? category.groupId : null;
+    if (smile.dragged != dragged) {
+        smile.dragged = !smile.dragged;
+        for (var groupId in smile.groups) {
+            if (smile.groups[groupId] === null) {
+                continue;
+            }
+            smile.groups[groupId].classList.toggle('dragged');
+        }
+    }
+    return true;
 };
 
 
-Collection.prototype.getParentId = function(level, categoryId) {
-    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
-        return null;
+Collection.prototype.getSelected = function(id) {
+    var smile = this._smiles[id];
+    return smile ? smile.selected : null;
+};
+
+
+Collection.prototype.setSelected = function(id, selected) {
+    var smile = this._smiles[id];
+    /* Смайлики в скрытых группах не выделяем */
+    if (this._currentGroupId === null) {
+        return false;
     }
-    if (!this._categories[level][categoryId]) {
-        return null;
+    /* Смайлики, которые невозможно выделить, тоже не выделяем */
+    if (!smile || selected && smile.groups[this._currentGroupId] === undefined) {
+        return false;
     }
-    return this._categories[level][categoryId].parentId;
+    /* Если нам запрещено выделять перемещённые смайлики, то не выделяем */
+    if (selected && smile.dragged && !this.options.selectableDragged) {
+        return false;
+    }
+
+    /* После всех проверок применяем выделение */
+    this._setSelectedRaw(smile.id, selected);
+
+    return true;
+};
+
+
+Collection.prototype.toggleSelected = function(id) {
+    var smile = this._smiles[id];
+    if (!smile) {
+        return false;
+    }
+    return this.setSelected(smile.id, !smile.selected);
+};
+
+
+Collection.prototype.selectAll = function(withDragged) {
+    var smile;
+    if (this._currentGroupId === null) {
+        return false;
+    }
+
+    var smiles = Array.prototype.slice.apply(this._groups[this._currentGroupId].smileIds);
+    if (smiles.length < 1) {
+        return true;
+    }
+    var selectedSmiles = [];
+    var addedSmiles = [];
+
+    for (var i = 0; i < smiles.length; i++) {
+        smile = this._smiles[smiles[i]];
+        if (!withDragged && smile.dragged) {
+            continue;
+        }
+        selectedSmiles.push(smile.id);
+        if (smile.selected) {
+            continue;
+        }
+        addedSmiles.push(smile.id);
+        smile.selected = true;
+        if (smile.groups[this._currentGroupId]) {
+            smile.groups[this._currentGroupId].classList.add('selected');
+        }
+    }
+
+    if (addedSmiles.length < 1) {
+        return true;
+    }
+
+    this._selectedSmileIds = selectedSmiles;
+    this._lastSelectedSmileId = selectedSmiles[selectedSmiles.length - 1];
+
+    this._selectUpdated(addedSmiles, []);
+
+    return true;
+};
+
+
+Collection.prototype.deselectAll = function() {
+    var smile;
+    if (this._currentGroupId === null || this._selectedSmileIds.length === 0) {
+        return false;
+    }
+
+    var deselectedSmiles = Array.prototype.slice.apply(this._selectedSmileIds);
+
+    for (var i = 0; i < deselectedSmiles.length; i++) {
+        smile = this._smiles[deselectedSmiles[i]];
+        smile.selected = false;
+        if (smile.groups[this._currentGroupId]) {
+            smile.groups[this._currentGroupId].classList.remove('selected');
+        }
+    }
+
+    this._selectedSmileIds = [];
+    this._lastSelectedSmileId = null;
+
+    this._selectUpdated([], deselectedSmiles);
+
+    return true;
+};
+
+
+Collection.prototype.getDropPosition = function() {
+    return this._smileMovePosId;
 };
 
 
@@ -1374,6 +1194,230 @@ Collection.prototype.typeOfElement = function(element) {
 
 
 /* private */
+
+
+Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
+    var item = this._categories[level][categoryId];
+
+    var btn = document.createElement('a');
+    btn.className = 'tab-btn';
+    btn.dataset.id = categoryId.toString();
+    btn.dataset.level = level.toString();
+    btn.href = (!this.options.useCategoryLinks || level < this._depth - 1) ? '#' : ('#' + categoryId);
+    btn.title = item.description || '';
+    if (item.iconUrl) {
+        var icon = document.createElement('img');
+        icon.src = item.iconUrl;
+        icon.className = 'tab-icon';
+        icon.dataset.id = item.iconId;
+        btn.appendChild(icon);
+    }
+    btn.appendChild(document.createTextNode(item.name));
+
+    if (this.options.editable) {
+        var actions = document.createElement('span');
+        actions.className = 'actions';
+
+        var editbtn = document.createElement('a');
+        editbtn.className = 'action-btn action-edit';
+        editbtn.dataset.action = 'edit';
+        actions.appendChild(editbtn); 
+
+        var delbtn = document.createElement('a');
+        delbtn.className = 'action-btn action-delete';
+        delbtn.dataset.action = 'delete';
+        actions.appendChild(delbtn);
+
+        btn.appendChild(actions);
+    }
+
+    if (save) {
+        if (level > 0) {
+            var parent = this._categories[level - 1][item.parentId];
+            if (!parent.childrenDom) {
+                parent.childrenDom = this._buildDomTabs(level, item.parentId);
+            }
+            parent.childrenIds.push(categoryId);
+            parent.childrenDom.appendChild(btn);
+        } else {
+            this._rootChildren.push(categoryId);
+            this._dom.rootCategories.appendChild(btn);
+        }
+        item.dom = btn;
+    }
+    return btn;
+};
+
+
+Collection.prototype._showGroupNow = function(groupId) {
+    if (this._currentGroupId === groupId) {
+        return true;
+    }
+    this.setLoadingVisibility(false);
+
+    /* Прибираем за предыдущей группой */
+    var currentGroup = null; 
+    if (this._currentGroupId !== null) {
+        currentGroup = this._groups[this._currentGroupId];
+        this.deselectAll();
+        currentGroup.dom.style.display = 'none';
+        this._dom.container.classList.remove(currentGroup.openedClass);
+    }
+
+    /* Если новой группы нет, то прячем всё до конца */
+    if (groupId === undefined || groupId === null) {
+        if (currentGroup !== null) {
+            this._currentGroupId = null;
+            this._currentCategory = null;
+            this._dom.message.textContent = '';
+        }
+        return true;
+    }
+
+    var group = this._groups[groupId];
+
+    /* Если новую группу открывают первый раз, то собираем DOM */
+    if (!group.dom) {
+        group.dom = document.createElement('div');
+        group.dom.className = 'smiles-list';
+        this._dom.smilesContainer.appendChild(group.dom);
+
+        for (var i = 0; i < group.smileIds.length; i++) {
+            this._addSmileDom(group.smileIds[i], group.id);
+        }
+    }
+
+    /* Показываем */
+    group.dom.style.display = '';
+    this._dom.container.classList.add(group.openedClass);
+    this._dom.message.textContent = group.description || '';
+
+    /* Запоминаем, что показали */
+    this._currentGroupId = group.id;
+    /* Если группа привязана к категории, то её тоже запоминаем */
+    if (group.categoryId !== null) {
+        this._currentCategory = [group.categoryLevel, group.categoryId];
+    } else {
+        this._currentCategory = null;
+    }
+
+    /* Собираем информацию для уведомления и уведомляем */
+    var options = {groupId: group.id};
+    if (this._currentCategory !== null) {
+        options.categoryLevel = this._currentCategory[0];
+        options.categoryId = this._currentCategory[1];
+    }
+    this.callListeners('onchange', [options]);
+
+    return true;
+};
+
+
+Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
+    var item = this._smiles[smile_id];
+    var group = this._groups[groupId];
+    if (item.groups[groupId] || group.smileIds.indexOf(item.id) < 0) {
+        return false;
+    }
+
+    var img = document.createElement('img');
+    img.alt = "";
+    img.title = (item.tags || []).join(", ") || item.description || item.url;
+    img.width = item.width;
+    img.height = item.height;
+    img.classList.add('smile');
+    img.dataset.id = item.id.toString();
+    img.dataset.groupId = group.id.toString();
+
+    if (!nolazy) {
+        img.classList.add('smile-loading');
+    }
+    if (item.dragged) {
+        img.classList.add('dragged');
+    }
+    if (item.selected && this._currentGroupId == group.id) {
+        img.classList.add('selected');
+    }
+
+    if (!nolazy) {
+        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+        img.dataset.src = item.url;
+        group.lazyQueue.push(smile_id);
+        // TODO: optimize for multiple _addSmileDom calls
+        if (this._lazyCategoriesQueue.indexOf(group.id) < 0) {
+            this._lazyCategoriesQueue.push(group.id);
+        }
+    } else {
+        img.src = item.url;
+    }
+
+    group.dom.appendChild(img);
+    item.groups[group.id] = img;
+    if (!nolazy && this._lazyProcessing < this._lazyStep) {
+        this._lazyNext();
+    }
+    return true;
+};
+
+
+Collection.prototype._removeSmileRaw = function(id) {
+    var smile = this._smiles[id];
+    var group, i;
+    for (var groupId in smile.groups) {
+        group = this._groups[groupId];
+        if (smile.groups[groupId]) {
+            group.dom.removeChild(smile.groups[groupId]);
+        }
+
+        i = group.smileIds.indexOf(smile.id);
+        if (i >= 0) {
+            group.smileIds.splice(i, 1);
+        }
+    }
+    delete this._smiles[id];
+};
+
+
+Collection.prototype._setSelectedRaw = function(id, selected, noEvent) {
+    var smile = this._smiles[id];
+    var changed = false;
+
+    /* Переключаем выделение */
+    if (smile.selected != selected) {
+        smile.selected = !smile.selected;
+        if (smile.groups[this._currentGroupId]) {
+            smile.groups[this._currentGroupId].classList.toggle('selected');
+        }
+    }
+
+    /* Обновляем список выделенных смайликов */
+    var i = this._selectedSmileIds.indexOf(smile.id);
+    if (selected && i < 0) {
+        this._selectedSmileIds.push(smile.id);
+        changed = true;
+    } else if (!selected && i >= 0) {
+        this._selectedSmileIds.splice(i, 1);
+        changed = true;
+    }
+
+    /* Запоминаем последний выделенный смайлик для shift+ЛКМ */
+    if (selected) {
+        this._lastSelectedSmileId = smile.id;
+    } else if (this._selectedSmileIds.length === 0 || this._lastSelectedSmileId === smile.id) {
+        this._lastSelectedSmileId = null;
+    }
+
+    /* Оповещаем слушателей события о данном событии */
+    if (changed && !noEvent) {
+        if (selected) {
+            this._selectUpdated([smile.id], []);
+        } else {
+            this._selectUpdated([], [smile.id]);
+        }
+    }
+
+    return changed;
+};
 
 
 Collection.prototype._selectUpdated = function(added, removed) {
@@ -1423,6 +1467,7 @@ Collection.prototype._buildDomTabs = function(level, categoryId) {
 
     return tabs;
 };
+
 
 /* events */
 
@@ -1476,7 +1521,7 @@ Collection.prototype._onclick = function(event) {
     }
 
     if (categoryLevel !== null) {
-        if (!this.set(categoryLevel, categoryId)) {
+        if (!this.selectCategory(categoryLevel, categoryId)) {
             return;
         }
         event.preventDefault();
