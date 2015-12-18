@@ -3,9 +3,38 @@
 var dragdrop = require('../dragdrop.js');
 
 
-/*
+/**
  * Виджет с коллекцией смайликов с неограниченным уровнем вложенности.
  * Формат hierarchy: [[атрибут со списком элементов, атрибут с id элемента, человекочитаемое название уровня], ...]
+ * @class
+ * @param  {Array.<string[]>}  hierarchy
+           Уровни категорий
+ * @param  {Object}            [options]
+           Дополнительные параметры
+ * @param  {Object}            [options.classes]
+           Позволяет переопределить CSS-классы, используемые для некоторых элементов
+ * @param  {HTMLElement}       [options.container=null]
+           DOM-элемент, в который будет помещена коллекция; при отсутствии он будет создан и его можно будет получить через getDOM()
+ * @param  {boolean}           [options.editable=false]
+           При true категории и смайлики могут редактироваться пользователем (добавляются соответствующие DOM-элементы)
+ * @param  {function}          [options.get_smiles_func]
+           Функция, которая будет вызвана перед отображением пустой категории или группы
+ * @param  {number}            [options.lazyStep]
+           По сколько смайликов за раз подгружать (по умолчанию для Chrome 15, для других браузеров 3)
+ * @param  {string}            [options.message]
+           Сообщение по умолчанию, отображаемое под категориями и над смайликами (можно задать через html-код, передав container)
+ * @param  {function}          [options.onaction]
+           Обработчик события onaction (выполнение какого-либо действия пользователем с категорией или смайликом) (можно задать через subscribe)
+ * @param  {function}          [options.onchange]
+           Обработчик события onchange (отображение другой категории или групы) (можно задать через subscribe)
+ * @param  {function}          [options.ondropto]
+           Обработчик события ondropto (drag&drop бросание смайлика на эту коллекцию)
+ * @param  {boolean}           [options.selectable=false]
+           Можно ли выделять смайлики через ЛКМ
+ * @param  {boolean}           [options.selectableDragged=false]
+           Можно ли выделять смайлики, помеченные как перемещённые
+ * @param  {boolean}           [options.useCategoryLinks=false]
+           При true кнопкам категорий со смайликами будут добавлены якоря на их ID
  */
 var Collection = function(hierarchy, options) {
     this.hierarchy = hierarchy;
@@ -162,6 +191,10 @@ Collection.prototype._initDOMTabs = function() {
 };
 
 
+/**
+ * Возвращает корневой DOM-элемент коллекции для его добавления на страницу.
+ * @return {HTMLElement}
+ */
 Collection.prototype.getDOM = function() {
     return this._dom.container;
 };
@@ -170,6 +203,11 @@ Collection.prototype.getDOM = function() {
 /* Collection management */
 
 
+/**
+ * Подписка на какое-либо из событий.
+ * @param  {string}   event    Название события
+ * @param  {function} callback Функция, которая будет вызвана, когда событие случится
+ */
 Collection.prototype.subscribe = function(event, callback) {
     if (this._eventListeners[event] === undefined) {
         throw new Error("Unknown event " + event);
@@ -178,6 +216,11 @@ Collection.prototype.subscribe = function(event, callback) {
 };
 
 
+/**
+ * Вызывает все функции, подписавшиеся на событие. В качестве this выступает сам объект коллекции.
+ * @param  {string} event Событие, подписчики которого будут вызваны
+ * @param  {Array}  args  Аргументы, которые будут переданы вызываемым функциям
+ */
 Collection.prototype.callListeners = function(event, args) {
     var funcs = this._eventListeners[event];
     for (var i = 0; i < funcs.length; i++) {
@@ -186,26 +229,43 @@ Collection.prototype.callListeners = function(event, args) {
 };
 
 
+/**
+ * Создаёт категории согласно переданной иерархии.
+ * @param  {Object} items
+ */
 Collection.prototype.loadData = function(items) {
     this._loadDataLevel(items[this.hierarchy[0][0]], 0, 0);
 };
 
 
+/**
+ * @return {boolean} true, если блок с вкладками категорий отображается
+ */
 Collection.prototype.isTabsVisible = function() {
     return this._dom.tabsContainer.style.display != 'none';
 };
 
 
+/**
+ * Показывает или скрывает блок с вкладками категорий
+ * @param {boolean} visible
+ */
 Collection.prototype.setTabsVisibility = function(visible) {
     this._dom.tabsContainer.style.display = visible ? '' : 'none';
 };
 
 
+/**
+ * @return {boolean} Если установлен класс smiles-processing, возвращает true
+ */
 Collection.prototype.getLoadingVisibility = function() {
     return this._dom.container.classList.contains('smiles-processing');
 };
 
 
+/**
+ * Устанавливает или убирает класс smiles-processing, который используется для обозначения подгрузки смайликов.
+ */
 Collection.prototype.setLoadingVisibility = function(isLoading) {
     if (this._dom.container.classList.contains('smiles-processing') !== isLoading) {
         this._dom.container.classList.toggle('smiles-processing');
@@ -229,6 +289,20 @@ Collection.prototype.setLastInternalIds = function(lastIds, lastSmileId) {
 /* Categories and groups management */
 
 
+/**
+ * Создаёт новую категорию. Нумерация категорий на разных уровнях независима друг от друга.
+ * @param  {number} level              Уровень, на котором нужно добавить категорию
+ * @param  {?number} parentId          ID родительской категории (должна находиться на уровне level - 1;
+                                       если уровень 0, то родителя нет и аргумент игнорируется)
+ * @param  {Object} item               Объект с информацией о категории
+ * @param  {number} [item.id]          ID категории (при отсутствии сгенерируется автоматически отрицательное число)
+ * @param  {string} item.name          Название категории
+ * @param  {string} [item.description] Описание категории
+ * @param  {Object} [item.icon]        Иконка категории
+ * @param  {number} item.icon.id       ID иконки
+ * @param  {string} item.icon.url      Ссылка на изображение иконки
+ * @return {?number}                   ID созданной категории или null в случае проблем
+ */
 Collection.prototype.addCategory = function(level, parentId, item) {
     var parentLevel = level - 1;
     var parent = level > 0 ? this._categories[parentLevel][parentId] : null;
@@ -237,7 +311,7 @@ Collection.prototype.addCategory = function(level, parentId, item) {
     }
 
     var id = item.id;
-    if (id === undefined || item.id === null) {
+    if (id === undefined || id === null) {
         this._lastIds[level]--;
         id = this._lastIds[level];
     }
@@ -262,6 +336,14 @@ Collection.prototype.addCategory = function(level, parentId, item) {
 };
 
 
+/**
+ * Редактирует категорию.
+ * @param  {number} level      Уровень, на котором находится категория
+ * @param  {number} categoryId ID категории
+ * @param  {Object} item       Объект с новой информацией о категории (можно передать только изменяемые поля категории, необязательно все),
+                               формат аналогичен формату в addCategory
+ * @return {?number}           ID категории или null в случае проблем
+ */
 Collection.prototype.editCategory = function(level, categoryId, item) {
     if (level < 0 || level >= this._depth || !this._categories[level][categoryId]) {
         return null;
@@ -289,6 +371,12 @@ Collection.prototype.editCategory = function(level, categoryId, item) {
 };
 
 
+/**
+ * Удаляет категорию, связанную с ней группу и все дочерние категории (при их наличии).
+ * @param  {number} level      Уровень, на котором находится удаляемая категория
+ * @param  {number} categoryId ID удаляемой категории
+ * @return {?number[]}         ID смайликов, которые были привязаны к категориям, или null в случае проблем
+ */
 Collection.prototype.removeCategory = function(level, categoryId) {
     if (level < 0 || level >= this._depth) {
         return null;
@@ -353,6 +441,13 @@ Collection.prototype.removeCategory = function(level, categoryId) {
 };
 
 
+/**
+ * Создаёт группу смайликов.
+ * @param  {Object} item                               Объект группы
+ * @param  {string} [item.openedClass='smiles-opened'] CSS-класс, который будет добавлен к DOM коллекции, когда эта группа будет отображена
+ * @param  {string} [item.description='']              Описание группы
+ * @return {number}                                    ID созданной группы
+ */
 Collection.prototype.createGroup = function(item) {
     var groupId = ++this._lastGroupId;
     item = item || {};
@@ -370,6 +465,13 @@ Collection.prototype.createGroup = function(item) {
 };
 
 
+/**
+ * Создаёт группу смайликов для категории.
+ * @param  {number} categoryLevel Уровень, на котором находится категория, для которой создаётся группа
+ * @param  {number} categoryId    ID категории
+ * @param  {Object} [item]        Объект группы, формат аналогичен формату в функции createGroup
+ * @return {?number}              ID созданной группы или null в случае проблем
+ */
 Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId, item) {
     var category = this._categories[categoryLevel][categoryId];
     if (!category || category.groupId !== null) {
@@ -393,6 +495,11 @@ Collection.prototype.createGroupForCategory = function(categoryLevel, categoryId
 };
 
 
+/**
+ * Удаляет группу. Все смайлики, входящие в группу отвязываются от неё, но не удаляются.
+ * @param  {number} groupId ID группы
+ * @return {?number[]}      Массив ID смайликов группы или null в случае проблем
+ */
 Collection.prototype.removeGroup = function(groupId) {
     var group = this._groups[groupId];
     if (!group) {
@@ -416,6 +523,16 @@ Collection.prototype.removeGroup = function(groupId) {
 };
 
 
+/**
+ * Выбирает категорию и обновляет отображение в блоке категорий.
+ * Если категория привязана к группе, то она тоже отображается.
+ * Но если в группе нет смайликов и она ни разу не отображалась, то будет вызван get_smiles_func, а отображение отложено.
+ * Вызванная функция должна будет повторить вызов selectCategory или selectGroup после добавлния смайликов.
+ * @param  {number}  level         Уровень, на котором находится категория
+ * @param  {number}  categoryId    ID категории
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @return {boolean}               true при успешном переключении (в том числе отложенном)
+ */
 Collection.prototype.selectCategory = function(level, categoryId, force) {
     if (level < 0 || level >= this._depth) {
         return false;
@@ -472,6 +589,13 @@ Collection.prototype.selectCategory = function(level, categoryId, force) {
 };
 
 
+/**
+ * Отображает смайлики указанной категории. Обёртка над showGroup.
+ * @param  {number}  level         Уровень, на котором находится категория
+ * @param  {number}  categoryId    ID категории
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @return {boolean}               true при успехе
+ */
 Collection.prototype.showCategory = function(level, categoryId, force) {
     if (categoryId === undefined || categoryId === null) {
         return this._showGroupNow(null);
@@ -493,6 +617,13 @@ Collection.prototype.showCategory = function(level, categoryId, force) {
 };
 
 
+/**
+ * Отображает группу смайликов.
+ * Если в группе нет смайликов и она ни разу не отображалась, то будет вызван get_smiles_func, а отображение отложено с возвратом true.
+ * @param  {number}  groupId       ID отображаемой группы
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @return {boolean}               true при успешном переключении
+ */
 Collection.prototype.showGroup = function(groupId, force) {
     if (groupId === undefined || groupId === null) {
         return this._showGroupNow(null);
@@ -543,6 +674,17 @@ Collection.prototype.showGroup = function(groupId, force) {
 };
 
 
+/**
+ * Возвращает информацию о категории.
+ * @param  {number}  level                          Уровень, на котором находится категория
+ * @param  {number}  categoryId                     ID категории
+ * @param  {Object}  [options]                      Дополнительные параметры возвращаемого объекта
+ * @param  {boolean} [options.withoutIconUrl=false] Не добавлять url в поле icon
+ * @param  {boolean} [options.short=false]          Не добавлять уровень категории
+ * @param  {boolean} [options.withoutIds=false]     Не добавлять ID категории
+ * @param  {boolean} [options.withGroupId=false]    Добавить ID группы, к которой привязана категория
+ * @return {?Object}                                Объект с информацией о группе (name, description, icon) или null в случае проблем
+ */
 Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
@@ -575,6 +717,10 @@ Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
 };
 
 
+/**
+ * Возвращает ID категорий, привязанных к группам (возможно пустым).
+ * @return {Array.<id[]>} Массив категорий в формате [level, id]
+ */
 Collection.prototype.getCategoryIdsWithSmiles = function() {
     var result = [];
     for (var level = 0; level < this._depth; level++) {
@@ -588,6 +734,11 @@ Collection.prototype.getCategoryIdsWithSmiles = function() {
 };
 
 
+/**
+ * Возвращает категории с учётом иерархии.
+ * @param  {Object} [options] Дополнительные параметры, передаваемые в getCategoryInfo
+ * @return {Object[]}         Массив категорий верхнего уровня (у каждой есть поле с потомками, названное согласно hierarchy)
+ */
 Collection.prototype.getCategoriesWithHierarchy = function(options) {
     var root = [];
     var items = [];
@@ -616,6 +767,10 @@ Collection.prototype.getCategoriesWithHierarchy = function(options) {
 };
 
 
+/**
+ * Возвращает ID всех существующих категорий по уровням.
+ * @return {Array<number[]>}
+ */
 Collection.prototype.getCategoryIds = function() {
     var result = [];
     var parse = function(x) {return parseInt(x, 10);};
@@ -627,16 +782,32 @@ Collection.prototype.getCategoryIds = function() {
 };
 
 
+/**
+ * Возвращает ID категории, выбранной на данном уровне в блоке категорий.
+ * Может не совпадать с категорией, смайлики которой отобржаются в данный момент (если отображаются).
+ @param  {number} level
+ @return {?number}
+ */
 Collection.prototype.getSelectedCategory = function(level) {
     return this._selectedIds[level];
 };
 
 
+/**
+ * Возвращает ID отображаемой сейчас группы смайликов.
+ * @return {?number}
+ */
 Collection.prototype.getCurrentGroupId = function() {
     return this._currentGroupId;
 };
 
 
+/**
+ * Возвращает ID группы, к которой привязана категория (или null, если не привязана).
+ @param  {number} level      Уровень, на котором находится категория
+ @param  {number} categoryId ID категории
+ @return {?number} ID группы
+ */
 Collection.prototype.getGroupOfCategory = function(level, categoryId) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
@@ -646,6 +817,12 @@ Collection.prototype.getGroupOfCategory = function(level, categoryId) {
 };
 
 
+/**
+ * Возвращает ID родительской категории.
+ @param  {number} level      Уровень, на котором находится категория, родителя которой выясняем
+ @param  {number} categoryId ID категории
+ @return {?number}           ID категории или null, если категория на самом верхнем уровне
+ */
 Collection.prototype.getParentId = function(level, categoryId) {
     if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
         return null;
@@ -660,6 +837,24 @@ Collection.prototype.getParentId = function(level, categoryId) {
 /* Smiles management */
 
 
+/**
+ * Добавляет смайлик (с привязкой к группе или без).
+ * @param  {Object}   item
+ * @param  {number}   [item.id]             ID смайлика, при отсутствии автоматически задаётся отрицательное число
+ * @param  {string}   item.url              Ссылка на изображение
+ * @param  {number}   item.w                Ширина изображения в пикселях
+ * @param  {number}   item.h                Высота изображения в пикселях
+ * @param  {string}   [item.description=''] Описание смайлика
+ * @param  {string[]} [item.tags=[]]        Теги смайлика
+ * @param  {boolean}  [item.dragged=false]  true, если смайлик перемещён
+ * @param  {boolean}  [item.selected=false] true, если смайлик выделен
+ * @param  {number[]} [item.groupIds]       ID групп, в которые добавить смайлик (должен быть пустым при добавлении в категорию)
+ * @param  {number}   [item.categoryLevel]  Уровень категории, в который добавить смайлик
+ * @param  {number}   [item.categoryId]     ID категории, в который добавить смайлик
+ * @param  {boolean}  [nolazy=false]        Если true, то атрибут src картинки будет установлен сразу же
+           (по умолчанию откладывается на потом, чтобы Firefox не зависал)
+ * @return {?number}                        ID смайлика или null в случае проблем
+ */
 Collection.prototype.addSmile = function(item, nolazy) {
     if (!item) {
         return null;
@@ -709,18 +904,18 @@ Collection.prototype.addSmile = function(item, nolazy) {
     this._smiles[id] = {
         id: id,
         groups: {},
-        categoryLevel: categoryLevel,
-        categoryId: categoryId,
+        categoryLevel: null,
+        categoryId: null,
         url: item.url,
         description: item.description,
-        tags: item.tags,
+        tags: item.tags || [],
         width: item.w,
         height: item.h,
         dragged: item.dragged || false,
         selected: item.selected || false
     };
 
-    /* Добавляем в группы */
+    /* Добавляем в группы (привязка к категории здесь же) */
     for (i = 0; i < groupIds.length; i++) {
         this.addSmileToGroup(id, groupIds[i], nolazy);
     }
@@ -738,6 +933,16 @@ Collection.prototype.addSmile = function(item, nolazy) {
 };
 
 
+/**
+ * Добавляет смайлик, если он ещё не существует (проверка по id и url).
+ * Если указанного id коллекция не знает, то создаётся новый смайлик и возвращается его id.
+ * Если id и url совпадают с существующим смайликом, возвращается его id.
+ * Если id указан, но url не совпадает с url существующего смайлика, то выбрасывается исключение (Conflict).
+ * Аргументы аналогичны addSmile.
+ * @param  {Object}  item
+ * @param  {boolean} [nolazy=false]
+ * @return {?number} ID нового или существующего смайлика или null при проблемах (кроме конфликта)
+ */
 Collection.prototype.addSmileIfNotExists = function(item, nolazy) {
     if (item.id !== undefined && item.id !== null && this._smiles[item.id]) {
         if (this._smiles[item.id].url !== item.url) {
@@ -756,6 +961,13 @@ Collection.prototype.addSmileIfNotExists = function(item, nolazy) {
 };
 
 
+/**
+ * Добавляет смайлик в указанную группу смайликов.
+ * @param  {number} smileId         ID смайлика
+ * @param  {number} groupID         ID группы
+ * @param  {boolean} [nolazy=false] Если true, то атрибут src картинки будет установлен сразу же
+ * @return {boolean}                true при успехе
+ */
 Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
     var smile = this._smiles[smileId];
     var group = this._groups[groupId];
@@ -779,19 +991,32 @@ Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
 };
 
 
-Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categoryId) {
+/**
+ * Добавляет смайлик в указанную категорию (привязанную к группе). Обёртка над addSmileToGroup.
+ * @param  {number} smileId         ID смайлика
+ * @param  {number} categoryLevel   Уровень, на котором находится категория
+ * @param  {number} categoryID      ID категории
+ * @param  {boolean} [nolazy=false] Если true, то атрибут src картинки будет установлен сразу же
+ * @return {boolean}                true при успехе
+ */
+Collection.prototype.addSmileToCategory = function(smileId, categoryLevel, categoryId, nolazy) {
     var smile = this._smiles[smileId];
     var category = this._categories[categoryLevel][categoryId];
     if (!smile || !category || category.groupId === null) {
         return false;
     }
-    if (!this.addSmileToGroup(smile.id, category.groupId)) {
+    if (!this.addSmileToGroup(smile.id, category.groupId, nolazy)) {
         return false;
     }
     return true;
 };
 
 
+/**
+ * Полностью удаляет смайлик из коллекции, с отвязыванием от всех групп.
+ * @param  {number} id ID удаляемого смайлика
+ * @return {boolean}   true при успехе
+ */
 Collection.prototype.removeSmile = function(id) {
     if (!this._smiles[id]) {
         return false;
@@ -809,11 +1034,17 @@ Collection.prototype.removeSmile = function(id) {
     }
 
     this._removeSmileRaw(id);
+    // FIXME: lazy queue?
 
     return true;
 };
 
 
+/**
+ * Полностью удаляет смайлики из коллекции, с отвязыванием от всех групп.
+ * @param  {number[]} smileIds ID удаляемых смайликов
+ * @return {number[]}          ID успешно удалённых смайликов
+ */
 Collection.prototype.removeManySmiles = function(smileIds) {
     var reallyDeleted = [];
     var id, j;
@@ -842,6 +1073,12 @@ Collection.prototype.removeManySmiles = function(smileIds) {
 };
 
 
+/**
+ * Отвязывает смайлик от указанной группы.
+ * @param  {number} id      ID смайлика
+ * @param  {number} groupId ID группы
+ * @return {?number}        При успехе — число групп, к которым смайлик всё ещё привязан (при 0 может быть смысл в вызове removeSmile)
+ */
 Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     var smile = this._smiles[id];
     if (!smile) {
@@ -882,11 +1119,23 @@ Collection.prototype.removeSmileFromGroup = function(id, groupId) {
 };
 
 
+/**
+ * @param  {number} smileId
+ * @return {boolean} true, если смайлик с таким ID существует
+ */
 Collection.prototype.hasSmile = function(smileId) {
     return this._smiles[smileId] !== undefined;
 };
 
 
+/**
+ * Возвращает объект с информацией о смайлике.
+ * @param  {number}  smileId                    ID смайлика
+ * @param  {Object}  [options]                  Дополнительные опции
+ * @param  {boolean} [options.withoutIds=false] Не добавлять ID смайлика
+ * @param  {boolean} [options.withParent=false] Добавить уровень и ID родительской категории и все группы
+ * @return {Object}
+ */
 Collection.prototype.getSmileInfo = function(smileId, options) {
     var smile = this._smiles[smileId];
     if (!smile) {
@@ -914,6 +1163,11 @@ Collection.prototype.getSmileInfo = function(smileId, options) {
 };
 
 
+/**
+ * Возвращает ID смайлика по HTML-элементу. (Проверка через dataset.id)
+ * @param  {HTMLElement} element HTML-элемент смайлика
+ * @return {?number}             ID смайлика, если этот элемент в самом деле принадлежит смайлику
+ */
 Collection.prototype.getSmileIdByDom = function(element) {
     if (!element || !this._dom.smilesContainer.contains(element) || !element.classList.contains('smile')) {
         return null;
@@ -923,6 +1177,12 @@ Collection.prototype.getSmileIdByDom = function(element) {
 };
 
 
+/**
+ * Возвращает ID смайликов категории. Обёртка над getSmileIds.
+ * @param  {number} level      Уровень, на котором находится категория
+ * @param  {number} categoryId ID категории
+ * @return {?number[]}         Массив с ID смайликов или null при проблемах
+ */
 Collection.prototype.getSmileIdsOfCategory = function(level, categoryId) {
     if (!this._categories[level][categoryId]) {
         return null;
@@ -931,6 +1191,11 @@ Collection.prototype.getSmileIdsOfCategory = function(level, categoryId) {
 };
 
 
+/**
+ * Возвращает ID смайликов группы.
+ * @param  {number} groupId ID группы
+ * @return {?number[]}      Массив с ID смайликов или null при проблемах
+ */
 Collection.prototype.getSmileIds = function(groupId) {
     if (!this._groups[groupId]) {
         return null;
@@ -939,11 +1204,20 @@ Collection.prototype.getSmileIds = function(groupId) {
 };
 
 
+/**
+ * Возвращает ID выделенных смайликов. Все принадлежат отображаемой сейчас группе, потому что выделять скрытые смайлики нельзя.
+ * @return {number[]} ID выделенных смайликов
+ */
 Collection.prototype.getSelectedSmileIds = function() {
     return Array.prototype.slice.apply(this._selectedSmileIds);
 };
 
 
+/**
+ * Возвращает ID смайликов, рассортированные по категориям.
+ * @param  {number} [level] Уровень категорий, смайлики которой забираем (по умолчанию последний уровень как чаще всего используемый)
+ * @return {Object}         Объект {categoryId: smileId, ...}
+ */
 Collection.prototype.getAllCategorizedSmileIds = function(level) {
     var result = {};
     if (level === undefined || level === null || isNaN(level)) {
@@ -965,6 +1239,11 @@ Collection.prototype.getAllCategorizedSmileIds = function(level) {
 };
 
 
+/**
+ * Возвращает ID смайликов, принадлежащих категориям указанного уровня.
+ * @param  {number} [level] Уровень категорий, смайлики которой забираем (по умолчанию последний уровень как чаще всего используемый)
+ * @return {number[]}       ID смайликов
+ */
 Collection.prototype.getLevelSmileIds = function(level) {
     var result = [];
     if (level === undefined || level === null || isNaN(level)){
@@ -990,6 +1269,13 @@ Collection.prototype.getLevelSmileIds = function(level) {
 /* Smiles moving and selection */
 
 
+/**
+ * Перемещает смайлик перед другим смайликом (или после всех) в пределах группы.
+ * @param  {number}  smileId       ID перемещаемого смайлика
+ * @param  {?number} beforeSmileId ID смайлика, перед которым поместить (null — поместить после всех)
+ * @param  {number}  groupId       Группа, внутри которой двигаем смайлик
+ * @return {boolean}               true при успехе (в т.ч. если смайлик перемещён в то же место, где и был)
+ */
 Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
     if (groupId === undefined) {
         groupId = this._currentGroupId;
@@ -1038,12 +1324,23 @@ Collection.prototype.moveSmile = function(smileId, beforeSmileId, groupId) {
 };
 
 
+/**
+ * @param  {number}  id ID смайлика
+ * @return {boolean}    true, если смайлик помечен как перемещённый (drag&drop)
+ */
 Collection.prototype.getDragged = function(id) {
     var smile = this._smiles[id];
     return smile ? smile.dragged : null;
 };
 
 
+/**
+ * Помечает смайлик как перемещённый (используется в drag&drop).
+ * Может автоматически меняться при начале перетаскивания мышью и завершении анимации в конце перетаскивания.
+ * @param  {number}  id      ID смайлика
+ * @param  {boolean} dragged Перемещён или нет
+ * @return {boolean}         true при успехе (в т.ч. если статус не поменялся)
+ */
 Collection.prototype.setDragged = function(id, dragged) {
     var smile = this._smiles[id];
     if (!smile) {
@@ -1062,12 +1359,22 @@ Collection.prototype.setDragged = function(id, dragged) {
 };
 
 
+/**
+ * @param  {number} id ID смайлика
+ * @return {boolean} Выделен ли смайлик
+ */
 Collection.prototype.getSelected = function(id) {
     var smile = this._smiles[id];
     return smile ? smile.selected : null;
 };
 
 
+/**
+ * Выделяет смайлик или снимает выделение. Только в пределах отображаемой сейчас группы.
+ * @param  {number}  id       ID смайлика
+ * @param  {boolean} selected выделен/не выделен
+ * @return {boolean}          true при успхе (в т.ч. если статус не поменялся)
+ */
 Collection.prototype.setSelected = function(id, selected) {
     var smile = this._smiles[id];
     /* Смайлики в скрытых группах не выделяем */
@@ -1090,6 +1397,11 @@ Collection.prototype.setSelected = function(id, selected) {
 };
 
 
+/**
+ * Переключает выделение смайлика на противоположное (вкл/выкл).
+ * @param  {number}  id ID смайлика
+ * @return {boolean}    true при успхе
+ */
 Collection.prototype.toggleSelected = function(id) {
     var smile = this._smiles[id];
     if (!smile) {
@@ -1099,6 +1411,11 @@ Collection.prototype.toggleSelected = function(id) {
 };
 
 
+/**
+ * Выделяет все смайлики отображаемой группы.
+ * @param  {boolean} [withDragged=false] Выделять ли перемещённые смайлики (options.selectableDragged игнорируется)
+ * @return {boolean}                     true при успехе
+ */
 Collection.prototype.selectAll = function(withDragged) {
     var smile;
     if (this._currentGroupId === null) {
@@ -1141,6 +1458,10 @@ Collection.prototype.selectAll = function(withDragged) {
 };
 
 
+/**
+ * Убирает выделение со всех смайликов.
+ * @return {boolean} true при успехе (false если нет отображаемой группы или нет выделенных смайликов)
+ */
 Collection.prototype.deselectAll = function() {
     var smile;
     if (this._currentGroupId === null || this._selectedSmileIds.length === 0) {
@@ -1166,11 +1487,20 @@ Collection.prototype.deselectAll = function() {
 };
 
 
+/**
+ * Возвращает ID смайлика, перед которым будет помещён перемещаемый.
+ * @return {?number} ID смайлика или, если ничего не перемещается или после всех, null
+ */
 Collection.prototype.getDropPosition = function() {
     return this._smileMovePosId;
 };
 
 
+/**
+ * Возвращает информацию о DOM-элементе, если возможно. О смайлике: type='smile', id, groupId
+ * @param  {HTMLElement} element Элемент
+ * @return {Object} Объект с информацией
+ */
 Collection.prototype.typeOfElement = function(element) {
     if (!element) {
         return null;
@@ -1221,7 +1551,7 @@ Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
         var editbtn = document.createElement('a');
         editbtn.className = 'action-btn action-edit';
         editbtn.dataset.action = 'edit';
-        actions.appendChild(editbtn); 
+        actions.appendChild(editbtn);
 
         var delbtn = document.createElement('a');
         delbtn.className = 'action-btn action-delete';
@@ -1256,7 +1586,7 @@ Collection.prototype._showGroupNow = function(groupId) {
     this.setLoadingVisibility(false);
 
     /* Прибираем за предыдущей группой */
-    var currentGroup = null; 
+    var currentGroup = null;
     if (this._currentGroupId !== null) {
         currentGroup = this._groups[this._currentGroupId];
         this.deselectAll();
