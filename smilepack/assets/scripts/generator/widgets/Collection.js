@@ -794,6 +794,19 @@ Collection.prototype.getSelectedCategory = function(level) {
 
 
 /**
+ * Возвращает уровень и ID отображаемой сейчас категории со смайликами.
+ * Может не совпадать с категорией, выделенной в блоке категорий.
+ * @return {?number[]}
+ */
+Collection.prototype.getCurrentCategory = function() {
+    if (this._currentCategory === null) {
+        return null;
+    }
+    return [this._currentCategory[0], this._currentCategory[1]];
+};
+
+
+/**
  * Возвращает ID отображаемой сейчас группы смайликов.
  * @return {?number}
  */
@@ -1607,10 +1620,10 @@ Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
 
 
 Collection.prototype._showGroupNow = function(groupId) {
+    this.setLoadingVisibility(false);
     if (this._currentGroupId === groupId) {
         return true;
     }
-    this.setLoadingVisibility(false);
 
     /* Прибираем за предыдущей группой */
     var currentGroup = null;

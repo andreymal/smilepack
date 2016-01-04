@@ -530,6 +530,10 @@ border-bottom: 0.2em solid #ccf;
     display: block;
 }
 
+.action-more-new.new-loading {
+    color: rgba(128, 128, 128, 0.1);
+}
+
 .header-right {
     float: right;
     font-size: 0.9em;
@@ -644,6 +648,10 @@ body.dark .container .button, body.dark .container-actions .button {
     background-color: #444;
     color: #ccc;
     border: 1px solid black;
+}
+
+body.dark a, body.dark a:visited {
+    color: #ddd;
 }
 
 

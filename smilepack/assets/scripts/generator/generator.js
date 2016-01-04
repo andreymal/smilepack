@@ -735,16 +735,43 @@ var generator = {
             collection.showGroup(this.newSmilesGroup, true);
         }.bind(this);
 
+        var onerror = this.getSmilesErrorEvent.bind(this);
+
         if (options.groupId === this.newSmilesGroup) {
-            ajax.get_new_smiles(0, 100, callbackNewSmiles);
+            ajax.get_new_smiles(0, 100, callbackNewSmiles, onerror);
         } else {
-            ajax.get_smiles(options.categoryId, callbackCategory);
+            ajax.get_smiles(options.categoryId, callbackCategory, onerror);
         }
     },
 
+    getSmilesErrorEvent: function(data) {
+        alert(data.error || data || 'fail');
+        var curCat = this.collection.getCurrentCategory();
+        if (curCat) {
+            this.collection.selectCategory(curCat[0], curCat[1]);
+        } else {
+            this.collection.showGroup(this.collection.getCurrentGroupId());
+        }
+    },
 
     loadMoreNewSmiles: function() {
-        ajax.get_new_smiles(this.collection.getSmilesCount(this.newSmilesGroup), 100, this.newSmilesLoadedEvent.bind(this));
+        var moreNewBtn = document.querySelector('.additional-new-smiles .action-more-new');
+        if (moreNewBtn.classList.contains('new-loading')) {
+            return;
+        }
+        moreNewBtn.classList.add('new-loading');
+
+        this.collection.setLoadingVisibility(true);
+        ajax.get_new_smiles(
+            this.collection.getSmilesCount(this.newSmilesGroup),
+            100,
+            this.newSmilesLoadedEvent.bind(this),
+            this.getSmilesErrorEvent.bind(this),
+            function() {
+                this.collection.setLoadingVisibility(false);
+                moreNewBtn.classList.remove('new-loading');
+            }.bind(this)
+        );
     },
 
     newSmilesLoadedEvent: function(data) {
