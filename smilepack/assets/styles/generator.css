@@ -650,7 +650,7 @@ body.dark .container .button, body.dark .container-actions .button {
     border: 1px solid black;
 }
 
-body.dark a, body.dark a:visited {
+body.dark .container a, body.dark .container a:visited {
     color: #ddd;
 }
 
