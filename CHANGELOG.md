@@ -1,6 +1,12 @@
 # Changelog
 
 
+## (unreleased)
+
+* New smiles tab
+* Bug fixes
+
+
 ## 0.1.1 (2015-12-14)
 
 * More manipulations with smiles; selection support; copying of categories
