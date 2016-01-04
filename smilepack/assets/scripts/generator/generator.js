@@ -714,16 +714,10 @@ var generator = {
     },
 
     set_collection_smiles: function(collection, options) {
-        var toNewSmiles = options.groupId === this.newSmilesGroup;
-
-        var callback = function(data) {
+        var callbackCategory = function(data) {
             for (var i = 0; i < data.smiles.length; i++) {
-                if (toNewSmiles) {
-                    data.smiles[i].groupIds = [options.groupId];
-                } else {
-                    data.smiles[i].categoryLevel = 2;
-                    data.smiles[i].categoryId = options.categoryId;
-                }
+                data.smiles[i].categoryLevel = 2;
+                data.smiles[i].categoryId = options.categoryId;
                 var localId = this.collection.addSmileIfNotExists(data.smiles[i]);
                 if (localId === null) {
                     continue;
@@ -733,17 +727,37 @@ var generator = {
                     this.collection.setDragged(localId, true);
                 }
             }
-            if (toNewSmiles) {
-                collection.showGroup(this.newSmilesGroup, true);
-            } else {
-                collection.showCategory(2, options.categoryId, true);
-            }
+            collection.showCategory(2, options.categoryId, true);
         }.bind(this);
 
-        if (toNewSmiles) {
-            ajax.get_new_smiles(callback);
+        var callbackNewSmiles = function(data) {
+            this.newSmilesLoadedEvent(data);
+            collection.showGroup(this.newSmilesGroup, true);
+        }.bind(this);
+
+        if (options.groupId === this.newSmilesGroup) {
+            ajax.get_new_smiles(0, 100, callbackNewSmiles);
         } else {
-            ajax.get_smiles(options.categoryId, callback);
+            ajax.get_smiles(options.categoryId, callbackCategory);
+        }
+    },
+
+
+    loadMoreNewSmiles: function() {
+        ajax.get_new_smiles(this.collection.getSmilesCount(this.newSmilesGroup), 100, this.newSmilesLoadedEvent.bind(this));
+    },
+
+    newSmilesLoadedEvent: function(data) {
+        for (var i = 0; i < data.smiles.length; i++) {
+            data.smiles[i].groupIds = [this.newSmilesGroup];
+            var localId = this.collection.addSmileIfNotExists(data.smiles[i]);
+            if (localId === null) {
+                continue;
+            }
+
+            if (this.usedSmiles.indexOf(data.smiles[i].id) >= 0) {
+                this.collection.setDragged(localId, true);
+            }
         }
     },
 
@@ -842,6 +856,13 @@ var generator = {
 
         var copyBtn = this.collection.getDOM().querySelector('.additional .action-copy');
         copyBtn.addEventListener('click', this.copyCategory.bind(this));
+
+        var moreNewBtn = this.collection.getDOM().querySelector('.additional-new-smiles .action-more-new');
+        moreNewBtn.addEventListener('click', function(event) {
+            this.loadMoreNewSmiles();
+            event.preventDefault();
+            return false;
+        }.bind(this));
 
         var addSmileBtn = this.smilepack.getDOM().querySelector('.additional .action-add-smile');
         addSmileBtn.addEventListener('click', function() {

@@ -936,7 +936,7 @@ Collection.prototype.addSmile = function(item, nolazy) {
 /**
  * Добавляет смайлик, если он ещё не существует (проверка по id и url).
  * Если указанного id коллекция не знает, то создаётся новый смайлик и возвращается его id.
- * Если id и url совпадают с существующим смайликом, возвращается его id.
+ * Если id и url совпадают с существующим смайликом, возвращается его id, а смайлик добавляется в недостающие категории и группы.
  * Если id указан, но url не совпадает с url существующего смайлика, то выбрасывается исключение (Conflict).
  * Аргументы аналогичны addSmile.
  * @param  {Object}  item
@@ -1201,6 +1201,33 @@ Collection.prototype.getSmileIds = function(groupId) {
         return null;
     }
     return Array.prototype.slice.apply(this._groups[groupId].smileIds);
+};
+
+
+/**
+ * Возвращает количество смайликов категории. Обёртка над getSmilesCount.
+ * @param  {number} level      Уровень, на котором находится категория
+ * @param  {number} categoryId ID категории
+ * @return {?number}           Количество смайликов или null при проблемах
+ */
+Collection.prototype.getSmilesCountOfCategory = function(level, categoryId) {
+    if (!this._categories[level][categoryId]) {
+        return null;
+    }
+    return this.getSmilesCount(this._categories[level][categoryId].groupId);
+};
+
+
+/**
+ * Возвращает количество смайликов группы.
+ * @param  {number} groupId ID группы
+ * @return {?number}        Количество смайликов или null при проблемах
+ */
+Collection.prototype.getSmilesCount = function(groupId) {
+    if (!this._groups[groupId]) {
+        return null;
+    }
+    return this._groups[groupId].smileIds.length;
 };
 
 
@@ -1610,6 +1637,7 @@ Collection.prototype._showGroupNow = function(groupId) {
     if (!group.dom) {
         group.dom = document.createElement('div');
         group.dom.className = 'smiles-list';
+        group.dom.dataset.groupId = group.id;
         this._dom.smilesContainer.appendChild(group.dom);
 
         for (var i = 0; i < group.smileIds.length; i++) {

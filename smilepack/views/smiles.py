@@ -27,12 +27,17 @@ def index():
 @json_answer
 @db_session
 def new():
+    offset = request.args.get('offset')
+    if offset and offset.isdigit():
+        offset = int(offset)
+    else:
+        offset = 0
     count = request.args.get('count')
     if count and count.isdigit():
         count = int(count)
     else:
         count = 100
-    return {'smiles': models.Smile.bl.get_last_approved_as_json(count=count)}
+    return {'smiles': models.Smile.bl.get_last_approved_as_json(offset=offset, count=count)}
 
 
 @bp.route('/search/<int:section_id>')

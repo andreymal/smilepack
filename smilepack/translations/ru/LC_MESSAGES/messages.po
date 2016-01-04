@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.1.1\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2015-12-15 19:28+0300\n"
+"POT-Creation-Date: 2016-01-04 16:01+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -100,168 +100,176 @@ msgstr "Сохранить и скачать смайлопак!"
 msgid "smilepack will be deleted"
 msgstr "смайлопак будет удалён"
 
-#: smilepack/templates/generator.html:64
+#: smilepack/templates/generator.html:65
 msgid "Collection of smiles"
 msgstr "Коллекция смайликов"
 
-#: smilepack/templates/generator.html:67
+#: smilepack/templates/generator.html:66
+msgid "New smiles"
+msgstr "Новые смайлы"
+
+#: smilepack/templates/generator.html:70
 msgid "Choose a section to view smiles"
 msgstr "Выберите раздел для просмотра смайликов"
 
-#: smilepack/templates/generator.html:69
+#: smilepack/templates/generator.html:72
 msgid "Select all"
 msgstr "Выделить всё"
 
-#: smilepack/templates/generator.html:70
+#: smilepack/templates/generator.html:73
 msgid "Copy category with name and icon"
 msgstr "Скопировать категорию с названием и иконкой"
 
 #: smilepack/templates/generator.html:76
+msgid "Load more smiles"
+msgstr "Загрузить больше смайликов"
+
+#: smilepack/templates/generator.html:80
 msgid "Your smilepack"
 msgstr "Ваш смайлопак"
 
-#: smilepack/templates/generator.html:81
+#: smilepack/templates/generator.html:85
 msgid "Choice a category of smilepack to view smiles"
 msgstr "Выберите категорию смайлопака для просмотра смайликов"
 
-#: smilepack/templates/generator.html:83
+#: smilepack/templates/generator.html:87
 msgid "Add category here and fill it by dragging smiles from the collection"
 msgstr ""
 "Добавьте категорию здесь и заполните её перетаскиванием смайликов из "
 "коллекции"
 
-#: smilepack/templates/generator.html:88
+#: smilepack/templates/generator.html:92
 msgid "Add your smile"
 msgstr "Добавить свой смайлик"
 
-#: smilepack/templates/generator.html:95 smilepack/templates/generator.html:100
+#: smilepack/templates/generator.html:99 smilepack/templates/generator.html:104
 msgid "Selected smiles:"
 msgstr "Выбранные смайлы:"
 
-#: smilepack/templates/generator.html:97
+#: smilepack/templates/generator.html:101
 msgid "Add selected smiles to current category"
 msgstr "Добавить выбранные смайлы в текущую категорию"
 
-#: smilepack/templates/generator.html:102
+#: smilepack/templates/generator.html:106
 msgid "Move to another category"
 msgstr "Переместить в другую категорию"
 
-#: smilepack/templates/generator.html:103
+#: smilepack/templates/generator.html:107
 msgid "Remove selected smiles from smilepack"
 msgstr "Убрать выделенные смайлы из смайлопака"
 
-#: smilepack/templates/generator.html:111
+#: smilepack/templates/generator.html:115
 msgid "Adding a category"
 msgstr "Добавление категории"
 
-#: smilepack/templates/generator.html:111
+#: smilepack/templates/generator.html:115
 msgid "Changing a category"
 msgstr "Изменение категории"
 
-#: smilepack/templates/generator.html:114
+#: smilepack/templates/generator.html:118
 msgid "Category name"
 msgstr "Название категории"
 
-#: smilepack/templates/generator.html:117
+#: smilepack/templates/generator.html:121
 msgid "Icon"
 msgstr "Иконка"
 
-#: smilepack/templates/generator.html:129
-#: smilepack/templates/generator.html:173
+#: smilepack/templates/generator.html:133
+#: smilepack/templates/generator.html:177
 msgid "Add"
 msgstr "Добавить"
 
-#: smilepack/templates/generator.html:130
+#: smilepack/templates/generator.html:134
 msgid "Save"
 msgstr "Сохранить"
 
-#: smilepack/templates/generator.html:135
+#: smilepack/templates/generator.html:139
 msgid "Adding a smile"
 msgstr "Добавление смайлика"
 
-#: smilepack/templates/generator.html:140
+#: smilepack/templates/generator.html:144
 msgid "From link"
 msgstr "По ссылке"
 
-#: smilepack/templates/generator.html:141
+#: smilepack/templates/generator.html:145
 msgid "From computer"
 msgstr "С компьютера"
 
-#: smilepack/templates/generator.html:150
+#: smilepack/templates/generator.html:154
 msgid "Link"
 msgstr "Ссылка"
 
-#: smilepack/templates/generator.html:154
+#: smilepack/templates/generator.html:158
 msgid "Smile size"
 msgstr "Размер смайлика"
 
-#: smilepack/templates/generator.html:155
+#: smilepack/templates/generator.html:159
 msgid "Width"
 msgstr "Длина"
 
-#: smilepack/templates/generator.html:157
+#: smilepack/templates/generator.html:161
 msgid "Height"
 msgstr "Ширина"
 
-#: smilepack/templates/generator.html:158
+#: smilepack/templates/generator.html:162
 msgid "Keep aspect ratio"
 msgstr "Сохранить соотн. сторон"
 
-#: smilepack/templates/generator.html:161
+#: smilepack/templates/generator.html:165
 msgid "Compress if possible (lossless)"
 msgstr "Сжать по возможности (без потери качества)"
 
-#: smilepack/templates/generator.html:164
+#: smilepack/templates/generator.html:168
 msgid "Image will not be resized."
 msgstr "Разрешение не будет изменено."
 
-#: smilepack/templates/generator.html:164
+#: smilepack/templates/generator.html:168
 msgid "If possible, it's best to compress it yourself in a graphics editor."
 msgstr ""
 "Если есть возможность, лучше сжать картинку самостоятельно в графическом "
 "редакторе."
 
-#: smilepack/templates/generator.html:178
+#: smilepack/templates/generator.html:182
 msgid "Importing a userscript"
 msgstr "Импортирование юзерскрипта"
 
-#: smilepack/templates/generator.html:181
+#: smilepack/templates/generator.html:185
 msgid "Select an userscript file"
 msgstr "Выберите файл с юзерскриптом"
 
-#: smilepack/templates/generator.html:184
+#: smilepack/templates/generator.html:188
 msgid "Import"
 msgstr "Импортировать"
 
-#: smilepack/templates/generator.html:189
+#: smilepack/templates/generator.html:193
 msgid "Saving the smilepack"
 msgstr "Сохранение смайлопака"
 
-#: smilepack/templates/generator.html:191
+#: smilepack/templates/generator.html:195
 msgid "Create a smile"
 msgstr "Создание смайлика"
 
-#: smilepack/templates/generator.html:192
+#: smilepack/templates/generator.html:196
 msgid "Saving..."
 msgstr "Сохраняем..."
 
-#: smilepack/templates/generator.html:195
+#: smilepack/templates/generator.html:199
 msgid "Smilepack saved!"
 msgstr "Смайлопак сохранён!"
 
-#: smilepack/templates/generator.html:196
+#: smilepack/templates/generator.html:200
 msgid "His id:"
 msgstr "Его id:"
 
-#: smilepack/templates/generator.html:198
+#: smilepack/templates/generator.html:202
 msgid "Now you can:"
 msgstr "Теперь вы можете:"
 
-#: smilepack/templates/generator.html:200
+#: smilepack/templates/generator.html:204
 msgid "Download userscript"
 msgstr "Скачать юзерскрипт"
 
-#: smilepack/templates/generator.html:200
+#: smilepack/templates/generator.html:204
 msgid ""
 "and install it in your browser to use smilepack at all sites that support"
 " HTML or BBCode."
@@ -269,11 +277,11 @@ msgstr ""
 "и установить его в браузере, чтобы пользоваться смайлопаком на всех "
 "сайтах с поддержкой HTML или BBCode."
 
-#: smilepack/templates/generator.html:201
+#: smilepack/templates/generator.html:205
 msgid "Give a look to someone your smilepack by sharing this link:"
 msgstr "Дать посмотреть кому-нибудь ваш смайлопак, поделившись ссылкой:"
 
-#: smilepack/templates/generator.html:203
+#: smilepack/templates/generator.html:207
 msgid ""
 "Close this message and continue editing to create another smilepack "
 "(previous saved smilepack will be unchanged)."
@@ -281,7 +289,7 @@ msgstr ""
 "Закрыть это сообщение и продолжить редактирование, чтобы создать ещё один"
 " смайлопак (предыдущий сохранённый смайлопак не будет изменён)."
 
-#: smilepack/templates/generator.html:206
+#: smilepack/templates/generator.html:210
 msgid "Back to editing"
 msgstr "Вернуться к редактированию"
 

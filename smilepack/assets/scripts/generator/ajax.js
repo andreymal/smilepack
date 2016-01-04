@@ -90,9 +90,9 @@ var ajax = {
         });
     },
 
-    get_new_smiles: function(onload, onerror, onend) {
+    get_new_smiles: function(offset, count, onload, onerror, onend) {
         return this.request({
-            url: '/smiles/new',
+            url: '/smiles/new?offset=' + encodeURIComponent(offset) + '&count=' + encodeURIComponent(count),
             format: 'json',
             onload: onload,
             onerror: onerror,

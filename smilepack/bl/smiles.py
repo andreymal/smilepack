@@ -237,28 +237,34 @@ class SmileBL(BaseBL):
             current_app.cache.set('smiles_count', smiles_count, timeout=300)
         return smiles_count
 
-    def get_last_approved(self, count=100):
+    def get_last_approved(self, offset=0, count=100):
+        offset = max(0, offset)
+        count = max(0, count)
         Smile = self._model()
-        return Smile.select(lambda x: x.category is not None and x.approved_at is not None).order_by(Smile.approved_at.desc(), Smile.id.desc())[:count]
+        return Smile.select(lambda x: x.category is not None and x.approved_at is not None).order_by(Smile.approved_at.desc(), Smile.id.desc())[offset:offset + count]
 
-    def get_last_approved_as_json(self, count=100):
+    def get_last_approved_as_json(self, offset=0, count=100):
         if count <= 0:
             return []
+        offset = max(0, offset)
+        count = min(2000, count)
 
-        query_count = count if count > 100 else 100
-        query_count = math.ceil(query_count // 25) * 25
+        # Для эффективного использования кэша
+        query_count = math.ceil((offset + count) / 100) * 100
+
+        if query_count > 1000:
+            smiles = self.get_last_approved(offset, count)
+            return [x.bl.as_json(full_info=True) for x in smiles]
 
         smiles = current_app.cache.get('last_smiles_{}'.format(query_count))
         if smiles is not None:
-            return smiles[:count]
+            return smiles[offset:offset + count]
 
-        smiles = self.get_last_approved(query_count)
-        if query_count > 1000:
-            return [x.as_json(full_info=True) for x in smiles[:count]]
+        smiles = self.get_last_approved(0, query_count)
 
         smiles = [x.bl.as_json(full_info=True) for x in smiles]
         current_app.cache.set('last_smiles_{}'.format(query_count), smiles, timeout=300)
-        return smiles[:count]
+        return smiles[offset:offset + count]
 
     def search_by_hashsum(self, hashsum):
         from smilepack.models import SmileHash

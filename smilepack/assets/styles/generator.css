@@ -516,13 +516,17 @@ border-bottom: 0.2em solid #ccf;
     display: none;
 }
 
-.collection .additional {
+.collection .additional, .collection .additional-new-smiles {
     padding: 0.5em;
     line-height: 2em;
     display: none;
 }
 
 .collection.smiles-opened .additional {
+    display: block;
+}
+
+.collection.new-smiles-opened .additional-new-smiles {
     display: block;
 }
 
