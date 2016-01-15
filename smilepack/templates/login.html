@@ -1,0 +1,20 @@
+{% extends 'simple_page.html' %}
+{% block modal_body %}
+<div class="modal-title">{{ _("Staff Only") }}</div>
+{% with messages = get_flashed_messages() %}
+  {% for message in messages %}
+    <em>{{ message }}</em><br/>
+  {% endfor %}
+{% endwith %}
+<form method="POST" action="{{ url_for('auth.login_page') }}">
+  {{ csrf_token_field() }}
+
+  <label for="username">{{ _("Username") }}:</label><br/>
+  <input type="text" name="username" style="width: 100%" value="{{ username }}" /><br/>
+
+  <label for="password">{{ _("Password") }}:</label><br/>
+  <input type="password" name="password" style="width: 100%" /><br/>
+
+  <input type="submit" value="{{ _('Log In') }}" />
+</form>
+{% endblock %}

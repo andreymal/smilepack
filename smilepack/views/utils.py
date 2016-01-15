@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import os
+import base64
 import random
 import string
 import functools
 from datetime import datetime, timedelta
 
+import jinja2
 from werkzeug.exceptions import HTTPException, UnprocessableEntity
-from flask import request, current_app, jsonify, make_response
+from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort
 
 from ..utils.exceptions import InternalError, BadRequestError
 
@@ -60,7 +63,21 @@ def json_answer(func):
     return decorator
 
 
-def default_crossdomain(methods=['GET']):
+def csrf_protect(func):
+    @functools.wraps(func)
+    def decorator(*args, **kwargs):
+        if request.method == 'GET':
+            pass  # TODO:
+        elif request.method != 'OPTIONS':  # TODO: recheck security
+            token = session.get('csrf_token')
+            if not token or request.form.get('csrf_token') != token:
+                abort(403)
+        return func(*args, **kwargs)
+
+    return decorator
+
+
+def default_crossdomain(methods=('GET',)):
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
 
@@ -105,17 +122,34 @@ def default_crossdomain(methods=['GET']):
     return decorator
 
 
-def register_errorhandlers(app):
-    app.register_error_handler(BadRequestError, handle_bad_request_error)
+def csrf_token(reset=False):
+    if reset or not session.get('csrf_token'):
+        session['csrf_token'] = base64.b64encode(os.urandom(24)).decode('ascii')
+    return session['csrf_token']
 
 
-def handle_bad_request_error(error):
+def csrf_token_field():
+    token = jinja2.escape(csrf_token())
+    field = '<input type="hidden" name="csrf_token" value="{token}" />'.format(token=token)
+    return jinja2.Markup(field)
+
+
+def _handle_bad_request_error(error):
     return UnprocessableEntity(str(error))
 
 
-def disable_cache(app):
-    def add_header(response):
-        response.cache_control.max_age = 0
-        return response
+def _add_nocache_header(response):
+    response.cache_control.max_age = 0
+    return response
 
-    app.after_request(add_header)
+
+def configure_for_app(app, package_root):
+    app.jinja_env.globals['csrf_token'] = csrf_token
+    app.jinja_env.globals['csrf_token_field'] = csrf_token_field
+    app.register_error_handler(BadRequestError, _handle_bad_request_error)
+    app.after_request(_add_nocache_header)
+
+    # Webpack assets
+    @app.route("/assets/<path:filename>")
+    def send_asset(filename):
+        return send_from_directory(os.path.join(package_root, "public"), filename)

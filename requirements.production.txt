@@ -3,6 +3,8 @@ jsonschema
 pytz
 mysqlclient
 python3-memcached
+scrypt
+Flask-Login
 Flask-Limiter
 pymemcache
 Pillow

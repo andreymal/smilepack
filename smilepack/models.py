@@ -5,9 +5,23 @@ from datetime import datetime
 
 from pony import orm
 from flask import current_app
+from flask_login import UserMixin
 
 from smilepack.database import db
 from smilepack.bl.registry import Resource
+
+
+class User(db.Entity, UserMixin):
+    username = orm.Required(str, 32)
+    password = orm.Optional(str, 255, default='')
+    is_admin = orm.Required(bool, default=lambda: False)
+    is_superadmin = orm.Required(bool, default=lambda: False)
+    is_active = orm.Required(bool, default=lambda: True)
+    created_at = orm.Required(datetime, default=datetime.utcnow)
+    updated_at = orm.Required(datetime, default=datetime.utcnow)
+    last_login_at = orm.Optional(datetime)
+
+    bl = Resource('bl.user')
 
 
 class Icon(db.Entity):

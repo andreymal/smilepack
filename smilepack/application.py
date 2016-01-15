@@ -8,13 +8,14 @@ from logging.handlers import SMTPHandler
 from flask import Flask, send_from_directory, request, g
 from flask_limiter import Limiter
 from flask_webpack import Webpack
+from flask_login import LoginManager
 import flask_babel
 
 from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
 
 from smilepack import database
-from smilepack.views import smiles, smilepacks, pages, utils
+from smilepack.views import auth, smiles, smilepacks, pages, utils as views_utils
 from smilepack.bl import init_bl
 
 __all__ = ['create_app']
@@ -31,6 +32,7 @@ def create_app():
     database.configure_for_app(app, db_seed=True)
     init_bl()
 
+    # Localization
     babel = flask_babel.Babel(app)
 
     @babel.localeselector
@@ -45,11 +47,20 @@ def create_app():
     def before_request():
         g.locale = flask_babel.get_locale()
 
+    # Flask-Limiter
     app.limiter = Limiter(app)
     app.logger.setLevel(app.config['LOGGER_LEVEL'])
     if not app.debug and app.config['LOGGER_STDERR']:
         app.logger.addHandler(logging.StreamHandler(sys.stderr))
 
+    # Login for administration
+    app.login_manager = LoginManager(app)
+    @app.login_manager.user_loader
+    def load_user(user_id):
+        from smilepack.models import User
+        return User.get(id=int(user_id))
+
+    # Uploading with Imgur
     if app.config['UPLOAD_METHOD'] == 'imgur':
         try:
             from flask_imgur import Imgur
@@ -59,25 +70,16 @@ def create_app():
     else:
         app.imgur = None
 
-    app.register_blueprint(pages.bp)
-    app.register_blueprint(smiles.bp, url_prefix='/smiles')
-    app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
-
-    utils.register_errorhandlers(app)
-    utils.disable_cache(app)
-
     if app.config.get('MEMCACHE_SERVERS'):
         app.cache = cache.MemcachedCache(app.config['MEMCACHE_SERVERS'], key_prefix=app.config.get('CACHE_PREFIX', ''))
     else:
         app.cache = cache.NullCache()
 
-    @app.route("/assets/<path:filename>")
-    def send_asset(filename):
-        return send_from_directory(os.path.join(here, "public"), filename)
-
+    # Pass proxies for correct request_addr
     if app.config['PROXIES_COUNT'] > 0:
         app.wsgi_app = ProxyFix(app.wsgi_app, app.config['PROXIES_COUNT'])
 
+    # Errors processing
     if app.config['ADMINS'] and app.config['ERROR_EMAIL_HANDLER_PARAMS']:
         params = dict(app.config['ERROR_EMAIL_HANDLER_PARAMS'])
         params['toaddrs'] = app.config['ADMINS']
@@ -86,5 +88,14 @@ def create_app():
         handler = SMTPHandler(**params)
         handler.setLevel(logging.ERROR)
         app.logger.addHandler(handler)
+
+    # Routing
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(pages.bp)
+    app.register_blueprint(smiles.bp, url_prefix='/smiles')
+    app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
+
+    # Webpack assets, error handlers, nocache and more
+    views_utils.configure_for_app(app, here)
 
     return app

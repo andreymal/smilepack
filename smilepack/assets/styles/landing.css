@@ -34,21 +34,43 @@ body {
     font-size: 4em;
 }
 
-.generate-button {
-    font-size: 1.25em;
+.actions-panel {
+    line-height: 2em;
+    font-size: 0.8em;
+}
+
+.inline-form {
+    display: inline-block;
+}
+
+.landing-button {
     background-color: #67c;
-    padding: 0.8em 1.1em;
     color: white;
     text-decoration: none;
     display: inline-block;
     text-align: center;
     box-shadow: 0.1em 0.1em 0.1em rgba(16, 16, 16, 0.5);
-    margin: 1em;
+    padding: 0.2em 0.4em;
+    cursor: default;
+    border: 0;
+    font-size: inherit;
+    font-family: inherit;
 }
 
-.generate-button:hover {
+.landing-button:hover {
     background-color: #78d;
+    cursor: default;
+}
+
+a.landing-button:hover {
     text-decoration: underline;
+    cursor: pointer;
+}
+
+.generate-button {
+    font-size: 1.25em;
+    padding: 0.8em 1.1em;
+    margin: 1em;
 }
 
 .smilepacks-list {
