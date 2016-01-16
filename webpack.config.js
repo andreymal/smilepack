@@ -12,10 +12,12 @@ module.exports = {
     entry: {
         landing_js: root + "/scripts/landing.js",
         generator_js: root + "/scripts/generator",
+        admin_js: root + "/scripts/admin",
         landing_css: root + "/styles/landing.css",
         base_css: root + "/styles/base.css",
         widget_collection_css: root + "/styles/widgets/Collection.css",
-        generator_css: root + "/styles/generator.css"
+        generator_css: root + "/styles/generator.css",
+        admin_css: root + "/styles/admin.css"
     },
     output: {
         path: "./smilepack/public",

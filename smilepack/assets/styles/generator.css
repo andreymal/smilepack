@@ -10,6 +10,10 @@
     overflow-y: auto;
 }
 
+.container {
+    top: 5em;
+}
+
 #smp-delete-container {
     font-size: 0.7em;
     line-height: 1em;

@@ -4,9 +4,10 @@ from pony.orm import db_session
 
 from flask import Blueprint, render_template, abort, current_app, request, redirect, url_for
 from flask_babel import gettext, format_datetime
+from flask_login import current_user
 
 from smilepack.models import Section, SmilePack, Smile, Icon
-from smilepack.views.utils import user_session
+from smilepack.views.utils import user_session, for_admin
 
 
 bp = Blueprint('pages', __name__)
@@ -60,6 +61,13 @@ def generator(session_id, first_visit, smp_id):
         icons=Icon.select().order_by(Icon.id)[:],
         collection_data={"sections": Section.bl.get_all_with_categories()},
     )
+
+
+@bp.route('/admin/')
+@db_session
+@for_admin
+def admin():
+    return render_template('admin.html', icons=Icon.select().order_by(Icon.id)[:])
 
 
 @bp.route('/setlocale', methods=['GET', 'POST'])

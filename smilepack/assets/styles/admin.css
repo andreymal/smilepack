@@ -1,0 +1,66 @@
+#collection {
+    overflow-y: scroll;
+}
+
+.header-right {
+    float: right;
+    font-size: 0.9em;
+    margin-right: 14.5em;
+}
+
+.header .report-link, .header .report-link:visited {
+    color: #777;
+}
+
+.header .report-link:hover {
+    color: #eee;
+}
+
+.actions-menu {
+    position: absolute;
+    right: 0.25em;
+    top: 0.25em;
+    color: #999;
+    font-size: 0.9em;
+    width: 14em;
+    height: 1.75em;
+    line-height: 1.25em;
+    text-align: right;
+    padding: 0.25em;
+    cursor: default;
+    background-color: #333;
+    box-sizing: border-box;
+    border-radius: 0.25em;
+}
+
+.actions-list {
+    width: 14em;
+    position: fixed;
+    z-index: 500;
+    list-style: none outside none;
+    margin: 0.25em 0 0 -0.25em;
+    padding: 0;
+    background-color: #333;
+    text-align: left;
+    display: none;
+}
+
+.actions-list li {
+    margin: 0;
+    padding: 0.25em;
+    color: white;
+    cursor: pointer;
+}
+
+.actions-menu:hover {
+    border-radius: 0.25em 0.25em 0 0;
+}
+
+.actions-menu:hover .actions-list {
+    display: block;
+    transition-delay: 0;
+}
+
+.actions-list li:hover {
+    background-color: #555;
+}

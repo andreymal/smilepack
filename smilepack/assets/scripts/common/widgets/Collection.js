@@ -186,8 +186,10 @@ Collection.prototype._initDOMTabs = function() {
     }
 
     /* Создаём контейнер для кнопок верхнего уровня */
-    this._dom.rootCategories = this._buildDomTabs(0, 0);
-    this._dom.rootCategories.style.display = '';
+    if (this._depth > 0) {
+        this._dom.rootCategories = this._buildDomTabs(0, 0);
+        this._dom.rootCategories.style.display = '';
+    }
 };
 
 

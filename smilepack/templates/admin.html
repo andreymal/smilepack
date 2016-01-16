@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>{{ _("Smilepack administration") }}</title>
+    {{ stylesheet_tag("base_css") | safe }}
+    {{ stylesheet_tag("widget_collection_css") | safe }}
+    {{ stylesheet_tag("admin_css") | safe }}
+</head>
+<body>
+
+<div class="top">
+    <div class="header">
+        <div class="actions-menu">
+            {{ _("Other actions") }} ▼
+            <ul class="actions-list">
+                {% if current_user.is_superadmin %}<li id="action-edit-users">{{ _("User management") }}</li>
+                {% endif -%}
+                <li id="action-toggle-dark">{{ _("Change background") }}</li>
+            </ul>
+        </div>
+        <div class="header-right">
+            {% if config['ISSUE_REPORT_LINK'] -%}
+                <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">{{ _("Report an issue") }}</a>
+            {%- endif %}
+        </div>
+        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">{{ _("Smilepack administration") }}</a></div>
+    </div>
+</div>
+
+<div class="container">
+<div class="widget-collection container-left" id="collection">
+    <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-title">{{ _("Collection of smiles") }}</div>
+    <div class="tabs-wrapper"></div>
+
+    <div class="collection-message">{{ _("Choose a section to view and edit smiles in collection") }}</div>
+    <div class="collection-smiles"></div>
+
+</div><div class="widget-collection container-right" id="suggestions">
+    <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-title">{{ _("Suggestions") }}</div>
+    <div class="tabs-wrapper"></div>
+
+    <div class="collection-message"></div>
+    <div class="collection-smiles"></div>
+</div>
+</div><!-- /container -->
+
+<div id="dialog-background" class="dialog-background hidden"></div>
+
+{{ javascript_tag("admin_js") | safe }}
+</body>
+</html>

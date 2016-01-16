@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import jinja2
 from werkzeug.exceptions import HTTPException, UnprocessableEntity
 from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort
+from flask_login import current_user
 
 from ..utils.exceptions import InternalError, BadRequestError
 
@@ -72,6 +73,16 @@ def csrf_protect(func):
             token = session.get('csrf_token')
             if not token or request.form.get('csrf_token') != token:
                 abort(403)
+        return func(*args, **kwargs)
+
+    return decorator
+
+
+def for_admin(func):
+    @functools.wraps(func)
+    def decorator(*args, **kwargs):
+        if current_user.is_anonymous or not current_user.is_admin:
+            abort(403)
         return func(*args, **kwargs)
 
     return decorator
