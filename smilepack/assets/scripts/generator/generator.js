@@ -1,10 +1,10 @@
 'use strict';
 
-var ajax = require('./ajax.js'),
-    dialogsManager = require('./dialogsManager.js'),
+var ajax = require('../common/ajax.js'),
+    dialogsManager = require('../common/dialogsManager.js'),
 
-    Collection = require('./widgets/Collection.js'),
-    ActionPanel = require('./widgets/ActionPanel.js'),
+    Collection = require('../common/widgets/Collection.js'),
+    ActionPanel = require('../common/widgets/ActionPanel.js'),
 
     CategoryDialog = require('./dialogs/CategoryDialog.js'),
     SmileDialog = require('./dialogs/SmileDialog.js'),

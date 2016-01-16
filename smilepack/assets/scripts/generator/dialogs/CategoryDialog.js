@@ -1,6 +1,6 @@
 'use strict';
 
-var BasicDialog = require('./BasicDialog.js');
+var BasicDialog = require('../../common/BasicDialog.js');
 
 
 var CategoryDialog = function(element){
