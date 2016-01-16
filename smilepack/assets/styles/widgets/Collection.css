@@ -1,0 +1,267 @@
+/* COLLECTION TABS */
+
+.widget-collection .collection-tabs {
+    display: block;
+    list-style: none outside none;
+    margin: 0.5em 0 0 0;
+    padding: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #dde;
+}
+
+.widget-collection .collection-tabs > li {
+    display: inline-block;
+    padding: 0.25em 0.5em;
+    margin: 0 0.25em;
+    cursor: pointer;
+    position: relative;
+    top: 1px;
+    border-color: transparent;
+    border-width: 1px 1px 0;
+    border-style: solid;
+    border-radius: 0.25em 0.25em 0 0;
+    line-height: 1.5em;
+    vertical-align: bottom;
+}
+
+.widget-collection .collection-tabs > li.current {
+    background-color: #f2f2ff;
+    border-color: #dde;
+}
+
+
+/* CATEGORIES SELECTOR */
+
+.widget-collection .collection-title, .widget-collection .tabs-wrapper {
+    background-color: #f2f2ff;
+    display: block;
+    font-size: 0.9em;
+    color: black;
+    line-height: 1.5em;
+}
+
+.widget-collection .collection-title {
+    font-weight: bold;
+    padding: 0.5em 0.5em 0 0.5em;
+}
+
+.widget-collection .tabs-wrapper {
+    margin: 0;
+    overflow: hidden;
+}
+
+.widget-collection .tabs-level {
+    display: block;
+    padding: 0.5em;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+
+    border-bottom: 1px solid #dde;
+}
+
+.widget-collection .tabs-items {
+    display: inline;
+}
+
+/* FIXME: dragdrop */
+.widget-collection .tab-btn, .widget-collection .tab-btn:visited, .widget-collection .tab-btn:active {
+    padding: 0.25em 0.5em;
+    display: inline-block;
+    cursor: pointer;
+    line-height: 1.5em;
+    border-bottom: 0.2em solid #f2f2ff;
+    border-color: transparent;
+    background-color: #f2f2ff;
+    color: black;
+    text-decoration: none;
+}
+
+.widget-collection .tab-btn img {
+    border: 0;
+}
+
+.widget-collection .tab-btn:hover {
+    border-bottom: 0.2em solid #ccf;
+}
+
+.widget-collection .tab-btn-active, .widget-collection .tab-btn-active:hover {
+    border-bottom: 0.2em solid #99d;
+}
+
+.widget-collection .tab-icon {
+    width: auto;
+    height: 1.25em;
+    vertical-align: middle;
+}
+
+.widget-collection .tab-btn:active {
+    border-bottom: 0.2em solid #aae;
+}
+
+/* dragdrop */
+
+.widget-collection .tab-btn.dragged {
+    visibility: hidden;
+}
+
+
+/* SELECTED CATEGORY ACTIONS */
+
+.widget-collection .action-btn {
+    background-color: white;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 14px;
+    height: 14px;
+    padding: 2px 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 4px;
+    margin: 0px 2px;
+    box-shadow: 0px 0px 2px rgba(24, 24, 24, 0.4);
+}
+
+.widget-collection .action-add:hover {
+    background-color: #aea;
+}
+
+.widget-collection .action-edit {
+    background-color: #dde;
+    background-image: url('../../images/action-edit.png');
+}
+
+.widget-collection .action-edit:hover {
+    background-color: #eef;
+}
+
+.widget-collection .action-delete {
+    background-color: #d99;
+    background-image: url('../../images/action-delete.png');
+}
+
+.widget-collection .action-delete:hover {
+    background-color: #eaa;
+}
+
+
+/* CATEGORIES LEVEL ACTIONS */
+
+.widget-collection .actions {
+    border-radius: 4px;
+    box-shadow: 0px 0px 2px rgba(24, 24, 24, 0.4);
+    margin-left: 0.35em;
+    display: inline-block;
+    line-height: 16px;
+    vertical-align: middle;
+    overflow: hidden;
+}
+
+.widget-collection .actions .action-btn {
+    border-radius: 0px;
+    margin: 0px;
+    box-shadow: none;
+}
+
+.widget-collection .action-add {
+    background-color: #9d9;
+    background-image: url('../../images/action-add.png');
+}
+
+
+/* SMILES LIST */
+
+.widget-collection .collection-message {
+    color: #444;
+    margin: 0.6667em;
+    font-size: 0.75em;
+}
+
+.widget-collection .smiles-list {
+    padding: 0.5em;
+}
+
+.widget-collection .smiles-list.hidden {
+    display: none;
+}
+
+.widget-collection.smiles-processing .smiles-list {
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+    filter: alpha(opacity=50);
+    opacity: 0.5;
+}
+
+.widget-collection .smile {
+    padding: 0.25em;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+}
+
+.widget-collection .smile.selected {
+    background-color: rgba(221, 119, 119, 0.2);
+    box-shadow: 0 0 0 2px rgb(221, 119, 119);
+    border-radius: 2px;
+    padding: 0;
+    margin: 0.25em;
+}
+
+.widget-collection .smile-loading {
+    background-color: rgba(128, 128, 128, 0.25);
+    border-radius: 0.3em;
+}
+
+/* dragdrop */
+
+.widget-collection .drop-hint {
+    display: inline-block;
+    width: 0px;
+    min-height: 16px;
+    outline: 1px solid red;
+}
+
+.widget-collection .smile.dragged {
+    visibility: hidden;
+}
+
+
+/* dark theme */
+
+body.dark .widget-collection .collection-title, body.dark .widget-collection .tabs-wrapper {
+    background-color: #334;
+    color: #999;
+}
+
+body.dark .widget-collection .collection-tabs {
+    border-bottom: 1px solid #223;
+}
+
+body.dark .widget-collection .collection-tabs > li.current {
+    background-color: #334;
+    border-color: #223;
+}
+
+body.dark .widget-collection .tabs-level {
+    border-bottom: 1px solid #223;
+}
+
+body.dark .widget-collection .tab-btn, body.dark .widget-collection .tab-btn:visited, body.datk .widget-collection .tab-btn:active {
+    color: #bbb;
+    background-color: #334;
+}
+
+body.dark .widget-collection .tab-btn:hover {
+    border-bottom: 0.2em solid #779;
+}
+
+body.dark .widget-collection .tab-btn-active, body.dark .widget-collection .tab-btn-active:hover {
+    border-bottom: 0.2em solid #668;
+}
+
+body.dark .widget-collection .collection-message {
+    color: #777;
+}

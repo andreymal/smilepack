@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}{{ _("Create smilepack") }}{% endif %}</title>
+    {{ stylesheet_tag("base_css") | safe }}
+    {{ stylesheet_tag("widget_collection_css") | safe }}
     {{ stylesheet_tag("generator_css") | safe }}
 </head>
 <body>
@@ -59,7 +61,7 @@
 </div>
 
 <div class="container">
-<div class="collection container-left" id="collection">
+<div class="widget-collection container-left" id="collection">
     <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
     <ul class="collection-tabs">
         <li class="current" data-tab="collection">{{ _("Collection of smiles") }}</li>
@@ -75,7 +77,7 @@
     <div class="collection-smiles"></div>
     <div class="additional-new-smiles"><a href="#" class="action-more-new">{{ _("Load more smiles") }}</a></div>
 
-</div><div class="collection container-right" id="smilepack">
+</div><div class="widget-collection container-right" id="smilepack">
     <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
     <div class="collection-title">{{ _("Your smilepack") }}</div>
     <div class="tabs-wrapper"></div>
@@ -123,7 +125,7 @@
         {%- for icon in icons %}
             <label>
                 <input type="radio" name="icon" data-value-url="{{ icon.url }}" value="{{ icon.id }}"{{ ' checked' if loop.first else '' }} />
-                <img src="{{ icon.url }}" alt="" class="dialog-icon" />
+                <img src="{{ icon.url }}" alt="" class="dialog-category-icon" />
             </label>
         {%- endfor %}
         </div>

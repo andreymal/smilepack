@@ -13,6 +13,8 @@ module.exports = {
         landing_js: root + "/scripts/landing.js",
         generator_js: root + "/scripts/generator",
         landing_css: root + "/styles/landing.css",
+        base_css: root + "/styles/base.css",
+        widget_collection_css: root + "/styles/widgets/Collection.css",
         generator_css: root + "/styles/generator.css"
     },
     output: {

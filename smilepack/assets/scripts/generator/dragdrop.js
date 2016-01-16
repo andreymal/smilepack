@@ -49,13 +49,47 @@ var dragdrop = {
         overlay.addEventListener('mousedown', this._eventPrevent);
         overlay.addEventListener('mouseup', this._eventPrevent);
 
+        /* FIXME: optimize this */
+        // var t1 = new Date().getTime();
+
+        var copyQueue = [[element, overlay]];
+        var elems, elemOld, elemNew, i, l;
+
+        while (copyQueue.length > 0) {
+            elems = copyQueue.pop();
+            elemOld = elems[0];
+            elemNew = elems[1];
+            var style = getComputedStyle(elemOld);
+            var ovStyle = getComputedStyle(elemNew);
+            l = style.length;
+            for (i = 0; i < l; i++) {
+                var name = style[i];
+                if (elemOld === element && (
+                    name == "width" || name == "height" ||
+                    name == "position" || name.indexOf("margin") == 0 ||  // Safari don't support startsWith
+                    name == "box-sizing" || name.indexOf("transition") == 0
+                )) {
+                    continue;
+                }
+                if (style[name] != ovStyle[name]) {
+                    elemNew.style[name] = style[name];
+                }
+            }
+            elemNew.style.pointerEvents = 'none';
+            l = elemOld.children.length;
+            for (i = 0; i < l; i++) {
+                copyQueue.push([elemOld.children[i], elemNew.children[i]]);
+            }
+        }
+
+        // console.log('style copy time', new Date().getTime() - t1);
+
         overlay.classList.add('overlay');
         overlay.style.margin = '0';
         overlay.style.position = 'fixed';
         overlay.style.width = box.width + 'px';
         overlay.style.height = box.height + 'px';
         overlay.style.boxSizing = 'border-box';
-        overlay.style.pointerEvents = 'none';
         overlay.title = "";
 
         return overlay;
