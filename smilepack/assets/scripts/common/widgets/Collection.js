@@ -45,6 +45,8 @@ var Collection = function(hierarchy, options) {
     }
     this.options = options;
 
+    this.smilesLoader = options.get_smiles_func;
+
     this._eventListeners = {
         onchange: [],
         onaction: [],
@@ -203,6 +205,14 @@ Collection.prototype.getDOM = function() {
 
 
 /* Collection management */
+
+/**
+ * Устанавливает функцию (get_smiles_func), которая будет вызываться при открытии ещё не загруженной группы.
+ * @param  {function} callback
+ */
+Collection.prototype.setSmilesLoader = function(func) {
+    this.smilesLoader = func;
+};
 
 
 /**
@@ -637,7 +647,7 @@ Collection.prototype.showGroup = function(groupId, force) {
     }
 
     /* Если смайлики группы не загружены, запрашиваем их */
-    if (!group.dom && group.smileIds.length < 1 && !force && this.options.get_smiles_func) {
+    if (!group.dom && group.smileIds.length < 1 && !force && this.smilesLoader) {
         /* Создаём видимость загрузки */
         this.setLoadingVisibility(true);
         if (this._dom._currentGroupId === null) {
@@ -649,7 +659,7 @@ Collection.prototype.showGroup = function(groupId, force) {
             options.categoryLevel = group.categoryLevel;
             options.categoryId = group.categoryId;
         }
-        this.options.get_smiles_func(this, options);
+        this.smilesLoader(this, options);
         return true;
     }
 
