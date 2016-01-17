@@ -70,6 +70,16 @@ var ajax = {
         return x;
     },
 
+    buildQS: function(obj) {
+        var result = [];
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                result.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+            }
+        }
+        return result.join('&');
+    },
+
     get_categories: function(onload, onerror, onend) {
         return this.request({
             url: '/smiles/',
@@ -92,7 +102,17 @@ var ajax = {
 
     get_new_smiles: function(offset, count, onload, onerror, onend) {
         return this.request({
-            url: '/smiles/new?offset=' + encodeURIComponent(offset) + '&count=' + encodeURIComponent(count),
+            url: '/smiles/new?' + this.buildQS({offset: offset, count: count}),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend
+        });
+    },
+
+    get_nonapproved_smiles: function(older, offset, count, onload, onerror, onend) {
+        return this.request({
+            url: '/admin/smiles/nonapproved?' + this.buildQS({older: older || '', offset: offset, count: count}),
             format: 'json',
             onload: onload,
             onerror: onerror,

@@ -1,12 +1,14 @@
 'use strict';
 
 var CollectionManager = require('./CollectionManager.js'),
+    SuggestionsManager = require('./SuggestionsManager.js'),
     Collection = require('../common/widgets/Collection.js');
 
 var admin = {
     collection: null,
+    collectionManager: null,
     suggestions: null,
-    suggestionsGroup: null,
+    suggestionsManager: null,
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
@@ -38,10 +40,8 @@ var admin = {
             }
         );
 
-        this.suggestionsGroup = this.suggestions.createGroup();
-        this.suggestions.showGroup(this.suggestionsGroup, true);
-
         this.collectionManager = new CollectionManager(this.collection);
+        this.suggestionsManager = new SuggestionsManager(this.suggestions);
     },
 
     bindButtonEvents: function() {

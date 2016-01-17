@@ -5,7 +5,7 @@ import sys
 import logging
 from logging.handlers import SMTPHandler
 
-from flask import Flask, send_from_directory, request, g
+from flask import Flask, request, g
 from flask_limiter import Limiter
 from flask_webpack import Webpack
 from flask_login import LoginManager
@@ -15,7 +15,7 @@ from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
 
 from smilepack import database
-from smilepack.views import auth, smiles, smilepacks, pages, utils as views_utils
+from smilepack.views import auth, admin, smiles, smilepacks, pages, utils as views_utils
 from smilepack.bl import init_bl
 
 __all__ = ['create_app']
@@ -55,6 +55,7 @@ def create_app():
 
     # Login for administration
     app.login_manager = LoginManager(app)
+
     @app.login_manager.user_loader
     def load_user(user_id):
         from smilepack.models import User
@@ -94,6 +95,7 @@ def create_app():
     app.register_blueprint(pages.bp)
     app.register_blueprint(smiles.bp, url_prefix='/smiles')
     app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
+    app.register_blueprint(admin.bp, url_prefix='/admin/smiles')
 
     # Webpack assets, error handlers, nocache and more
     views_utils.configure_for_app(app, here)

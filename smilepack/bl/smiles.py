@@ -266,6 +266,26 @@ class SmileBL(BaseBL):
         current_app.cache.set('last_smiles_{}'.format(query_count), smiles, timeout=300)
         return smiles[offset:offset + count]
 
+    def get_last_nonapproved(self, older=None, offset=0, count=100):
+        offset = max(0, offset)
+        count = max(0, count)
+        Smile = self._model()
+        if older is None:
+            result = Smile.select(lambda x: x.category is None or x.approved_at is None)
+        else:
+            result = Smile.select(lambda x: x.id < older and (x.category is None or x.approved_at is None))
+        return result.order_by(Smile.id.desc())[offset:offset + count]
+
+    def get_last_nonapproved_as_json(self, older=None, offset=0, count=100):
+        if count <= 0:
+            return []
+        offset = max(0, offset)
+        count = min(2000, count)
+
+        smiles = self.get_last_nonapproved(older, offset, count)
+        smiles = [x.bl.as_json(full_info=True, admin_info=True) for x in smiles]
+        return smiles[offset:offset + count]
+
     def search_by_hashsum(self, hashsum):
         from smilepack.models import SmileHash
         return orm.select(x.smile for x in SmileHash if x.hashsum == hashsum).first()
@@ -387,7 +407,7 @@ class SmileBL(BaseBL):
         tag_obj.flush()
         return True
 
-    def as_json(self, full_info=True):
+    def as_json(self, full_info=True, admin_info=False):
         smile = self._model()
         result = {
             'id': smile.id,
@@ -401,6 +421,10 @@ class SmileBL(BaseBL):
             result['category'] = [smile.category.id, smile.category.name] if smile.category else None
             result['subsection'] = [smile.category.subsection.id, smile.category.subsection.name] if smile.category else None
             result['section'] = [smile.category.subsection.section.id, smile.category.subsection.section.name] if smile.category else None
+        if admin_info:
+            result['created_at'] = smile.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+            result['updated_at'] = smile.updated_at.strftime('%Y-%m-%dT%H:%M:%SZ')
+            result['approved_at'] = smile.approved_at.strftime('%Y-%m-%dT%H:%M:%SZ') if smile.approved_at else None
         return result
 
     def get_system_path(self):
