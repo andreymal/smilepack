@@ -742,6 +742,8 @@ var generator = {
         } else {
             ajax.get_smiles(options.categoryId, callbackCategory, onerror);
         }
+
+        return true;
     },
 
     getSmilesErrorEvent: function(data) {
@@ -810,9 +812,11 @@ var generator = {
             {
                 editable: false,
                 container: document.getElementById('collection'),
-                get_smiles_func: this.set_collection_smiles.bind(this),
-                onchange: this.onchange.bind(this),
-                ondropto: this.dropToCollectionEvent.bind(this),
+                events: {onchange: this.onchange.bind(this)},
+                callbacks: {
+                    onload: this.set_collection_smiles.bind(this),
+                    ondropto: this.dropToCollectionEvent.bind(this)
+                },
                 selectable: true,
                 selectableDragged: false,
                 useCategoryLinks: true
@@ -828,8 +832,8 @@ var generator = {
             {
                 editable: true,
                 container: document.getElementById('smilepack'),
-                ondropto: this.dropToSmilepackEvent.bind(this),
-                onaction: this.onaction.bind(this),
+                events: {onaction: this.onaction.bind(this)},
+                callbacks: {ondropto: this.dropToSmilepackEvent.bind(this)},
                 selectable: true
             }
         );

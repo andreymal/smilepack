@@ -17,18 +17,15 @@ var dragdrop = require('../dragdrop.js');
            DOM-элемент, в который будет помещена коллекция; при отсутствии он будет создан и его можно будет получить через getDOM()
  * @param  {boolean}           [options.editable=false]
            При true категории и смайлики могут редактироваться пользователем (добавляются соответствующие DOM-элементы)
- * @param  {function}          [options.get_smiles_func]
-           Функция, которая будет вызвана перед отображением пустой категории или группы
  * @param  {number}            [options.lazyStep]
            По сколько смайликов за раз подгружать (по умолчанию для Chrome 15, для других браузеров 3)
  * @param  {string}            [options.message]
            Сообщение по умолчанию, отображаемое под категориями и над смайликами (можно задать через html-код, передав container)
- * @param  {function}          [options.onaction]
-           Обработчик события onaction (выполнение какого-либо действия пользователем с категорией или смайликом) (можно задать через subscribe)
- * @param  {function}          [options.onchange]
-           Обработчик события onchange (отображение другой категории или групы) (можно задать через subscribe)
- * @param  {function}          [options.ondropto]
            Обработчик события ondropto (drag&drop бросание смайлика на эту коллекцию)
+ * @param  {function[]}        [options.events]
+           Обработчики событий, не требующих ответа (onchange, onaction, onselect, oncategoryedit)
+ * @param  {function[]}        [options.callbacks]
+           Обработчики событий, требующих ответа (onload, onmove, ondropto)
  * @param  {boolean}           [options.selectable=false]
            Можно ли выделять смайлики через ЛКМ
  * @param  {boolean}           [options.selectableDragged=false]
@@ -45,8 +42,8 @@ var Collection = function(hierarchy, options) {
     }
     this.options = options;
 
-    this.smilesLoader = options.get_smiles_func;
-
+    var event;
+    /* Обработчики, которых может быть несколько */
     this._eventListeners = {
         onchange: [],
         onaction: [],
@@ -54,9 +51,26 @@ var Collection = function(hierarchy, options) {
         oncategoryedit: []
     };
 
-    for (var event in this._eventListeners) {
-        if (options[event]) {
-            this._eventListeners[event].push(options[event]);
+    if (options.events) {
+        for (event in this._eventListeners) {
+            if (this._eventListeners.hasOwnProperty(event) && options.events[event]) {
+                this._eventListeners[event].push(options.events[event]);
+            }
+        }
+    }
+
+    /* Обработчики, которые могут быть только по одному и от которых требуется какой-то ответ */
+    this._callbacks = {
+        onload: null,
+        onmove: null,
+        ondropto: null
+    };
+
+    if (options.callbacks) {
+        for (event in this._callbacks) {
+            if (this._callbacks.hasOwnProperty(event) && options.callbacks[event]) {
+                this._callbacks[event] = options.callbacks[event];
+            }
         }
     }
 
@@ -206,12 +220,17 @@ Collection.prototype.getDOM = function() {
 
 /* Collection management */
 
+
 /**
- * Устанавливает функцию (get_smiles_func), которая будет вызываться при открытии ещё не загруженной группы.
- * @param  {function} callback
+ * Устанавливает функцию, вызывающуюся при событии, которое требует ответа (onmove, ondropto).
+ * @param  {string}   event    Название события
+ * @param  {function} callback Функция, которая будет вызвана, когда событие случится
  */
-Collection.prototype.setSmilesLoader = function(func) {
-    this.smilesLoader = func;
+Collection.prototype.setCallback = function(event, callback) {
+    if (this._callbacks[event] === undefined) {
+        throw new Error("Unknown event " + event);
+    }
+    this._callbacks[event] = callback;
 };
 
 
@@ -538,11 +557,11 @@ Collection.prototype.removeGroup = function(groupId) {
 /**
  * Выбирает категорию и обновляет отображение в блоке категорий.
  * Если категория привязана к группе, то она тоже отображается.
- * Но если в группе нет смайликов и она ни разу не отображалась, то будет вызван get_smiles_func, а отображение отложено.
+ * Но если в группе нет смайликов и она ни разу не отображалась, то будет вызван callbacks.onload, а отображение отложено.
  * Вызванная функция должна будет повторить вызов selectCategory или selectGroup после добавлния смайликов.
  * @param  {number}  level         Уровень, на котором находится категория
  * @param  {number}  categoryId    ID категории
- * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова callbacks.onload отображается немедленно
  * @return {boolean}               true при успешном переключении (в том числе отложенном)
  */
 Collection.prototype.selectCategory = function(level, categoryId, force) {
@@ -605,7 +624,7 @@ Collection.prototype.selectCategory = function(level, categoryId, force) {
  * Отображает смайлики указанной категории. Обёртка над showGroup.
  * @param  {number}  level         Уровень, на котором находится категория
  * @param  {number}  categoryId    ID категории
- * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова callbacks.onload отображается немедленно
  * @return {boolean}               true при успехе
  */
 Collection.prototype.showCategory = function(level, categoryId, force) {
@@ -631,9 +650,9 @@ Collection.prototype.showCategory = function(level, categoryId, force) {
 
 /**
  * Отображает группу смайликов.
- * Если в группе нет смайликов и она ни разу не отображалась, то будет вызван get_smiles_func, а отображение отложено с возвратом true.
+ * Если в группе нет смайликов и она ни разу не отображалась, то будет вызван callbacks.onload, а отображение отложено с возвратом true.
  * @param  {number}  groupId       ID отображаемой группы
- * @param  {boolean} [force=false] При true пустая группа вместо вызова get_smiles_func отображается немедленно
+ * @param  {boolean} [force=false] При true пустая группа вместо вызова callbacks.onload отображается немедленно
  * @return {boolean}               true при успешном переключении
  */
 Collection.prototype.showGroup = function(groupId, force) {
@@ -647,20 +666,22 @@ Collection.prototype.showGroup = function(groupId, force) {
     }
 
     /* Если смайлики группы не загружены, запрашиваем их */
-    if (!group.dom && group.smileIds.length < 1 && !force && this.smilesLoader) {
-        /* Создаём видимость загрузки */
-        this.setLoadingVisibility(true);
-        if (this._dom._currentGroupId === null) {
-            this._dom.message.textContent = group.description || '';
-        }
-        /* Сам запрос */
+    if (!group.dom && group.smileIds.length < 1 && !force && this._callbacks.onload) {
         var options = {groupId: group.id};
         if (group.categoryId !== null) {
             options.categoryLevel = group.categoryLevel;
             options.categoryId = group.categoryId;
         }
-        this.smilesLoader(this, options);
-        return true;
+
+        /* Отправляем запрос на загрузку */
+        if (this._callbacks.onload(this, options)) {
+            /* Если он принят, то создаём видимость загрузки */
+            this.setLoadingVisibility(true);
+            if (this._currentGroupId === null) {
+                this._dom.message.textContent = group.description || '';
+            }
+            return true;
+        } /* Если не принят, то далее отображаем пустую группу */
     }
 
     /* Убираем выделение у кнопки категории, если таковая была установлена */
@@ -2050,14 +2071,32 @@ Collection.prototype._dragDropTo = function(options) {
         }
 
         var group = this._groups[this._currentGroupId];
+        var actualBeforeId = smileMovePosId;
         if (smileMovePosId === null) {
             var lastSmile = this._smiles[group.smileIds[group.smileIds.length - 1]];
             var rect = lastSmile.groups[this._currentGroupId].getBoundingClientRect();
-            if (options.y >= rect.bottom || options.y >= rect.top && options.x >= rect.left) {
-                this.moveSmile(smile.id, null);
+            if (!(options.y >= rect.bottom || options.y >= rect.top && options.x >= rect.left)) {
+                actualBeforeId = smile.id;
             }
-        } else if (smile.id !== smileMovePosId) {
-            this.moveSmile(smile.id, smileMovePosId);
+        } else if (smile.id === smileMovePosId) {
+            actualBeforeId = smile.id;
+        }
+
+        var action = {name: 'move', beforeId: actualBeforeId};
+        if (this._callbacks.onmove) {
+            action = this._callbacks.onmove({
+                container: this,
+                smileId: smile.id,
+                beforeId: actualBeforeId
+            }) || action;
+        }
+
+        if (action.name === 'move') {
+            if (action.beforeId !== smile.id) {
+                this.moveSmile(smile.id, action.beforeId);
+            }
+        } else if (action.name !== 'nothing') {
+            throw new Error('Unknown action ' + action.name);
         }
 
         return null;
@@ -2065,10 +2104,10 @@ Collection.prototype._dragDropTo = function(options) {
 
     /* Что делать при перетаскивании DOM-элементов (включая смайлики) между ними, решает владелец коллекции */
     /* Коллекция руководит только сама собой, но не взаимодействием с другими коллекциями */
-    if (!this.options.ondropto) {
+    if (!this._callbacks.ondropto) {
         return null;
     }
-    var dropAction = this.options.ondropto({
+    var dropAction = this._callbacks.ondropto({
         sourceContainerElement: options.sourceContainer,
         targetContainer: this,
         element: options.element,
