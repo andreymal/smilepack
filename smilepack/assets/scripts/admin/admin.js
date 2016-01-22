@@ -2,6 +2,7 @@
 
 var CollectionManager = require('./CollectionManager.js'),
     SuggestionsManager = require('./SuggestionsManager.js'),
+    AdminCategoriesEditor = require('./AdminCategoriesEditor.js'),
     Collection = require('../common/widgets/Collection.js');
 
 var admin = {
@@ -9,6 +10,7 @@ var admin = {
     collectionManager: null,
     suggestions: null,
     suggestionsManager: null,
+    categoriesEditor: null,
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
@@ -23,7 +25,7 @@ var admin = {
                 ['categories', 'category_id', 'Категории:']
             ],
             {
-                editable: false,
+                editable: true,
                 container: document.getElementById('collection'),
                 selectable: true,
                 selectableDragged: false,
@@ -42,6 +44,8 @@ var admin = {
 
         this.collectionManager = new CollectionManager(this.collection);
         this.suggestionsManager = new SuggestionsManager(this.suggestions);
+
+        this.categoriesEditor = new AdminCategoriesEditor(this.collection, this.suggestions);
     },
 
     bindButtonEvents: function() {

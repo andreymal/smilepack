@@ -407,6 +407,49 @@ class SmileBL(BaseBL):
         tag_obj.flush()
         return True
 
+    def reorder(self, before_smile=None, **kwargs):
+        from smilepack.models import Category, Smile
+
+        smile = self._model()
+        if not smile.category or before_smile and not before_smile.category:
+            raise BadRequestError('Cannot reorder smile without category')
+
+        if before_smile:
+            if before_smile.category.id != smile.category.id:
+                raise BadRequestError('Cannot reorder smile in other category')
+            if before_smile.id == smile.id:
+                return
+
+        # TODO: write more effective implementation
+        smiles = smile.category.smiles.order_by(Smile.order, Smile.id)[:]
+        smile_ids = [x.id for x in smiles]
+
+        i = smile_ids.index(smile.id)
+        del smile_ids[i]
+        del smiles[i]
+
+        if before_smile:
+            i = smile_ids.index(before_smile.id)
+            smile_ids.insert(i, smile.id)
+            smiles.insert(i, smile)
+        else:
+            i = len(smiles)
+            smile_ids.append(smile.id)
+            smiles.append(smile)
+
+        if 'check_after_smile_id' in kwargs:
+            if i == 0 and kwargs['check_after_smile_id'] is not None:
+                raise BadRequestError('Result checking failed')
+            elif i != 0 and kwargs['check_after_smile_id'] != smile_ids[i - 1]:
+                raise BadRequestError('Result checking failed')
+
+        if 'check_order' in kwargs and kwargs['check_order'] != i:
+            raise BadRequestError('Result checking failed')
+
+        for o, sm in enumerate(smiles):
+            if sm.order != o:
+                sm.order = o
+
     def as_json(self, full_info=True, admin_info=False):
         smile = self._model()
         result = {

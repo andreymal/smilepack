@@ -5,7 +5,7 @@ var ajax = require('../common/ajax.js');
 
 var CollectionManager = function(collection) {
     this.collection = collection;
-    collection.setSmilesLoader(this._smilesLoader.bind(this));
+    collection.setCallback('onload', this._smilesLoader.bind(this));
 
     ajax.get_categories(function(data) {
         collection.loadData(data);
@@ -35,6 +35,7 @@ CollectionManager.prototype._smilesLoader = function(collection, options) {
     var onerror = this._getSmilesErrorEvent.bind(this);
 
     ajax.get_smiles(options.categoryId, onload, onerror);
+    return true;
 };
 
 

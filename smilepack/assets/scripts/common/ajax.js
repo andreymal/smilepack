@@ -1,6 +1,8 @@
 'use strict';
 
 var ajax = {
+    _csrf_token: null,
+
     getXmlHttp: function() {
         if (typeof XMLHttpRequest != 'undefined') {
             return new XMLHttpRequest();
@@ -16,6 +18,20 @@ var ajax = {
             }
         }
         return xmlhttp;
+    },
+
+    get_csrf_token: function() {
+        if (this._csrf_token !== null) {
+            return this._csrf_token;
+        }
+        var metas = document.head.getElementsByTagName('meta');
+        for (var i=0; i < metas.length; i++) {
+            if (metas[i].name === 'csrf_token') {
+                this._csrf_token = metas[i].content;
+                break;
+            }
+        }
+        return this._csrf_token;
     },
 
     request: function(options) {
@@ -178,7 +194,20 @@ var ajax = {
             onend: onend,
             data: fdata
         });
-    }
+    },
+
+    edit_smile: function(id, data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/smiles/' + parseInt(id),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), smile: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
 };
 
 

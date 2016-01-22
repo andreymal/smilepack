@@ -8,7 +8,7 @@ import functools
 from datetime import datetime, timedelta
 
 import jinja2
-from werkzeug.exceptions import HTTPException, UnprocessableEntity
+from werkzeug.exceptions import HTTPException, Forbidden, UnprocessableEntity
 from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort
 from flask_login import current_user
 
@@ -71,8 +71,8 @@ def csrf_protect(func):
             pass  # TODO:
         elif request.method != 'OPTIONS':  # TODO: recheck security
             token = session.get('csrf_token')
-            if not token or request.form.get('csrf_token') != token:
-                abort(403)
+            if not token or (request.json or request.form).get('csrf_token') != token:
+                raise Forbidden('Invalid csrf_token')
         return func(*args, **kwargs)
 
     return decorator

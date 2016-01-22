@@ -6,6 +6,7 @@
     {{ stylesheet_tag("base_css") | safe }}
     {{ stylesheet_tag("widget_collection_css") | safe }}
     {{ stylesheet_tag("admin_css") | safe }}
+    <meta name="csrf_token" content="{{ csrf_token() }}" />
 </head>
 <body>
 
