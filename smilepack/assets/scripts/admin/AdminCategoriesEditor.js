@@ -10,16 +10,98 @@ var AdminCategoriesEditor = function(collection, suggestions) {
     this._orderQueue = [];
     this._orderQueueWorking = false;
 
-    this.collection.setCallback('ondropto', this._ondropto.bind(this));
+    this.collection.setCallback('ondropto', this._ondroptoCollection.bind(this));
     this.collection.setCallback('onmove', this._onmove.bind(this));
+
+    this.suggestions.setCallback('ondropto', this._ondroptoSuggestions.bind(this));
 };
 
 
-AdminCategoriesEditor.prototype._ondropto = function(options) {
-    if (options.targetContainer === this.collection) {
-        console.log(options);
+AdminCategoriesEditor.prototype._ondroptoCollection = function(options) {
+    if (options.targetContainer !== this.collection || options.sourceContainerElement !== this.suggestions.getDOM()) {
+        return null;
     }
-    return null;
+
+    var category = this.collection.getCurrentCategory();
+    var smileId = this.suggestions.getSmileIdByDom(options.element);
+    if (!category || category[0] !== 2 || smileId === null) {
+        return null;
+    }
+    var categoryId = category[1];
+
+    var smile = this.suggestions.getSmileInfo(smileId);
+    smile.dragged = true;
+    smile.categoryLevel = 2;
+    smile.categoryId = categoryId;
+    if (this.collection.addSmile(smile) !== smileId) {
+        return null;
+    }
+    // don't this.suggestions.removeSmile, keep it as dragged
+    this.collection.moveSmile(smileId, options.dropPosition, this.collection.getGroupOfCategory(category[0], category[1]));
+
+    var smileIds = this.collection.getSmileIds(this.collection.getCurrentGroupId());
+
+    var beforeId = smileIds.indexOf(smileId);
+    beforeId = (beforeId < smileIds.length - 1) ? smileIds[beforeId + 1] : null;
+    var order = smileIds.indexOf(smileId);
+    var afterId = order > 0 ? smileIds[order - 1] : null;
+
+    this._orderQueue.push({
+        smileId: smileId,
+        data: {
+            position: {
+                before: beforeId,
+                after: afterId,
+                check_order: order
+            },
+            category: categoryId,
+            approved: true
+        },
+        rollback: {
+            mode: 'remove'
+        }
+    });
+    if (!this._orderQueueWorking) {
+        this._orderQueueNext();
+    }
+
+    return {name: 'animateToSmile', id: smileId};
+};
+
+
+AdminCategoriesEditor.prototype._ondroptoSuggestions = function(options) {
+    if (options.targetContainer !== this.suggestions || options.sourceContainerElement !== this.collection.getDOM()) {
+        return null;
+    }
+
+    var smileId = this.collection.getSmileIdByDom(options.element);
+    if (smileId === null) {
+        return null;
+    }
+
+    var smileIds = this.collection.getSmileIds(this.collection.getCurrentGroupId());
+    var beforeId = smileIds.indexOf(smileId);
+    var smile = this.collection.getSmileInfo(smileId);
+
+    this.collection.removeSmile(smileId);
+
+    this._orderQueue.push({
+        smileId: smileId,
+        data: {
+            approved: false
+        },
+        rollback: {
+            mode: 'create',
+            beforeId: beforeId,
+            groupId: this.collection.getGroupOfCategory(smile.categoryLevel, smile.categoryId),
+            smile: smile
+        }
+    });
+    if (!this._orderQueueWorking) {
+        this._orderQueueNext();
+    }
+
+    return this.suggestions.getSmileInfo(smileId) ? {name: 'animateToSmile', id: smileId} : {name: 'fadeOut'};
 };
 
 
@@ -43,16 +125,21 @@ AdminCategoriesEditor.prototype._onmove = function(options) {
     var order = smileIds.indexOf(options.smileId);
     var afterId = order > 0 ? smileIds[order - 1] : null;
 
-    this._orderQueue.push([
-        options.smileId,
-        {
-            before: options.beforeId,
-            after: afterId,
-            check_order: order
+    this._orderQueue.push({
+        smileId: options.smileId,
+        data: {
+            position: {
+                before: options.beforeId,
+                after: afterId,
+                check_order: order
+            }
         },
-        oldBeforeId,
-        this.collection.getCurrentGroupId()
-    ]);
+        rollback: {
+            mode: 'move',
+            beforeId: oldBeforeId,
+            groupId: this.collection.getCurrentGroupId()
+        }
+    });
     if (!this._orderQueueWorking) {
         this._orderQueueNext();
     }
@@ -68,23 +155,39 @@ AdminCategoriesEditor.prototype._orderQueueNext = function() {
 
     var data = this._orderQueue.splice(0, 1)[0];
     ajax.edit_smile(
-        data[0],
-        {position: data[1]},
+        data.smileId,
+        data.data,
         null,
         function(response) {
             if (response.error === 'Result checking failed') {
                 alert('Не получилось переместить смайлик; возможно,\nкто-то ещё редактирует категорию помимо вас.\nПопробуйте обновить страницу.');
             } else {
                 alert(response.error || response || 'fail');
-                for (var i = this._orderQueue.length - 1; i >= 0; i--) {
-                    if (!this.collection.moveSmile(this._orderQueue[i][0], this._orderQueue[i][2], this._orderQueue[i][3])) {
-                        throw new Error('Cannot rollback smiles moving :(');
+
+                var item, rb;
+                for (var i = this._orderQueue.length - 1; i >= -1; i--) {
+                    item = i >= 0 ? this._orderQueue[i] : data;
+                    rb = item.rollback;
+                    if (rb.mode === 'move') {
+                        if (!this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
+                            throw new Error('Cannot rollback smiles moving :(');
+                        }
+                    } else if (rb.mode === 'remove') {
+                        if (!this.collection.removeSmile(item.smileId)) {
+                            throw new Error('Cannot rollback smiles addition! :(');
+                        }
+                        if (this.suggestions.getDragged(item.smileId)) {
+                            this.suggestions.setDragged(item.smileId, false);
+                        }
+                    } else if (rb.mode === 'create') {
+                        if (this.collection.createSmile(rb.smile) !== item.smileId || !this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
+                            throw new Error('Cannot rollback smiles deletion! :(');
+                        }
+                    } else {
+                        throw new Error('Unknown rollback method ' + rb.mode);
                     }
                 }
                 this._orderQueue = [];
-                if (!this.collection.moveSmile(data[0], data[2], data[3])) {
-                    throw new Error('Cannot rollback smiles moving :(');
-                }
             }
         }.bind(this),
         function() {
