@@ -17,9 +17,27 @@ SMILE = {
         "h": {
             "type": "integer",
             "minimum": 1
+        },
+        "category": {
+            "type": "integer"
+        },
+        "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 16000
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48
+            }
+        },
+        "approved": {
+            "type": "boolean"
         }
-    },
-    "required": ["w", "h"]
+    }
 }
 
 

@@ -96,6 +96,9 @@ class Category(db.Entity):
     def before_update(self):
         self.updated_at = datetime.utcnow()
 
+    def select_approved_smiles(self):
+        return self.smiles.select(lambda x: x.category is not None and x.approved_at is not None)
+
 
 class Smile(db.Entity):
     """Смайлик, как из коллекции, так и пользовательский"""

@@ -7,7 +7,7 @@ from pony.orm import db_session
 from flask import Blueprint, abort, request, send_from_directory, current_app
 
 from smilepack import models
-from smilepack.views.utils import user_session, json_answer, default_crossdomain
+from smilepack.views.utils import user_session, json_answer, default_crossdomain, dictslice
 from smilepack.utils.exceptions import BadRequestError
 
 
@@ -123,14 +123,15 @@ def create(session_id, first_visit):
 
     # FIXME: Pony ORM with sqlite3 crashes here
     with db_session:
-        smile_id = models.Smile.bl.create(
-            r,
+        created, smile = models.Smile.bl.find_or_create(
+            dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags')),  # 'approved' key is not allowed
             user_addr=request.remote_addr,
             session_id=session_id,
             compress=compress
-        ).id
+        )
+        smile_id = smile.id
     with db_session:
-        result = {'smile': models.Smile.get(id=smile_id).bl.as_json()}
+        result = {'smile': models.Smile.get(id=smile_id).bl.as_json(), 'created': created}
     return result
 
 

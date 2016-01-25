@@ -50,6 +50,10 @@ def edit_smile(smile_id):
     data = request.json.get('smile') or {}
 
     position = data.pop('position', None)
+
+    if data:
+        smile.bl.edit(data)
+
     if position and isinstance(position, dict):
         before_smile_id = position.pop('before')
         before_smile = models.Smile.get(id=before_smile_id) if isinstance(before_smile_id, int) else None
@@ -63,8 +67,5 @@ def edit_smile(smile_id):
             kwargs['check_order'] = position.pop('check_order')
 
         smile.bl.reorder(before_smile, **kwargs)
-
-
-    # TODO: edit attributes
 
     return {'smile': smile.bl.as_json(full_info=True, admin_info=True)}

@@ -3,6 +3,7 @@
 
 import os
 import math
+from datetime import datetime
 from urllib.request import urlopen
 
 import jsonschema
@@ -122,11 +123,11 @@ class CategoryBL(BaseBL):
             'w': x.width,
             'h': x.height,
             'description': x.description,
-        } for x in sorted(self._model().smiles, key=lambda x: (x.order, x.id))]
+        } for x in sorted(self._model().select_approved_smiles(), key=lambda x: (x.order, x.id))]
 
 
 class SmileBL(BaseBL):
-    def create(self, data, category=None, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
+    def find_or_create(self, data, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
         smile_file = data.pop('file', None)
 
         try:
@@ -134,12 +135,26 @@ class SmileBL(BaseBL):
         except jsonschema.ValidationError as exc:
             raise JSONValidationError(exc)
 
+        if 'w' not in data or 'h' not in data:
+            raise BadRequestError('Please set width and height')
+
+        from smilepack.models import SmileUrl, SmileHash, Category
+
+        # Ищем категорию, в которую добавляется смайлик
+        category_id = data.pop('category', None)
+        if category_id is not None:
+            category = Category.get(id=category_id)
+            if category is None:
+                raise BadRequestError('Category not found')
+        else:
+            category = None
+
         # Ищем существующий смайлик по урлу
         smile_by_url = None
         if data.get('url') and not smile_file:
             smile_by_url = self.search_by_url(check_and_normalize(data['url']))
             if smile_by_url:
-                return smile_by_url
+                return False, smile_by_url
 
         # Проверяем доступность загрузки файлов
         if smile_file and not current_app.config['UPLOAD_METHOD']:
@@ -158,7 +173,7 @@ class SmileBL(BaseBL):
         # Ищем смайлик по хэшу
         smile_by_hashsum = self.search_by_hashsum(hashsum)
         if smile_by_hashsum:
-            return smile_by_hashsum
+            return False, smile_by_hashsum
 
         # Раз ничего не нашлось, сохраняем смайлик себе
         try:
@@ -184,13 +199,19 @@ class SmileBL(BaseBL):
             width=data['w'],
             height=data['h'],
             custom_url=upload_info['url'] or '',
+            description=data.get('description', ''),
             tags_cache='',
             hashsum=upload_info['hashsum'],
+            approved_at=datetime.utcnow() if data.get('approved') else None,
         )
         smile.flush()
+        if 'tags' in data:
+            try:
+                smile.bl.set_tags(data['tags'])
+            except ValueError as exc:
+                raise BadRequestError(str(exc))
 
         # Сохраняем инфу о урле и хэшах, дабы не плодить дубликаты смайликов
-        from smilepack.models import SmileUrl, SmileHash
 
         # Если загружен новый смайлик по урлу
         if data.get('url') and not smile_by_url:
@@ -228,6 +249,46 @@ class SmileBL(BaseBL):
             smile.height,
             upload_info.get('compression_method'),
         )
+        return True, smile
+
+    def edit(self, data):
+        smile = self._model()
+
+        try:
+            jsonschema.validate(data, schemas.SMILE)
+        except jsonschema.ValidationError as exc:
+            raise JSONValidationError(exc)
+
+        from smilepack.models import Category
+
+        # Ищем категорию, в которую переносится смайлик
+        category_id = data.get('category')
+        if category_id is not None:
+            category = Category.get(id=category_id)
+            if category is None:
+                raise BadRequestError('Category not found')
+        else:
+            category = None
+
+        # Редактируем смайлик
+        if 'w' in data:
+            smile.width = data['w']
+        if 'h' in data:
+            smile.height = data['h']
+        if 'category' in data:
+            if category and (not smile.category or category.id != smile.category.id):
+                smile.order = category.smiles.select().count()
+            smile.category = category
+        if 'description' in data:
+            smile.description = data.get('description', '')
+        if 'approved' in data:
+            smile.approved_at = (smile.approved_at or datetime.utcnow()) if data['approved'] else None
+        if 'tags' in data:
+            try:
+                self.set_tags(data['tags'])
+            except ValueError as exc:
+                raise BadRequestError(str(exc))
+
         return smile
 
     def get_all_collection_smiles_count(self):
@@ -342,8 +403,6 @@ class SmileBL(BaseBL):
         return result_smiles
 
     def add_tag(self, tag):
-        from smilepack.models import Tag, TagSynonym
-
         tag = str(tag or '').strip().lower()  # TODO: recheck case sensitivity
         if not tag:
             raise ValueError('Empty tag')
@@ -351,61 +410,91 @@ class SmileBL(BaseBL):
         if ',' in tag or len(tag) > 48:
             raise ValueError('Invalid tag')
 
+        from smilepack.models import TagSynonym
         smile = self._model()
-
-        # FIXME: smile.category.subsection.section??!
         synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
         if synonym:
-            tag = synonym[0]
+            tag = synonym
 
-        tag_obj = smile.tags.select(lambda x: x.name == tag).first()
-        if tag_obj:
-            return tag_obj
-
-        section = smile.category.subsection.section  # FIXME: длинноваты цепочки
-        tag_obj = Tag.select(lambda x: x.section == section and x.name == tag).first()
-        if not tag_obj:
-            tag_obj = Tag(section=section, name=tag)
-
-        smile.tags.add(tag_obj)
-
-        if not smile.tags_cache:
-            smile.tags_cache = ','.join(x.name for x in smile.tags)
-        else:
-            smile.tags_cache = smile.tags_cache + ',' + tag
-        smile.flush()
-
-        tag_obj.smiles_count += 1
-        tag_obj.flush()
-
-        return tag_obj
+        if tag not in smile.tags_list:
+            self._apply_tags_raw({tag}, set())
+            smile.tags_cache = ','.join(smile.tags_list + [tag])
+        return smile
 
     def remove_tag(self, tag):
-        from smilepack.models import TagSynonym
-
         tag = str(tag or '').strip().lower()
+        if not tag:
+            raise ValueError('Empty tag')
+
+        if ',' in tag or len(tag) > 48:
+            raise ValueError('Invalid tag')
+
+        from smilepack.models import TagSynonym
+        smile = self._model()
+        synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
+        if synonym:
+            tag = synonym
+
+        if tag in smile.tags_list:
+            self._apply_tags_raw(set(), {tag})
+            smile.tags_cache = ','.join([x for x in smile.tags_list if x != tag])
+        return smile
+
+    def set_tags(self, tags):
+        from smilepack.models import Tag, TagSynonym
+
+        # validate
+        clean_tags = []
+        for tag in tags:
+            tag = tag.strip().lower()
+            if not tag:
+                raise ValueError('Empty tag')
+            if len(tag) > 48:
+                raise ValueError('Invalid tag')
+            if tag not in clean_tags:
+                clean_tags.append(tag)
 
         smile = self._model()
-        tag_obj = smile.tags.select(lambda x: x.name == tag).first()
-        if not tag_obj:
-            tag_obj = orm.select(x.tag for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
-            tag_obj = smile.tags.select(lambda x: x.id == tag_obj.id).first()
+        section = smile.category.subsection.section
+
+        # normalize
+        synonym_tags = orm.select((x.name, x.tag_name) for x in TagSynonym if x.section == section and x.name in clean_tags)[:]
+        synonym_tags = dict(synonym_tags)
+        clean_tags = [synonym_tags.get(x, x) for x in clean_tags]
+
+        # calculate
+        add_tags = set(clean_tags) - set(smile.tags_list)
+        rm_tags = set(smile.tags_list) - set(clean_tags)
+
+        # apply
+        self._apply_tags_raw(add_tags, rm_tags)
+        smile.tags_cache = ','.join(clean_tags)
+        return smile
+
+    def _apply_tags_raw(self, add_tags, rm_tags):
+        from smilepack.models import Tag, TagSynonym
+
+        smile = self._model()
+        section = smile.category.subsection.section
+
+        add_tags_objs = {x.name: x for x in Tag.select(lambda x: x.section == section and x.name in add_tags)[:]}
+
+        tag_objs = list(smile.tags.select())
+        if len(tag_objs) + len(add_tags) - len(rm_tags) > 50:
+            raise BadRequestError('Too many tags')
+
+        for x in tag_objs:
+            if x.name in rm_tags:
+                smile.tags.remove(x)
+                x.smiles_count -= 1
+
+        for tag in add_tags:
+            tag_obj = add_tags_objs.get(tag)
             if not tag_obj:
-                return False
-        smile.tags.remove(tag_obj)
-
-        if not smile.tags_cache:
-            smile.tags_cache = ','.join(x.name for x in smile.tags)
-        else:
-            tags_list = [x.strip() for x in smile.tags_cache.split(',')]
-            if tag in tags_list:
-                tags_list.remove(tag)
-                smile.tags_cache = ','.join(tags_list)
-        smile.flush()
-
-        tag_obj.smiles_count -= 1
-        tag_obj.flush()
-        return True
+                tag_obj = Tag(section=section, name=tag)
+                tag_obj.flush()
+            smile.tags.add(tag_obj)
+            tag_obj.smiles_count += 1
 
     def reorder(self, before_smile=None, **kwargs):
         from smilepack.models import Category, Smile
@@ -421,7 +510,7 @@ class SmileBL(BaseBL):
                 return
 
         # TODO: write more effective implementation
-        smiles = smile.category.smiles.order_by(Smile.order, Smile.id)[:]
+        smiles = smile.category.select_approved_smiles().order_by(Smile.order, Smile.id)[:]
         smile_ids = [x.id for x in smiles]
 
         i = smile_ids.index(smile.id)

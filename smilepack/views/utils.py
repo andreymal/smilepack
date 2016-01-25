@@ -15,6 +15,10 @@ from flask_login import current_user
 from ..utils.exceptions import InternalError, BadRequestError
 
 
+def dictslice(d, keys):
+    return {k: v for k, v in d.items() if k in keys}
+
+
 def generate_session_id():
     s = string.ascii_lowercase + string.digits
     return ''.join(random.choice(s) for _ in range(32))
