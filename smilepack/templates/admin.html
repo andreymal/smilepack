@@ -40,10 +40,14 @@
 
 </div><div class="widget-collection container-right" id="suggestions">
     <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
-    <div class="collection-title">{{ _("Suggestions") }}</div>
+    <ul class="collection-tabs">
+        <li data-tab="all">{{ _("All unpublished smiles") }}</li>
+        <li data-tab="suggestions">{{ _("Suggestions") }}</li>
+        <li data-tab="nocategories">{{ _("With missing categories") }}</li>
+    </ul>
     <div class="tabs-wrapper"></div>
 
-    <div class="collection-message"></div>
+    <div class="collection-message">{{ _("Choose a tab to view unpublished smiles") }}</div>
     <div class="collection-smiles"></div>
 
     <div class="additional"><a href="#" class="action-more-nonapproved">{{ _("Load more smiles") }}</a></div>

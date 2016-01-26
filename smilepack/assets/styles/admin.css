@@ -64,3 +64,13 @@
 .actions-list li:hover {
     background-color: #555;
 }
+
+.widget-collection .additional {
+    padding: 0.5em;
+    line-height: 2em;
+    display: none;
+}
+
+.widget-collection.smiles-opened .additional {
+    display: block;
+}

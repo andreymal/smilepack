@@ -11,12 +11,12 @@ from smilepack.views.utils import for_admin, json_answer, default_crossdomain, c
 bp = Blueprint('admin', __name__)
 
 
-@bp.route('/nonapproved')
+@bp.route('/unpublished')
 @default_crossdomain()
 @json_answer
 @db_session
 @for_admin
-def nonapproved():
+def unpublished():
     older = request.args.get('older')
     if older and older.isdigit():
         older = int(older)
@@ -32,7 +32,7 @@ def nonapproved():
         count = int(count)
     else:
         count = 100
-    return {'smiles': models.Smile.bl.get_last_nonapproved_as_json(older=older, offset=offset, count=count)}
+    return {'smiles': models.Smile.bl.get_last_unpublished_as_json(filt=request.args.get('filter') or 'all', older=older, offset=offset, count=count)}
 
 
 @bp.route('/<int:smile_id>', methods=['POST'])

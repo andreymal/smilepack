@@ -2115,7 +2115,12 @@ Collection.prototype._dragDropTo = function(options) {
         dropPosition: smileMovePosId
     });
     if (dropAction && dropAction.name == 'animateToSmile') {
-        return {name: 'animate', targetElement: this._smiles[dropAction.id].groups[this._currentGroupId]};
+        var elem = this._smiles[dropAction.id].groups[this._currentGroupId];
+        if (elem) {
+            return {name: 'animate', targetElement: elem};
+        }
+        this.setDragged(dropAction.id, false);
+        return {name: 'fadeOut'};
     }
     return dropAction;
 };

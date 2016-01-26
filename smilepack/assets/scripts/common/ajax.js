@@ -25,7 +25,7 @@ var ajax = {
             return this._csrf_token;
         }
         var metas = document.head.getElementsByTagName('meta');
-        for (var i=0; i < metas.length; i++) {
+        for (var i = 0; i < metas.length; i++) {
             if (metas[i].name === 'csrf_token') {
                 this._csrf_token = metas[i].content;
                 break;
@@ -126,9 +126,9 @@ var ajax = {
         });
     },
 
-    get_nonapproved_smiles: function(older, offset, count, onload, onerror, onend) {
+    get_unpublished_smiles: function(filter, older, offset, count, onload, onerror, onend) {
         return this.request({
-            url: '/admin/smiles/nonapproved?' + this.buildQS({older: older || '', offset: offset, count: count}),
+            url: '/admin/smiles/unpublished?' + this.buildQS({filter: filter || 'all', older: older || '', offset: offset, count: count}),
             format: 'json',
             onload: onload,
             onerror: onerror,

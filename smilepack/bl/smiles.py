@@ -327,23 +327,32 @@ class SmileBL(BaseBL):
         current_app.cache.set('last_smiles_{}'.format(query_count), smiles, timeout=300)
         return smiles[offset:offset + count]
 
-    def get_last_nonapproved(self, older=None, offset=0, count=100):
+    def get_last_unpublished(self, filt='all', older=None, offset=0, count=100):
         offset = max(0, offset)
         count = max(0, count)
         Smile = self._model()
-        if older is None:
+
+        if filt == 'all':
             result = Smile.select(lambda x: x.category is None or x.approved_at is None)
+        elif filt == 'suggestions':
+            result = Smile.select(lambda x: x.category is not None and x.approved_at is None)
+        elif filt == 'nocategories':
+            result = Smile.select(lambda x: x.category is None)
         else:
-            result = Smile.select(lambda x: x.id < older and (x.category is None or x.approved_at is None))
+            raise ValueError('Unknown filter {}'.format(filt))
+
+        if older is not None:
+            result = result.filter(lambda x: x.id < older)
+
         return result.order_by(Smile.id.desc())[offset:offset + count]
 
-    def get_last_nonapproved_as_json(self, older=None, offset=0, count=100):
+    def get_last_unpublished_as_json(self, filt='all', older=None, offset=0, count=100):
         if count <= 0:
             return []
         offset = max(0, offset)
         count = min(2000, count)
 
-        smiles = self.get_last_nonapproved(older, offset, count)
+        smiles = self.get_last_unpublished(filt, older, offset, count)
         smiles = [x.bl.as_json(full_info=True, admin_info=True) for x in smiles]
         return smiles[offset:offset + count]
 
