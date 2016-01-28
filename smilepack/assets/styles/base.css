@@ -83,6 +83,7 @@ body.drag-enabled * {
     padding: 0.5em;
     overflow: hidden;
     line-height: 2em;
+    overflow-y: auto;
 }
 
 .container-actions-right {

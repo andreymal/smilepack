@@ -49,6 +49,41 @@ def edit_smile(smile_id):
         abort(404)
     data = request.json.get('smile') or {}
 
+    return _edit_smile(smile, data)
+
+
+@bp.route('/edit', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def edit_many_smiles():
+    if not request.json or not isinstance(request.json, dict) or not isinstance(request.json.get('items'), list):
+        abort(400)
+    smile_ids = []
+    for item in request.json['items']:
+        i = item.get('id')
+        if not isinstance(i, int) and (not isinstance(i, str) or not i.isdigit()):
+            abort(400)
+        if not isinstance(item.get('smile'), dict):
+            abort(400)
+        smile_ids.append(int(i))
+
+    smiles = {s.id: s for s in models.Smile.select(lambda x: x.id in smile_ids)[:]}
+    if not smiles:
+        abort(404)
+
+    result = []
+    for item in request.json['items']:
+        smile = smiles[int(item['id'])]
+        result.append(_edit_smile(smile, item['smile']))
+        result[-1]['id'] = smile.id
+
+    return {'items': result}
+
+
+def _edit_smile(smile, data):
     position = data.pop('position', None)
 
     if data:

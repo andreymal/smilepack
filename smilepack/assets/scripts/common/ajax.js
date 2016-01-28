@@ -208,6 +208,19 @@ var ajax = {
             headers: {'Content-Type': 'application/json'}
         });
     },
+
+    edit_many_smiles: function(items, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/smiles/edit',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), items: items}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    }
 };
 
 

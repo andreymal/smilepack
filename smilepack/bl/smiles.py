@@ -277,7 +277,7 @@ class SmileBL(BaseBL):
             smile.height = data['h']
         if 'category' in data:
             if category and (not smile.category or category.id != smile.category.id):
-                smile.order = category.smiles.select().count()
+                smile.order = category.select_approved_smiles().count()
             smile.category = category
         if 'description' in data:
             smile.description = data.get('description', '')
@@ -527,7 +527,10 @@ class SmileBL(BaseBL):
         del smiles[i]
 
         if before_smile:
-            i = smile_ids.index(before_smile.id)
+            try:
+                i = smile_ids.index(before_smile.id)
+            except ValueError:
+                i = -1
             smile_ids.insert(i, smile.id)
             smiles.insert(i, smile)
         else:

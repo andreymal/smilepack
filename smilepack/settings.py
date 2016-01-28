@@ -26,6 +26,7 @@ class Config(object):
     PROXIES_COUNT = 0
     LOGGER_LEVEL = logging.INFO
     LOGGER_STDERR = True
+    X_RUNTIME_HEADER = False
 
     ADMINS = []
     ERROR_EMAIL_FROM = 'smilepack@localhost.com',
@@ -78,3 +79,4 @@ class Development(Config):
     API_ALLOW_CREDENTIALS_FOR = ['*']
     SQL_DEBUG = True
     RATELIMIT_HEADERS_ENABLED = True
+    X_RUNTIME_HEADER = True

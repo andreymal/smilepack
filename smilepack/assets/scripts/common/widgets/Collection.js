@@ -1427,6 +1427,9 @@ Collection.prototype.setDragged = function(id, dragged) {
             }
             smile.groups[groupId].classList.toggle('dragged');
         }
+        if (smile.dragged && smile.selected && !this.options.selectableDragged) {
+            this.setSelected(id, false);
+        }
     }
     return true;
 };

@@ -17,43 +17,58 @@ var AdminCategoriesEditor = function(collection, suggestions) {
 };
 
 
-AdminCategoriesEditor.prototype._ondroptoCollection = function(options) {
-    if (options.targetContainer !== this.collection || options.sourceContainerElement !== this.suggestions.getDOM()) {
-        return null;
-    }
+AdminCategoriesEditor.prototype.isBusy = function() {
+    return this._orderQueueWorking;
+};
 
+
+AdminCategoriesEditor.prototype.apply = function() {
+    if (!this._orderQueueWorking) {
+        this._orderQueueNext();
+    }
+};
+
+
+AdminCategoriesEditor.prototype.addToCollection = function(smileId, options) {
+    options = options || {};
     var category = this.collection.getCurrentCategory();
-    var smileId = this.suggestions.getSmileIdByDom(options.element);
-    if (!category || category[0] !== 2 || smileId === null) {
-        return null;
+    var smile = this.suggestions.getSmileInfo(smileId);
+    if (!category || category[0] !== 2 || smile === null) {
+        return false;
     }
     var categoryId = category[1];
 
-    var smile = this.suggestions.getSmileInfo(smileId);
-    smile.dragged = true;
     smile.categoryLevel = 2;
     smile.categoryId = categoryId;
-    if (this.collection.addSmile(smile) !== smileId) {
-        return null;
+    smile.dragged = false;
+    if (this.collection.addSmile(smile, true) !== smileId) {
+        return false;
     }
-    // don't this.suggestions.removeSmile, keep it as dragged
-    this.collection.moveSmile(smileId, options.dropPosition, this.collection.getGroupOfCategory(category[0], category[1]));
+    if (!options.ignoreDragged){
+        this.suggestions.setDragged(smileId, true);
+    }
+    var positionData = null;
+    if (options.moveBefore !== undefined && options.moveBefore !== null) {
+        this.collection.moveSmile(smileId, options.moveBefore, this.collection.getGroupOfCategory(category[0], category[1]));
+    }
+    if (options.forceSendPosition || (options.moveBefore !== undefined && options.moveBefore !== null)) {
+        var smileIds = this.collection.getSmileIds(this.collection.getCurrentGroupId());
+        var beforeId = smileIds.indexOf(smileId);
+        beforeId = (beforeId < smileIds.length - 1) ? smileIds[beforeId + 1] : null;
+        var order = smileIds.indexOf(smileId);
+        var afterId = order > 0 ? smileIds[order - 1] : null;
 
-    var smileIds = this.collection.getSmileIds(this.collection.getCurrentGroupId());
-
-    var beforeId = smileIds.indexOf(smileId);
-    beforeId = (beforeId < smileIds.length - 1) ? smileIds[beforeId + 1] : null;
-    var order = smileIds.indexOf(smileId);
-    var afterId = order > 0 ? smileIds[order - 1] : null;
+        positionData = {
+            before: beforeId,
+            after: afterId,
+            check_order: order
+        };
+    }
 
     this._orderQueue.push({
         smileId: smileId,
         data: {
-            position: {
-                before: beforeId,
-                after: afterId,
-                check_order: order
-            },
+            position: positionData,
             category: categoryId,
             approved: true
         },
@@ -61,29 +76,26 @@ AdminCategoriesEditor.prototype._ondroptoCollection = function(options) {
             mode: 'remove'
         }
     });
-    if (!this._orderQueueWorking) {
+    if (!options.applyLater && !this._orderQueueWorking) {
         this._orderQueueNext();
     }
-
-    return {name: 'animateToSmile', id: smileId};
+    return true;
 };
 
 
-AdminCategoriesEditor.prototype._ondroptoSuggestions = function(options) {
-    if (options.targetContainer !== this.suggestions || options.sourceContainerElement !== this.collection.getDOM()) {
-        return null;
-    }
-
-    var smileId = this.collection.getSmileIdByDom(options.element);
-    if (smileId === null) {
-        return null;
-    }
-
+AdminCategoriesEditor.prototype.removeFromCollection = function(smileId, options) {
+    options = options || {};
     var smileIds = this.collection.getSmileIds(this.collection.getCurrentGroupId());
     var beforeId = smileIds.indexOf(smileId);
-    var smile = this.collection.getSmileInfo(smileId);
+    beforeId = (beforeId < smileIds.length - 1) ? smileIds[beforeId + 1] : null;
+    var smile = this.collection.getSmileInfo(smileId, {withParent: true});
 
-    this.collection.removeSmile(smileId);
+    if (smile === null || !this.collection.removeSmile(smileId)) {
+        return false;
+    }
+    if (!options.ignoreDragged) {
+        this.suggestions.setDragged(smileId, false);
+    }
 
     this._orderQueue.push({
         smileId: smileId,
@@ -97,11 +109,44 @@ AdminCategoriesEditor.prototype._ondroptoSuggestions = function(options) {
             smile: smile
         }
     });
-    if (!this._orderQueueWorking) {
+    if (!options.applyLater && !this._orderQueueWorking) {
         this._orderQueueNext();
     }
+    return true;
+};
 
-    return this.suggestions.getSmileInfo(smileId) ? {name: 'animateToSmile', id: smileId} : {name: 'fadeOut'};
+
+AdminCategoriesEditor.prototype._ondroptoCollection = function(options) {
+    if (options.targetContainer !== this.collection || options.sourceContainerElement !== this.suggestions.getDOM()) {
+        return null;
+    }
+
+    var category = this.collection.getCurrentCategory();
+    var smileId = this.suggestions.getSmileIdByDom(options.element);
+    if (!category || category[0] !== 2 || smileId === null) {
+        return null;
+    }
+
+    if (this.addToCollection(smileId, {ignoreDragged: true, moveBefore: options.dropPosition, forceSendPosition: true})) {
+        this.collection.setDragged(smileId, true);
+        return {name: 'animateToSmile', id: smileId};
+    }
+};
+
+
+AdminCategoriesEditor.prototype._ondroptoSuggestions = function(options) {
+    if (options.targetContainer !== this.suggestions || options.sourceContainerElement !== this.collection.getDOM()) {
+        return null;
+    }
+
+    var smileId = this.collection.getSmileIdByDom(options.element);
+    if (smileId === null) {
+        return null;
+    }
+
+    if (this.removeFromCollection(smileId, {ignoreDragged: true})) {
+        return this.suggestions.getSmileInfo(smileId) ? {name: 'animateToSmile', id: smileId} : {name: 'fadeOut'};
+    }
 };
 
 
@@ -153,47 +198,71 @@ AdminCategoriesEditor.prototype._orderQueueNext = function() {
         return;
     }
 
-    var data = this._orderQueue.splice(0, 1)[0];
-    ajax.edit_smile(
-        data.smileId,
-        data.data,
-        null,
-        function(response) {
-            if (response.error === 'Result checking failed') {
-                alert('Не получилось переместить смайлик; возможно,\nкто-то ещё редактирует категорию помимо вас.\nПопробуйте обновить страницу.');
-            } else {
-                alert(response.error || response || 'fail');
+    var items = this._orderQueue.slice(0, 50);
 
-                var item, rb;
-                for (var i = this._orderQueue.length - 1; i >= -1; i--) {
-                    item = i >= 0 ? this._orderQueue[i] : data;
-                    rb = item.rollback;
-                    if (rb.mode === 'move') {
-                        if (!this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
-                            throw new Error('Cannot rollback smiles moving :(');
-                        }
-                    } else if (rb.mode === 'remove') {
-                        if (!this.collection.removeSmile(item.smileId)) {
-                            throw new Error('Cannot rollback smiles addition! :(');
-                        }
-                        if (this.suggestions.getDragged(item.smileId)) {
-                            this.suggestions.setDragged(item.smileId, false);
-                        }
-                    } else if (rb.mode === 'create') {
-                        if (this.collection.createSmile(rb.smile) !== item.smileId || !this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
-                            throw new Error('Cannot rollback smiles deletion! :(');
-                        }
-                    } else {
-                        throw new Error('Unknown rollback method ' + rb.mode);
-                    }
+    var onload = function() {
+        this._orderQueue.splice(0, 50);
+    }.bind(this);
+
+    var onerror = function(response) {
+        if (response.error === 'Result checking failed') {
+            alert('Не получилось переместить смайлик; возможно,\nкто-то ещё редактирует категорию помимо вас.\nПопробуйте обновить страницу.');
+            this._orderQueue = [];
+            return;
+        }
+
+        alert(response.error || response || 'fail');
+        for (var i = this._orderQueue.length - 1; i >= 0; i--) {
+            var item = this._orderQueue[i];
+            var rb = item.rollback;
+
+            if (rb.mode === 'move') {
+                if (!this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
+                    throw new Error('Cannot rollback smiles moving :(');
                 }
-                this._orderQueue = [];
+            } else if (rb.mode === 'remove') {
+                if (!this.collection.removeSmile(item.smileId)) {
+                    throw new Error('Cannot rollback smiles addition! :(');
+                }
+                if (this.suggestions.getDragged(item.smileId)) {
+                    this.suggestions.setDragged(item.smileId, false);
+                }
+            } else if (rb.mode === 'create') {
+                if (this.collection.addSmile(rb.smile, true) !== item.smileId || !this.collection.moveSmile(item.smileId, rb.beforeId, rb.groupId)) {
+                    throw new Error('Cannot rollback smiles deletion! :(');
+                }
+            } else {
+                throw new Error('Unknown rollback method ' + rb.mode);
             }
-        }.bind(this),
-        function() {
-            this._orderQueueNext();
-        }.bind(this)
-    );
+        }
+
+        this._orderQueue = [];
+    }.bind(this);
+
+    var onend = function() {
+        setTimeout(this._orderQueueNext.bind(this), 400);
+    }.bind(this);
+
+    if (items.length > 1) {
+        var datas = [];
+        for (var i = 0; i < items.length; i++) {
+            datas.push({id: items[i].smileId, smile: items[i].data});
+        }
+        ajax.edit_many_smiles(
+            datas,
+            onload,
+            onerror,
+            onend
+        );
+    } else {
+        ajax.edit_smile(
+            items[0].smileId,
+            items[0].data,
+            onload,
+            onerror,
+            onend
+        );
+    }
 };
 
 

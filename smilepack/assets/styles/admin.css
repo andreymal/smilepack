@@ -74,3 +74,19 @@
 .widget-collection.smiles-opened .additional {
     display: block;
 }
+
+#collection.with-selection {
+    height: calc(100% - 7em);
+}
+
+#suggestions.with-selection {
+    height: calc(100% - 5em);
+}
+
+#collection-action-panel {
+    height: 7em;
+}
+
+#suggestions-action-panel {
+    height: 5em;
+}

@@ -54,6 +54,23 @@
 </div>
 </div><!-- /container -->
 
+<div class="container-actions">
+<div class="container-actions-left smiles-actions-panel" id="collection-action-panel" style="display: none;">
+    <div>{{ _("Selected smiles:") }} <span class="smiles-actions-count">N/A</span></div>
+    <div class="smiles-actions-list">
+        {{ _("Move to another category") }} <select class="smiles-actions-selector smiles-action-select-move"></select> <button class="button smiles-action-move">OK</button><br/>
+        <button class="button smiles-action-edit">{{ _("Edit selected smiles") }}</button>
+        <button class="button smiles-action-remove">{{ _("Remove selected smiles from collection") }}</button>
+    </div>
+</div><div class="container-actions-right smiles-actions-panel" id="suggestions-action-panel" style="display: none;">
+    <div>{{ _("Selected smiles:") }} <span class="smiles-actions-count">N/A</span></div>
+    <div class="smiles-actions-list">
+        <button class="button smiles-action-edit">{{ _("Edit selected smiles") }}</button>
+        <button class="button smiles-action-add">{{ _("Add selected smiles to current category") }}</button>
+    </div>
+</div>
+</div>
+
 <div id="dialog-background" class="dialog-background hidden"></div>
 
 {{ javascript_tag("admin_js") | safe }}

@@ -80,6 +80,19 @@ def create_app():
     if app.config['PROXIES_COUNT'] > 0:
         app.wsgi_app = ProxyFix(app.wsgi_app, app.config['PROXIES_COUNT'])
 
+    if app.config['X_RUNTIME_HEADER']:
+        old_app = app.wsgi_app
+        def timer_middleware(environ, start_response):
+            import time
+
+            def custom_start_response(status, headers):
+                headers = list(headers) + [('X-Runtime', '{:.3f}'.format(time.time() - tm))]
+                start_response(status, headers)
+
+            tm = time.time()
+            return old_app(environ, custom_start_response)
+        app.wsgi_app = timer_middleware
+
     # Errors processing
     if app.config['ADMINS'] and app.config['ERROR_EMAIL_HANDLER_PARAMS']:
         params = dict(app.config['ERROR_EMAIL_HANDLER_PARAMS'])
