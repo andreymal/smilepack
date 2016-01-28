@@ -1,23 +1,18 @@
 'use strict';
 
-var BasicDialog = require('../../common/BasicDialog.js');
+var BasicDialog = require('../../common/BasicDialog.js'),
+    SmilePreview = require('../../common/widgets/SmilePreview.js');
 
 
 var SmileDialog = function(element) {
     BasicDialog.apply(this, [element || document.getElementById('dialog-new-smile')]);
     this.form = this.dom.querySelector('form');
     this.btn = this.form.querySelector('input[type="submit"]');
+    this.preview = new SmilePreview(this.dom.querySelector('.smile-preview-block'));
 
-    this.aspect = null;
-
-    var onchange = this.refresh.bind(this);
     var onfile = this.refreshFile.bind(this);
 
     this.form.url.addEventListener('change', onfile);
-    this.form.w.addEventListener('change', onchange);
-    this.form.h.addEventListener('change', onchange);
-    this.form.w.addEventListener('keyup', onchange);
-    this.form.h.addEventListener('keyup', onchange);
 
     this.current_uploader = 'link';
     this.uploaders = {
@@ -35,7 +30,6 @@ var SmileDialog = function(element) {
 
     this._bindEvents();
     this.refreshFile();
-    this.refresh();
 };
 SmileDialog.prototype = Object.create(BasicDialog.prototype);
 SmileDialog.prototype.constructor = SmileDialog;
@@ -58,30 +52,16 @@ SmileDialog.prototype.setUploader = function(uploader) {
 
 
 SmileDialog.prototype.clearPreview = function() {
-    var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
-    preview.src = 'data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=';
-    preview.width = 0;
-    preview.height = 0;
-    f.w.value = '';
-    f.h.value = '';
+    this.preview.clear();
     this.btn.disabled = true;
 };
 
 
 SmileDialog.prototype.setPreviewUrl = function(url) {
-    var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
-
     var img = document.createElement('img');
     img.onload = function() {
-        preview.src = img.src;
+        this.preview.set({src: img.src, w: img.width, h: img.height, aspect: img.width / img.height});
         this.btn.disabled = false;
-        preview.width = img.width;
-        preview.height = img.height;
-        f.w.value = img.width;
-        f.h.value = img.height;
-        this.aspect = img.width / img.height;
     }.bind(this);
     img.onerror = this.clearPreview.bind(this);
     this.btn.disabled = true;
@@ -91,10 +71,9 @@ SmileDialog.prototype.setPreviewUrl = function(url) {
 
 SmileDialog.prototype.refreshFile = function() {
     var f = this.form;
-    var preview = f.querySelector('.new-smile-preview');
 
     if (this.current_uploader == 'link') {
-        if (preview.src == f.url.value) {
+        if (this.preview.get().src == f.url.value) {
             return;
         }
         if (f.url.value.length < 9) {
@@ -123,65 +102,18 @@ SmileDialog.prototype.refreshFile = function() {
 };
 
 
-SmileDialog.prototype.refresh = function() {
-    var f = this.form;
-
-    var preview = f.querySelector('.new-smile-preview');
-    var aspect = this.aspect;
-    var save_aspect = f.save_aspect.checked;
-    if (save_aspect && aspect === null) {
-        this.aspect = preview.width / preview.height;
-        aspect = this.aspect;
-    } else if (!save_aspect && aspect !== null) {
-        this.aspect = null;
-    }
-
-    var nw = preview.width;
-    var nh = preview.height;
-
-    var w = parseInt(f.w.value);
-    if (!isNaN(w) && w > 0 && preview.width != w) {
-        nw = w;
-        if (save_aspect) {
-            nh = Math.round(w / aspect);
-            f.h.value = nh;
-        }
-    }
-
-    var h = parseInt(f.h.value);
-    if (!isNaN(h) && h > 0 && preview.height != h) {
-        nh = h;
-        if (save_aspect) {
-            nw = Math.round(h * aspect);
-            f.w.value = nw;
-        }
-    }
-
-    if (nw < 1) {
-        nw = 1;
-    } else if (nw > 10240) {
-        nw = 10240;
-    }
-
-    if (nh < 1) {
-        nh = 1;
-    } else if (nh > 10240) {
-        nh = 10240;
-    }
-
-    preview.width = nw;
-    preview.height = nh;
-};
-
-
 SmileDialog.prototype.onsubmit = function() {
     if (!this._submitEvent) {
         return;
     }
+    var data = this.preview.get();
+    if (data.cleaned) {
+        return;
+    }
+    var w = data.w;
+    var h = data.h;
 
     var f = this.form;
-    var w = parseInt(f.w.value);
-    var h = parseInt(f.h.value);
 
     var onend = function(options) {
         this.btn.disabled = false;

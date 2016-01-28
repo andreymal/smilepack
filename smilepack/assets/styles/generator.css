@@ -82,14 +82,6 @@
     display: none;
 }
 
-.new-smile-preview-area {
-    text-align: center;
-}
-
-.new-smile-preview {
-    margin: 0.5em;
-}
-
 .icon-container {
     display: block;
     overflow-y: auto;

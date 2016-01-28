@@ -209,6 +209,14 @@ input.text:focus {
     display: none;
 }
 
+.smile-preview-area {
+    text-align: center;
+}
+
+.smile-preview {
+    margin: 0.5em;
+}
+
 
 /* DRAGDROP */
 

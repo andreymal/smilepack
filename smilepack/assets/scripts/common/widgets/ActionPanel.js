@@ -155,4 +155,3 @@ ActionPanel.prototype._oncategoryedit = function() {
 
 
 module.exports = ActionPanel;
-window.ActionPanel = ActionPanel;

@@ -157,20 +157,22 @@
             <input name="url" class="text input-width-full" /><br/>
         </div>
 
-        {{ _("Smile size") }}:
-        <input name="w" type="number" style="width: 6em;" value="" placeholder="{{ _("Width") }}" class="text" />
-        x
-        <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _("Height") }}" class="text" />
-        <label><input type="checkbox" name="save_aspect" checked />{{ _("Keep aspect ratio") }}</label>
-        <br/>
-        {%- if config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
-        <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
-        <br/>
-        {%- endif %}
-        <div class="smile-add-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
+        <div class="smile-preview-block">
+            {{ _("Smile size") }}:
+            <input name="w" type="number" style="width: 6em;" value="" placeholder="{{ _('Width') }}" class="text" />
+            x
+            <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _('Height') }}" class="text" />
+            <button class="action-reset" title="{{ _('Reset smile size') }}">X</button>
+            <label><input type="checkbox" name="keep-aspect" checked />{{ _("Keep aspect ratio") }}</label><br/>
+            {%- if config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
+            <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
+            <br/>
+            {%- endif %}
+            <div class="smile-add-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
 
-        <div class="new-smile-preview-area">
-            <img class="new-smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
+            <div class="smile-preview-area">
+                <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
+            </div>
         </div>
 
         <input type="hidden" name="level" value="0" />
