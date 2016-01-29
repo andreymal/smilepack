@@ -276,8 +276,8 @@ class SmileBL(BaseBL):
         if 'approved' in data and not reset_tags:
             reset_tags = bool(data['approved']) != (smile.approved_at is not None)
 
-        if reset_tags:
-            # Чистим связи с объектами Tag (возвращая ниже tags_cache)
+        if reset_tags and old_tags:
+            # Чистим связи с объектами Tag (возвращая ниже tags_cache на место)
             # Потому что теги привязаны к разделам
             # И потому что неопубликованных смайликов не должно быть в поиске
             self.set_tags([])
@@ -285,7 +285,7 @@ class SmileBL(BaseBL):
         # Редактируем смайлик
 
         # При публикации добавляем смайлик в конец категории
-        if data.get('approved') and not smile.approved_at or category and (not smile.category or category.id != smile.category.id):
+        if category and (data.get('approved') and not smile.approved_at or not smile.category or category.id != smile.category.id):
             smile.order = category.select_approved_smiles().count()
 
         if 'w' in data:

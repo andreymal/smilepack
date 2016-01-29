@@ -106,11 +106,13 @@ def create(session_id, first_visit):
     r = dict(request.json or {})
     if not r and request.form:
         # multipart/form-data не json, приходится конвертировать
-        if request.form.get('w') and request.form['w'].isdigit():
-            r['w'] = int(request.form['w'])
-        if request.form.get('h') and request.form['h'].isdigit():
-            r['h'] = int(request.form['h'])
+        for key in ('w', 'h', 'category'):
+            if request.form.get(key) and request.form[key].isdigit():
+                r[key] = int(request.form[key])
+        r['description'] = request.form.get('description') or ''
+        r['tags'] = [x.strip() for x in (request.form.get('tags') or '').split(',') if x.strip()]
         r['compress'] = request.form.get('compress') in (1, True, '1', 'on')
+        r['extended'] = request.form.get('extended') in (1, True, '1', 'on')
 
     if request.files.get('file'):
         r['file'] = request.files['file']
@@ -132,8 +134,10 @@ def create(session_id, first_visit):
             compress=compress
         )
         smile_id = smile.id
+
     with db_session:
-        result = {'smile': models.Smile.get(id=smile_id).bl.as_json(), 'created': created}
+        admin_info = r.get('extended') and current_user.is_authenticated and current_user.is_admin
+        result = {'smile': models.Smile.get(id=smile_id).bl.as_json(full_info=admin_info, admin_info=admin_info), 'created': created}
     return result
 
 

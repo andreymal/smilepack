@@ -221,6 +221,15 @@ input.text:focus, .textarea:focus {
     margin: 0.5em;
 }
 
+.smile-preview-notice {
+    color: #aaa;
+    font-size: 0.75em;
+    line-height: 1em;
+    margin-bottom: 0.25em;
+    font-style: italic;
+}
+
+
 
 /* DRAGDROP */
 

@@ -62,14 +62,14 @@ dialogsManager._openEvent = function(name, opened) {
 
     if (opened) {
         if (this.opened.length > 0) {
-            this.dialogs[this.opened.length - 1].hide();
+            this.dialogs[this.opened[this.opened.length - 1]].dialog.hide();
         }
         this.opened.push(name);
     } else {
         this.opened.splice(i, 1);
         dialog.submitCallback = null;
-        if (this.opened.length > 0) {
-            this.dialogs[this.opened.length - 1].show();
+        if (i == this.opened.length && i > 0) {
+            this.dialogs[this.opened[this.opened.length - 1]].dialog.show();
         }
     }
 
@@ -93,3 +93,4 @@ dialogsManager._submitEvent = function(name, data) {
 
 
 module.exports = dialogsManager;
+window.dialogsManager = dialogsManager;

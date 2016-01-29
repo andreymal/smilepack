@@ -36,7 +36,7 @@ var admin = {
             }
             this.categoriesEditor.apply();
         } else if (action == 'edit') {
-            this.smileEditor.openEditDialog(this.collection, smiles);
+            this.smileEditor.openEditDialog(smiles, this.collection.getSmileRaw(smiles[0]));
         }
     },
 
@@ -53,8 +53,12 @@ var admin = {
             }
             this.categoriesEditor.apply();
         } else if (action == 'edit') {
-            this.smileEditor.openEditDialog(this.suggestions, smiles);
+            this.smileEditor.openEditDialog(smiles, this.suggestions.getSmileRaw(smiles[0]));
         }
+    },
+
+    openUploader: function() {
+        this.smileEditor.openUploader();
     },
 
     initCollections: function() {
@@ -118,6 +122,7 @@ var admin = {
 
     bindButtonEvents: function() {
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
+        document.querySelector('#collection .additional .action-upload').addEventListener('click', this.openUploader.bind(this));
     },
 
     initDialogs: function() {

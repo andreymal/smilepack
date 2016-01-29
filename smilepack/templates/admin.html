@@ -36,6 +36,9 @@
     <div class="tabs-wrapper"></div>
 
     <div class="collection-message">{{ _("Choose a section to view and edit smiles in collection") }}</div>
+    <div class="additional">
+        <button class="button action-upload">{{ _("Upload new smile") }}</button>
+    </div>
     <div class="collection-smiles"></div>
 
 </div><div class="widget-collection container-right" id="suggestions">
@@ -72,6 +75,48 @@
 
 <div id="dialog-background" class="dialog-background hidden"></div>
 
+<div id="dialog-new-smile" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a> {{ _("Adding a smile") }}</div>
+
+    <form action="#" method="POST" enctype="multipart/form-data">
+        {% if config.UPLOAD_METHOD != None -%}
+        <div class="uploader-choice">
+            <label><input type="radio" name="uploader" value="link" autocomplete="off" checked> {{ _("From link") }}</label>
+            <label><input type="radio" name="uploader" value="file" autocomplete="off"> {{ _("From computer") }}</label>
+        </div>
+
+        <div class="file-uploader" style="display: none">
+            <input name="file" type="file" class="input-width-full" accept="image/jpeg,image/png,image/gif" /><br/>
+        </div>
+        {% endif -%}
+
+        <div class="link-uploader">
+            <label for="url">{{ _("Link") }}:</label><br/>
+            <input name="url" class="text input-width-full" /><br/>
+        </div>
+
+        <div class="smile-preview-block">
+            {{ _("Smile size") }}:
+            <input name="w" type="number" style="width: 6em;" value="" placeholder="{{ _('Width') }}" class="text" />
+            x
+            <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _('Height') }}" class="text" />
+            <button class="action-reset" title="{{ _('Reset smile size') }}">X</button>
+            <label><input type="checkbox" name="keep-aspect" checked />{{ _("Keep aspect ratio") }}</label><br/>
+            {%- if config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
+            <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
+            <br/>
+            {%- endif %}
+            <div class="smile-preview-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
+
+            <div class="smile-preview-area">
+                <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
+            </div>
+        </div>
+
+        <input type="submit" class="button button-primary" value="{{ _('Upload and edit') }}" disabled />
+    </form>
+</div>
+
 <div id="dialog-edit-smile" class="dialog hidden">
     <div class="dialog-title"><a class="dialog-close"></a>{{ _("Smile editing") }}</div>
 
@@ -85,7 +130,7 @@
             <button class="action-reset" title="{{ _('Reset smile size') }}">X</button>
             <label><input type="checkbox" name="keep-aspect" checked />{{ _("Keep aspect ratio") }}</label>
             <br/>
-            <div class="smile-edit-notice">{{ _("Image will not be resized.") }}</div>
+            <div class="smile-preview-notice">{{ _("Image will not be resized.") }}</div>
 
             <div class="smile-preview-area">
                 <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
@@ -102,7 +147,7 @@
         <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
 
         <label>
-            <input type="checkbox" name="approved"> {{ _("Publish in collection") }}
+            <input type="checkbox" name="approved"> {{ _("Publish in collection (only if category is specified)") }}
         </label><br/>
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
