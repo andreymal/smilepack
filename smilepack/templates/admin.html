@@ -73,6 +73,43 @@
 
 <div id="dialog-background" class="dialog-background hidden"></div>
 
+<div id="dialog-edit-smile" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a>{{ _("Smile editing") }}</div>
+
+    <form action="#">
+        <input type="hidden" name="smile" value="" />
+        <div class="smile-preview-block">
+            {{ _("Smile size") }}:
+            <input name="w" type="number" style="width: 6em;" value="" placeholder="{{ _('Width') }}" class="text" />
+            x
+            <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _('Height') }}" class="text" />
+            <button class="action-reset" title="{{ _('Reset smile size') }}">X</button>
+            <label><input type="checkbox" name="keep-aspect" checked />{{ _("Keep aspect ratio") }}</label>
+            <br/>
+            <div class="smile-edit-notice">{{ _("Image will not be resized.") }}</div>
+
+            <div class="smile-preview-area">
+                <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
+            </div>
+        </div>
+
+        <label for="tags">{{ _("Tags (separated by comma)") }}:</label><br/>
+        <input name="tags" class="text input-width-full" /><br/>
+
+        <label for="category">{{ _("Category") }}:</label><br/>
+        <select class="input-width-full" name="category"></select><br/>
+
+        <label for="description">{{ "Description" }}:</label><br/>
+        <textarea rows="3" class="input-width-full" name="description"></textarea><br/>
+
+        <label>
+            <input type="checkbox" name="approved"> {{ _("Publish in collection") }}
+        </label><br/>
+
+        <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
+    </form>
+</div>
+
 {{ javascript_tag("admin_js") | safe }}
 </body>
 </html>

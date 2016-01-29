@@ -106,9 +106,9 @@ var ajax = {
         });
     },
 
-    get_smiles: function(categoryId, onload, onerror, onend) {
+    get_smiles: function(categoryId, extended, onload, onerror, onend) {
         return this.request({
-            url: '/smiles/' + parseInt(categoryId).toString(),
+            url: '/smiles/' + parseInt(categoryId).toString() + (extended ? '?extended=1' : ''),
             format: 'json',
             onload: onload,
             onerror: onerror,

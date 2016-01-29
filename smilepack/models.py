@@ -127,6 +127,10 @@ class Smile(db.Entity):
     bl = Resource('bl.smile')
 
     @property
+    def is_published(self):
+        return self.category is not None and self.approved_at is not None
+
+    @property
     def tags_list(self):
         if self.tags_cache is not None and not self.tags_cache:
             return []

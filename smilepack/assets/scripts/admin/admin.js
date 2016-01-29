@@ -1,8 +1,10 @@
 'use strict';
 
-var CollectionManager = require('./CollectionManager.js'),
+var dialogsManager = require('../common/dialogsManager.js'),
+    CollectionManager = require('./CollectionManager.js'),
     SuggestionsManager = require('./SuggestionsManager.js'),
     AdminCategoriesEditor = require('./AdminCategoriesEditor.js'),
+    AdminSmileEditor = require('./AdminSmileEditor.js'),
     Collection = require('../common/widgets/Collection.js'),
     ActionPanel = require('../common/widgets/ActionPanel.js');
 
@@ -14,6 +16,7 @@ var admin = {
     suggestionsManager: null,
     suggestionsActionPanel: null,
     categoriesEditor: null,
+    smileEditor: null,
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
@@ -32,6 +35,8 @@ var admin = {
                 this.categoriesEditor.removeFromCollection(smiles[i], {applyLater: true});
             }
             this.categoriesEditor.apply();
+        } else if (action == 'edit') {
+            this.smileEditor.openEditDialog(this.collection, smiles);
         }
     },
 
@@ -42,11 +47,13 @@ var admin = {
         }
 
         var i;
-        if (action === 'add') {
+        if (action == 'add') {
             for (i = smiles.length - 1; i >= 0; i--) {
                 this.categoriesEditor.addToCollection(smiles[i], {applyLater: true});
             }
             this.categoriesEditor.apply();
+        } else if (action == 'edit') {
+            this.smileEditor.openEditDialog(this.suggestions, smiles);
         }
     },
 
@@ -114,6 +121,11 @@ var admin = {
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
     },
 
+    initDialogs: function() {
+        dialogsManager.init(document.getElementById('dialog-background'), {});
+        this.smileEditor = new AdminSmileEditor(this.collection, this.suggestions);
+    },
+
     _onbeforeunload: function() {
         if (this.categoriesEditor.isBusy()) {
             return 'Ещё сохраняются некоторые изменения, подождите немного';
@@ -126,6 +138,7 @@ var admin = {
         }
         this.initCollections();
         this.bindButtonEvents();
+        this.initDialogs();
         window.onbeforeunload = this._onbeforeunload.bind(this);
     }
 };

@@ -5,6 +5,7 @@ import os
 
 from pony.orm import db_session
 from flask import Blueprint, abort, request, send_from_directory, current_app
+from flask_login import current_user
 
 from smilepack import models
 from smilepack.views.utils import user_session, json_answer, default_crossdomain, dictslice
@@ -93,7 +94,8 @@ def show(category):
     cat = models.Category.bl.get(category)
     if not cat:
         abort(404)
-    return {'smiles': cat.bl.get_smiles_as_json()}
+    admin_info = request.args.get('extended') and current_user.is_authenticated and current_user.is_admin
+    return {'smiles': cat.bl.get_smiles_as_json(admin_info=admin_info)}
 
 
 @bp.route('/', methods=['POST'])

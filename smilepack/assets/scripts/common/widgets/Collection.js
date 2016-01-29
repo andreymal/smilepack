@@ -640,10 +640,6 @@ Collection.prototype.showCategory = function(level, categoryId, force) {
         return false;
     }
 
-    if (category.groupId === null) {
-        return false;
-    }
-
     return this.showGroup(category.groupId, force);
 };
 
@@ -880,6 +876,41 @@ Collection.prototype.getParentId = function(level, categoryId) {
 };
 
 
+/**
+ * Возвращает true, если категория инициализирована (содержит смайлики или принудительно отображена без смайликов).
+ * При отсутствии категории или группы, привязанной к категории, возвращает null.
+ * Обёртка над isGroupLoaded.
+ * @param  {number}  level         Уровень, на котором находится категория
+ * @param  {number}  categoryId    ID категории
+ * @return {?boolean}
+ */
+Collection.prototype.isCategoryLoaded = function(level, categoryId) {
+    if (isNaN(level) || level < 0 || level >= this._depth) {
+        return null;
+    }
+    var category = this._categories[level][categoryId];
+    if (!category || category.groupId === null) {
+        return null;
+    }
+
+    return this.isGroupLoaded(category.groupId);
+};
+
+
+/**
+ * Возвращает true, если группа инициализирована (содержит смайлики или принудительно отображена без смайликов).
+ * @param  {number}   groupId ID группы
+ * @return {?boolean}
+ */
+Collection.prototype.isGroupLoaded = function(groupId) {
+    var group = this._groups[groupId];
+    if (!group) {
+        return null;
+    }
+    return Boolean(group.dom || group.smileIds.length > 0);
+};
+
+
 /* Smiles management */
 
 
@@ -897,6 +928,7 @@ Collection.prototype.getParentId = function(level, categoryId) {
  * @param  {number[]} [item.groupIds]       ID групп, в которые добавить смайлик (должен быть пустым при добавлении в категорию)
  * @param  {number}   [item.categoryLevel]  Уровень категории, в который добавить смайлик
  * @param  {number}   [item.categoryId]     ID категории, в который добавить смайлик
+ * @param  {Object}   [item.raw]            Любой объект, который будет сохранён как есть, для хранения данных. Если не указан, берётся сам item
  * @param  {boolean}  [nolazy=false]        Если true, то атрибут src картинки будет установлен сразу же
            (по умолчанию откладывается на потом, чтобы Firefox не зависал)
  * @return {?number}                        ID смайлика или null в случае проблем
@@ -958,7 +990,8 @@ Collection.prototype.addSmile = function(item, nolazy) {
         width: item.w,
         height: item.h,
         dragged: item.dragged || false,
-        selected: item.selected || false
+        selected: item.selected || false,
+        raw: item.hasOwnProperty('raw') ? item.raw : item
     };
 
     /* Добавляем в группы (привязка к категории здесь же) */
@@ -976,6 +1009,67 @@ Collection.prototype.addSmile = function(item, nolazy) {
         }
     }
     return id;
+};
+
+/**
+ * Редактирует смайлик, если он существует. Все параметры аналогичны параметрам addSmile, только raw не устанавливается автоматически.
+ * @param  {Object}   item
+ * @param  {number}   [item.id]  ID смайлика, который нужно отредактировать
+ * @return {boolean}             true при успехе
+ */
+Collection.prototype.editSmile = function(item) {
+    var smile = this._smiles[item.id];
+    if (!smile) {
+        return false;
+    }
+
+    var updateDom = false;
+    if (item.hasOwnProperty('w')) {
+        smile.width = item.w;
+        updateDom = true;
+    }
+    if (item.hasOwnProperty('h')) {
+        smile.height = item.h;
+        updateDom = true;
+    }
+    if (item.hasOwnProperty('url')) {
+        smile.url = item.url;
+        updateDom = true;
+    }
+    if (item.hasOwnProperty('description')) {
+        smile.description = item.description || '';
+        updateDom = true;
+    }
+    if (item.hasOwnProperty('tags')) {
+        smile.tags = item.tags || [];
+        updateDom = true;
+    }
+
+    if (updateDom) {
+        for (var groupId in smile.groups) {
+            var img = smile.groups[groupId];
+            if (img) {
+                img.src = smile.url;
+                img.width = smile.width;
+                img.height = smile.height;
+                img.title = item.description || item.tags.join(", ") || item.url;
+            }
+        }
+    }
+
+
+    if (item.hasOwnProperty('dragged')) {
+        this.setDragged(smile.id, item.dragged);
+    }
+    if (item.hasOwnProperty('selected')) {
+        this.setSelected(smile.id, item.selected);
+    }
+    if (item.hasOwnProperty('raw')) {
+        smile.raw = item.raw;
+    }
+
+    // TODO: category, groups
+    return true;
 };
 
 
@@ -1020,7 +1114,7 @@ Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
     if (!smile || !group) {
         return false;
     }
-    if (smile.groups[group.id] !== undefined) {
+    if (smile.groups[group.id] !== undefined) { // can be null
         return true;
     }
 
@@ -1180,6 +1274,7 @@ Collection.prototype.hasSmile = function(smileId) {
  * @param  {Object}  [options]                  Дополнительные опции
  * @param  {boolean} [options.withoutIds=false] Не добавлять ID смайлика
  * @param  {boolean} [options.withParent=false] Добавить уровень и ID родительской категории и все группы
+ * @param  {boolean} [options.withRaw=false]    Добавить объект raw, указанный при создании смайлика
  * @return {Object}
  */
 Collection.prototype.getSmileInfo = function(smileId, options) {
@@ -1204,8 +1299,25 @@ Collection.prototype.getSmileInfo = function(smileId, options) {
         info.categoryId = smile.categoryId;
         info.groups = Object.keys(smile.groups).map(function(x) {return parseInt(x, 10);});
     }
+    if (options && options.withRaw) {
+        info.raw = smile.raw;
+    }
 
     return info;
+};
+
+
+/**
+ * Возвращает объект raw смайлика при его наличии.
+ * @param  {number}  smileId ID смайлика
+ * @return {?Object}
+ */
+Collection.prototype.getSmileRaw = function(smileId) {
+    var smile = this._smiles[smileId];
+    if (!smile) {
+        return null;
+    }
+    return smile.raw;
 };
 
 
@@ -1729,7 +1841,7 @@ Collection.prototype._addSmileDom = function(smile_id, groupId, nolazy) {
 
     var img = document.createElement('img');
     img.alt = "";
-    img.title = (item.tags || []).join(", ") || item.description || item.url;
+    img.title = item.description || item.tags.join(', ') || item.url;
     img.width = item.width;
     img.height = item.height;
     img.classList.add('smile');

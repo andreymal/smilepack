@@ -740,7 +740,7 @@ var generator = {
         if (options.groupId === this.newSmilesGroup) {
             ajax.get_new_smiles(0, 100, callbackNewSmiles, onerror);
         } else {
-            ajax.get_smiles(options.categoryId, callbackCategory, onerror);
+            ajax.get_smiles(options.categoryId, false, callbackCategory, onerror);
         }
 
         return true;

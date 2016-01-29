@@ -115,15 +115,9 @@ class CategoryBL(BaseBL):
             'description': c.description
         }
 
-    def get_smiles_as_json(self):
-        return [{
-            'id': x.id,
-            'url': x.url,
-            'tags': x.tags_list,
-            'w': x.width,
-            'h': x.height,
-            'description': x.description,
-        } for x in sorted(self._model().select_approved_smiles(), key=lambda x: (x.order, x.id))]
+    def get_smiles_as_json(self, admin_info=False):
+        smiles = sorted(self._model().select_approved_smiles(), key=lambda x: (x.order, x.id))
+        return [x.bl.as_json(full_info=admin_info, admin_info=admin_info) for x in smiles]
 
 
 class SmileBL(BaseBL):
@@ -270,14 +264,35 @@ class SmileBL(BaseBL):
         else:
             category = None
 
+        # Немного возни из-за сложности тегов
+        old_tags = smile.tags_list
+        reset_tags = False
+        if 'category' in data:
+            reset_tags = smile.category and not category
+            reset_tags = reset_tags or (not smile.category and category)
+            if smile.category and category and not reset_tags:
+                reset_tags = smile.category.subsection.section.id != category.subsection.section.id
+
+        if 'approved' in data and not reset_tags:
+            reset_tags = bool(data['approved']) != (smile.approved_at is not None)
+
+        if reset_tags:
+            # Чистим связи с объектами Tag (возвращая ниже tags_cache)
+            # Потому что теги привязаны к разделам
+            # И потому что неопубликованных смайликов не должно быть в поиске
+            self.set_tags([])
+
         # Редактируем смайлик
+
+        # При публикации добавляем смайлик в конец категории
+        if data.get('approved') and not smile.approved_at or category and (not smile.category or category.id != smile.category.id):
+            smile.order = category.select_approved_smiles().count()
+
         if 'w' in data:
             smile.width = data['w']
         if 'h' in data:
             smile.height = data['h']
         if 'category' in data:
-            if category and (not smile.category or category.id != smile.category.id):
-                smile.order = category.select_approved_smiles().count()
             smile.category = category
         if 'description' in data:
             smile.description = data.get('description', '')
@@ -288,6 +303,8 @@ class SmileBL(BaseBL):
                 self.set_tags(data['tags'])
             except ValueError as exc:
                 raise BadRequestError(str(exc))
+        elif reset_tags:
+            self.set_tags(old_tags)
 
         return smile
 
@@ -421,12 +438,14 @@ class SmileBL(BaseBL):
 
         from smilepack.models import TagSynonym
         smile = self._model()
-        synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
-        if synonym:
-            tag = synonym
+        if smile.category:
+            synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
+            if synonym:
+                tag = synonym
 
         if tag not in smile.tags_list:
-            self._apply_tags_raw({tag}, set())
+            if smile.is_published:
+                self._apply_tags_raw({tag}, set())
             smile.tags_cache = ','.join(smile.tags_list + [tag])
         return smile
 
@@ -440,12 +459,14 @@ class SmileBL(BaseBL):
 
         from smilepack.models import TagSynonym
         smile = self._model()
-        synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
-        if synonym:
-            tag = synonym
+        if smile.category:
+            synonym = orm.select(x.tag_name for x in TagSynonym if x.section == smile.category.subsection.section and x.name == tag).first()
+            if synonym:
+                tag = synonym
 
         if tag in smile.tags_list:
-            self._apply_tags_raw(set(), {tag})
+            if smile.is_published:
+                self._apply_tags_raw(set(), {tag})
             smile.tags_cache = ','.join([x for x in smile.tags_list if x != tag])
         return smile
 
@@ -464,19 +485,22 @@ class SmileBL(BaseBL):
                 clean_tags.append(tag)
 
         smile = self._model()
-        section = smile.category.subsection.section
 
-        # normalize
-        synonym_tags = orm.select((x.name, x.tag_name) for x in TagSynonym if x.section == section and x.name in clean_tags)[:]
-        synonym_tags = dict(synonym_tags)
-        clean_tags = [synonym_tags.get(x, x) for x in clean_tags]
+        if smile.category:
+            section = smile.category.subsection.section
+
+            # normalize
+            synonym_tags = orm.select((x.name, x.tag_name) for x in TagSynonym if x.section == section and x.name in clean_tags)[:]
+            synonym_tags = dict(synonym_tags)
+            clean_tags = [synonym_tags.get(x, x) for x in clean_tags]
 
         # calculate
         add_tags = set(clean_tags) - set(smile.tags_list)
         rm_tags = set(smile.tags_list) - set(clean_tags)
 
         # apply
-        self._apply_tags_raw(add_tags, rm_tags)
+        if smile.is_published:
+            self._apply_tags_raw(add_tags, rm_tags)
         smile.tags_cache = ','.join(clean_tags)
         return smile
 

@@ -200,7 +200,19 @@ AdminCategoriesEditor.prototype._orderQueueNext = function() {
 
     var items = this._orderQueue.slice(0, 50);
 
-    var onload = function() {
+    var onload = function(data) {
+        var smiles = data.items || [{id: data.smile.id, smile: data.smile}];
+        for (var i = 0; i < smiles.length; i++) {
+            var smile = smiles[i].smile;
+            if (smile) {
+                if (this.collection.getSmileInfo(smile.id)) {
+                    this.collection.editSmile({id: smile.id, raw: smile});
+                }
+                if (this.suggestions.getSmileInfo(smile.id)) {
+                    this.suggestions.editSmile({id: smile.id, raw: smile});
+                }
+            }
+        }
         this._orderQueue.splice(0, 50);
     }.bind(this);
 

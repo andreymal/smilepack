@@ -19,7 +19,7 @@ SMILE = {
             "minimum": 1
         },
         "category": {
-            "type": "integer"
+            "type": ["integer", "null"]
         },
         "description": {
             "type": "string",

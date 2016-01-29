@@ -34,7 +34,7 @@ CollectionManager.prototype._smilesLoader = function(collection, options) {
     }.bind(this);
     var onerror = this._getSmilesErrorEvent.bind(this);
 
-    ajax.get_smiles(options.categoryId, onload, onerror);
+    ajax.get_smiles(options.categoryId, true, onload, onerror);
     return true;
 };
 

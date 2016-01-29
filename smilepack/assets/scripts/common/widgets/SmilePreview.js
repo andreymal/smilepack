@@ -79,7 +79,7 @@ SmilePreview.prototype._onchangewidth = function() {
         return;
     }
 
-    var h = parseInt(w / this.aspect);
+    var h = Math.round(w / this.aspect);
     this._img.height = h;
     this._h.value = h;
 };
@@ -96,7 +96,7 @@ SmilePreview.prototype._onchangeheight = function() {
         return;
     }
 
-    var w = parseInt(h * this.aspect);
+    var w = Math.round(h * this.aspect);
     this._img.width = w;
     this._w.value = w;
 };
