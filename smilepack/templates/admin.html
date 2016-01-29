@@ -58,7 +58,6 @@
 <div class="container-actions-left smiles-actions-panel" id="collection-action-panel" style="display: none;">
     <div>{{ _("Selected smiles:") }} <span class="smiles-actions-count">N/A</span></div>
     <div class="smiles-actions-list">
-        {{ _("Move to another category") }} <select class="smiles-actions-selector smiles-action-select-move"></select> <button class="button smiles-action-move">OK</button><br/>
         <button class="button smiles-action-edit">{{ _("Edit selected smiles") }}</button>
         <button class="button smiles-action-remove">{{ _("Remove selected smiles from collection") }}</button>
     </div>
@@ -100,11 +99,37 @@
         <select class="input-width-full" name="category"></select><br/>
 
         <label for="description">{{ "Description" }}:</label><br/>
-        <textarea rows="3" class="input-width-full" name="description"></textarea><br/>
+        <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
 
         <label>
             <input type="checkbox" name="approved"> {{ _("Publish in collection") }}
         </label><br/>
+
+        <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
+    </form>
+</div>
+
+<div id="dialog-edit-many-smiles" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a>{{ _("Smile editing") }}</div>
+
+    <form action="#">
+        <input type="hidden" name="smile-ids" value="" />
+
+        <label for="add-tags">{{ _("Add tags (separated by comma)") }}:</label><br/>
+        <input name="add-tags" class="text input-width-full" /><br/>
+
+        <label for="remove-tags">{{ _("Remove tags (separated by comma)") }}:</label><br/>
+        <input name="remove-tags" class="text input-width-full" /><br/>
+
+        <label>
+            <input type="checkbox" name="change-category"> {{ _("Change category") }}:
+        </label><br/>
+        <select class="input-width-full" name="category"></select><br/>
+
+        <label>
+            <input type="checkbox" name="change-description"> {{ _("Change description") }}:
+        </label><br/>
+        <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>

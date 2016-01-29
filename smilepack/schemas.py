@@ -34,6 +34,22 @@ SMILE = {
                 "maxLength": 48
             }
         },
+        "add_tags": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48
+            }
+        },
+        "remove_tags": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48
+            }
+        },
         "approved": {
             "type": "boolean"
         }

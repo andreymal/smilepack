@@ -128,16 +128,20 @@ body.drag-enabled * {
     opacity: 0.5;
 }
 
-input.text {
+input.text, .textarea {
     background-color: white;
     border: 1px solid #ccc;
     font-family: inherit;
     font-size: inherit;
-    border-radius: 0.4em;
+    border-radius: 0.3em;
     transition: box-shadow ease 0.15s, border ease 0.15s;
-    height: 1.75em;
     padding: 0.25em;
     box-sizing: border-box;
+    box-shadow: 0 0 0.1em #ddd;
+}
+
+input.text {
+    height: 1.75em;
 }
 
 .input-width-full {
@@ -149,7 +153,7 @@ select {
     font-size: inherit;
 }
 
-input.text:focus {
+input.text:focus, .textarea:focus {
     border: 1px solid #aaf;
     box-shadow: 0 0 0.2em #88f;
 }

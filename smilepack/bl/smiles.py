@@ -305,6 +305,21 @@ class SmileBL(BaseBL):
                 raise BadRequestError(str(exc))
         elif reset_tags:
             self.set_tags(old_tags)
+        if 'add_tags' in data:
+            norm_tags = [x.strip().lower() for x in data['add_tags'] if x and x.strip()]
+            try:
+                self.set_tags(old_tags + [x for x in norm_tags if x not in old_tags])
+            except ValueError as exc:
+                raise BadRequestError(str(exc))
+            del norm_tags
+        if 'remove_tags' in data:
+            norm_tags = [x.strip().lower() for x in data['remove_tags'] if x and x.strip()]
+            if norm_tags:
+                try:
+                    self.set_tags([x for x in old_tags if x not in norm_tags])
+                except ValueError as exc:
+                    raise BadRequestError(str(exc))
+            del norm_tags
 
         return smile
 

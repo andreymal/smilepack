@@ -76,7 +76,7 @@
 }
 
 #collection.with-selection {
-    height: calc(100% - 7em);
+    height: calc(100% - 5em);
 }
 
 #suggestions.with-selection {
@@ -84,7 +84,7 @@
 }
 
 #collection-action-panel {
-    height: 7em;
+    height: 5em;
 }
 
 #suggestions-action-panel {

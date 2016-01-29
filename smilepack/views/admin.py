@@ -3,6 +3,7 @@
 
 from pony.orm import db_session
 from flask import Blueprint, request, abort
+from werkzeug.exceptions import NotFound
 
 from smilepack import models
 from smilepack.views.utils import for_admin, json_answer, default_crossdomain, csrf_protect
@@ -71,8 +72,8 @@ def edit_many_smiles():
         smile_ids.append(int(i))
 
     smiles = {s.id: s for s in models.Smile.select(lambda x: x.id in smile_ids)[:]}
-    if not smiles:
-        abort(404)
+    if len(smiles) != len(request.json['items']):
+        raise NotFound('Some of the required smiles not found')
 
     result = []
     for item in request.json['items']:
@@ -93,7 +94,7 @@ def _edit_smile(smile, data):
         before_smile_id = position.pop('before')
         before_smile = models.Smile.get(id=before_smile_id) if isinstance(before_smile_id, int) else None
         if before_smile_id is not None and not before_smile:
-            abort(404)
+            raise NotFound('before_smile not found')
 
         kwargs = {}
         if 'after' in position:

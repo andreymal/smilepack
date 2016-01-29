@@ -90,7 +90,6 @@ var admin = {
         this.collectionActionPanel = new ActionPanel(
             this.collection,
             [
-                {action: 'move', categorySelect: true},
                 {action: 'edit'},
                 {action: 'remove'}
             ],
