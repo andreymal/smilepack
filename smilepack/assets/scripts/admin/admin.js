@@ -4,6 +4,7 @@ var dialogsManager = require('../common/dialogsManager.js'),
     CollectionManager = require('./CollectionManager.js'),
     SuggestionsManager = require('./SuggestionsManager.js'),
     AdminCategoriesEditor = require('./AdminCategoriesEditor.js'),
+    AdminSectionsEditor = require('./AdminSectionsEditor.js'),
     AdminSmileEditor = require('./AdminSmileEditor.js'),
     Collection = require('../common/widgets/Collection.js'),
     ActionPanel = require('../common/widgets/ActionPanel.js');
@@ -16,6 +17,7 @@ var admin = {
     suggestionsManager: null,
     suggestionsActionPanel: null,
     categoriesEditor: null,
+    sectionsEditor: null,
     smileEditor: null,
 
     toggleDark: function() {
@@ -90,6 +92,7 @@ var admin = {
         this.suggestionsManager = new SuggestionsManager(this.suggestions);
 
         this.categoriesEditor = new AdminCategoriesEditor(this.collection, this.suggestions);
+        this.sectionsEditor = new AdminSectionsEditor(this.collection);
 
         this.collectionActionPanel = new ActionPanel(
             this.collection,

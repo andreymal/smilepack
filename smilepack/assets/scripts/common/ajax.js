@@ -220,6 +220,45 @@ var ajax = {
             data: JSON.stringify({csrf_token: this.get_csrf_token(), items: items}),
             headers: {'Content-Type': 'application/json'}
         });
+    },
+
+    create_section: function(data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/smiles/sections',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), section: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    create_subsection: function(data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/smiles/subsections',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), subsection: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    create_category: function(data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/smiles/categories',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), category: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
     }
 };
 

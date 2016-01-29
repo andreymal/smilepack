@@ -17,8 +17,16 @@ from smilepack.utils.exceptions import InternalError, BadRequestError, JSONValid
 
 
 class SectionBL(BaseBL):
-    def create(self, name, description=None):
-        return self._model()(name=name, description=description or '')
+    def create(self, name, icon, description=None):
+        if not name or len(name) > 128:
+            raise BadRequestError('Invalid name')
+        if description and len(description) > 16000:
+            raise BadRequestError('Too long description')
+        if not icon:
+            raise BadRequestError('Icon is required')
+        section = self._model()(name=name, description=description or '', icon=icon)
+        section.flush()
+        return section
 
     def as_json(self, with_subsections=False, with_categories=False):
         section = self._model()
@@ -83,6 +91,19 @@ class SectionBL(BaseBL):
 
 
 class SubSectionBL(BaseBL):
+    def create(self, name, icon, section, description=None):
+        if not name or len(name) > 128:
+            raise BadRequestError('Invalid name')
+        if description and len(description) > 16000:
+            raise BadRequestError('Too long description')
+        if not icon:
+            raise BadRequestError('Icon is required')
+        if not section:
+            raise BadRequestError('Section is required')
+        subsection = self._model()(name=name, description=description or '', icon=icon, section=section)
+        subsection.flush()
+        return subsection
+
     def as_json(self, with_categories=False):
         subsection = self._model()
         result = {
@@ -100,6 +121,19 @@ class SubSectionBL(BaseBL):
 
 
 class CategoryBL(BaseBL):
+    def create(self, name, icon, subsection, description=None):
+        if not name or len(name) > 128:
+            raise BadRequestError('Invalid name')
+        if description and len(description) > 16000:
+            raise BadRequestError('Too long description')
+        if not icon:
+            raise BadRequestError('Icon is required')
+        if not subsection:
+            raise BadRequestError('Subsection is required')
+        category = self._model()(name=name, description=description or '', icon=icon, subsection=subsection)
+        category.flush()
+        return category
+
     def get(self, i):
         return self._model().get(id=i)
 

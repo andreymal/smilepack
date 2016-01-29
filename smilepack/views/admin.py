@@ -12,6 +12,89 @@ from smilepack.views.utils import for_admin, json_answer, default_crossdomain, c
 bp = Blueprint('admin', __name__)
 
 
+@bp.route('/sections', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def create_section():
+    data = request.json.get('section')
+
+    icon_id = data.get('icon')
+    if isinstance(icon_id, str) and icon_id.isdigit():
+        icon_id = int(icon_id)
+    elif not isinstance(icon_id, int):
+        icon_id = None
+
+    section = models.Section.bl.create(
+        name=data.get('name'),
+        icon=models.Icon.get(id=int(icon_id)) if icon_id is not None else None,
+        description=data.get('description') or ''
+    )
+    return {'section': section.bl.as_json()}
+
+
+@bp.route('/subsections', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def create_subsection():
+    data = request.json.get('subsection')
+
+    icon_id = data.get('icon')
+    if isinstance(icon_id, str) and icon_id.isdigit():
+        icon_id = int(icon_id)
+    elif not isinstance(icon_id, int):
+        icon_id = None
+
+    section_id = data.get('section')
+    if isinstance(section_id, str) and section_id.isdigit():
+        section_id = int(section_id)
+    elif not isinstance(section_id, int):
+        section_id = None
+
+    subsection = models.SubSection.bl.create(
+        name=data.get('name'),
+        icon=models.Icon.get(id=int(icon_id)) if icon_id is not None else None,
+        section=models.Section.get(id=section_id) if section_id is not None else None,
+        description=data.get('description') or ''
+    )
+    return {'subsection': subsection.bl.as_json()}
+
+
+@bp.route('/categories', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def create_category():
+    data = request.json.get('category')
+
+    icon_id = data.get('icon')
+    if isinstance(icon_id, str) and icon_id.isdigit():
+        icon_id = int(icon_id)
+    elif not isinstance(icon_id, int):
+        icon_id = None
+
+    subsection_id = data.get('subsection')
+    if isinstance(subsection_id, str) and subsection_id.isdigit():
+        subsection_id = int(subsection_id)
+    elif not isinstance(subsection_id, int):
+        subsection_id = None
+
+    category = models.Category.bl.create(
+        name=data.get('name'),
+        icon=models.Icon.get(id=int(icon_id)) if icon_id is not None else None,
+        subsection=models.SubSection.get(id=subsection_id) if subsection_id is not None else None,
+        description=data.get('description') or ''
+    )
+    return {'category': category.bl.as_json()}
+
+
 @bp.route('/unpublished')
 @default_crossdomain()
 @json_answer

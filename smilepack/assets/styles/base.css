@@ -24,7 +24,7 @@ body {
 }
 
 body.drag-enabled * {
-    cursor: move;
+    cursor: move !important;
 }
 
 
@@ -213,6 +213,8 @@ input.text:focus, .textarea:focus {
     display: none;
 }
 
+/* common dialog fields */
+
 .smile-preview-area {
     text-align: center;
 }
@@ -229,6 +231,27 @@ input.text:focus, .textarea:focus {
     font-style: italic;
 }
 
+.icon-container {
+    display: block;
+    overflow-y: auto;
+    max-height: 12.5em;
+    margin: 0.5em 0;
+    text-align: justify;
+}
+
+.icon-container label {
+    display: inline-block;
+    margin-right: 0.5em;
+}
+
+.icon-container label:hover {
+    background-color: #f3f3f3;
+}
+
+.dialog-category-icon {
+    height: 2.5em;
+    vertical-align: middle;
+}
 
 
 /* DRAGDROP */

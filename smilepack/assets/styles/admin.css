@@ -90,3 +90,11 @@
 #suggestions-action-panel {
     height: 5em;
 }
+
+#dialog-new-category.mode-add .mode-edit {
+    display: none;
+}
+
+#dialog-new-category.mode-edit .mode-add {
+    display: none;
+}

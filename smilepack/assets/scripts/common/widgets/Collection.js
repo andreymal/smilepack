@@ -741,6 +741,9 @@ Collection.prototype.getCategoryInfo = function(level, categoryId, options) {
     if (options && options.withGroupId) {
         info.groupId = category.groupId;
     }
+    if (options && options.withParent) {
+        info.parentId = category.parentId;
+    }
 
     return info;
 };
@@ -1750,11 +1753,11 @@ Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
     }
 
     if (save) {
+        if (level < this._depth - 1) {
+            item.childrenDom = this._buildDomTabs(level + 1, categoryId);
+        }
         if (level > 0) {
             var parent = this._categories[level - 1][item.parentId];
-            if (!parent.childrenDom) {
-                parent.childrenDom = this._buildDomTabs(level, item.parentId);
-            }
             parent.childrenIds.push(categoryId);
             parent.childrenDom.appendChild(btn);
         } else {

@@ -75,6 +75,39 @@
 
 <div id="dialog-background" class="dialog-background hidden"></div>
 
+<div id="dialog-new-category" class="dialog hidden mode-add">
+    <div class="dialog-title"><a class="dialog-close"></a> <span class="mode-add">{{ _("Adding a category") }}</span><span class="mode-edit">{{ _("Changing a category") }}</span></div>
+
+    <form action="#">
+        <label for="name">{{ _("Category name") }}:</label><br/>
+        <input name="name" class="text input-width-full" /><br/>
+
+        <label for="icon">{{ _("Icon") }}:</label><br/>
+        <div class="icon-container">
+        {%- for icon in icons %}
+            <label>
+                <input type="radio" name="icon" data-value-url="{{ icon.url }}" value="{{ icon.id }}"{{ ' checked' if loop.first else '' }} />
+                <img src="{{ icon.url }}" alt="" class="dialog-category-icon" />
+            </label>
+        {%- endfor %}
+        </div>
+        <em>{{ _("If you edit icons, refresh the page") }}</em><br/>
+
+        <input type="hidden" name="level" value="" />
+        <input type="hidden" name="parent" value="" />
+        <input type="hidden" name="category" value="" />
+
+        <label for="description">{{ _("Description") }}:</label><br/>
+        <textarea name="description" cols="3" class="textarea input-width-full"></textarea><br/>
+
+        <span class="mode-add">
+            <em>{{ _('Added category will be immediately visible to all users.') }}</em><br/>
+            <input type="submit" class="button button-primary" value="{{ _('Add') }}" />
+        </span>
+        <span class="mode-edit"><input type="submit" class="button button-primary" value="{{ _('Save') }}" /></span>
+    </form>
+</div>
+
 <div id="dialog-new-smile" class="dialog hidden">
     <div class="dialog-title"><a class="dialog-close"></a> {{ _("Adding a smile") }}</div>
 
