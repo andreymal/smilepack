@@ -15,8 +15,10 @@
         <div class="actions-menu">
             {{ _("Other actions") }} ▼
             <ul class="actions-list">
-                {% if current_user.is_superadmin %}<li id="action-edit-users">{{ _("User management") }}</li>
+                <li id="action-edit-icons">TODO: {{ _("Icon management") }}</li>
+                {% if current_user.is_superadmin %}<li id="action-edit-users">TODO: {{ _("User management") }}</li>
                 {% endif -%}
+                <li><a href="/" target="_blank">TODO: {{ _("Profile settings") }}</a></li>
                 <li id="action-toggle-dark">{{ _("Change background") }}</li>
             </ul>
         </div>
