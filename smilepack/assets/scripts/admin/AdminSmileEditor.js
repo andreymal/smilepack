@@ -97,6 +97,7 @@ AdminSmileEditor.prototype._uploadEvent = function(data, onend) {
         }
         return;
     }
+    data.smile.approvedByDefault = data.created;
     this.openEditDialog([data.smile.id], data.smile);
     if (!data.created) {
         alert('Этот смайлик уже был создан! Дата загрузки: ' + data.smile.created_at);

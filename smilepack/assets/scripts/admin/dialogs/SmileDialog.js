@@ -26,7 +26,7 @@ SmileDialog.prototype.open = function(options) {
     this.form.smile.value = options.id;
     this.form.tags.value = options.tags.join(', ');
     this.form.description.value = options.description;
-    this.form.approved.checked = options.approved_at !== null;
+    this.form.approved.checked = options.approvedByDefault || options.approved_at !== null;
     if (options.category) {
         this.form.category.value = options.category[0];
     } else {
