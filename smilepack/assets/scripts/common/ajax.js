@@ -222,41 +222,35 @@ var ajax = {
         });
     },
 
-    create_section: function(data, onload, onerror, onend) {
-        return this.request({
-            method: 'POST',
-            url: '/admin/smiles/sections',
-            format: 'json',
-            onload: onload,
-            onerror: onerror,
-            onend: onend,
-            data: JSON.stringify({csrf_token: this.get_csrf_token(), section: data}),
-            headers: {'Content-Type': 'application/json'}
-        });
-    },
+    create_category: function(level, data, onload, onerror, onend) {
+        var url = '/admin/smiles/unknown_url';
+        if (level === 0) {
+            url = '/admin/smiles/sections';
+        } else if (level === 1) {
+            url = '/admin/smiles/subsections';
+        } else if (level === 2) {
+            url = '/admin/smiles/categories';
+        }
 
-    create_subsection: function(data, onload, onerror, onend) {
-        return this.request({
-            method: 'POST',
-            url: '/admin/smiles/subsections',
-            format: 'json',
-            onload: onload,
-            onerror: onerror,
-            onend: onend,
-            data: JSON.stringify({csrf_token: this.get_csrf_token(), subsection: data}),
-            headers: {'Content-Type': 'application/json'}
-        });
-    },
+        var reqData = {csrf_token: this.get_csrf_token()};
+        var name = 'item';
+        if (level === 0) {
+            name = 'section';
+        } else if (level === 1) {
+            name = 'subsection';
+        } else if (level === 2) {
+            name = 'category';
+        }
+        reqData[name] = data;
 
-    create_category: function(data, onload, onerror, onend) {
         return this.request({
             method: 'POST',
-            url: '/admin/smiles/categories',
+            url: url,
             format: 'json',
             onload: onload,
             onerror: onerror,
             onend: onend,
-            data: JSON.stringify({csrf_token: this.get_csrf_token(), category: data}),
+            data: JSON.stringify(reqData),
             headers: {'Content-Type': 'application/json'}
         });
     }

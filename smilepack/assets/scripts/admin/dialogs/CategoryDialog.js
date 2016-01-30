@@ -58,7 +58,7 @@ CategoryDialog.prototype.onsubmit = function() {
         categoryId: f.category.value.length > 0 ? parseInt(f.category.value) : null,
         parentCategoryId: f.parent.value.length > 0 ? parseInt(f.parent.value) : 0,
         name: f.name.value,
-        iconId: value,
+        iconId: parseInt(value),
         iconUrl: url,
         description: f.description.value,
         onend: onend

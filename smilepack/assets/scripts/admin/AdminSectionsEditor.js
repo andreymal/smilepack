@@ -42,6 +42,19 @@ AdminSectionsEditor.prototype._onaction = function(options) {
 
 
 AdminSectionsEditor.prototype.addCategory = function(options) {
+    if (!options.name) {
+        return {error: 'Введите имя категории'};
+    }
+    if (options.name.length > 128) {
+        return {error: 'Длинновато имя у категории'};
+    }
+    if (options.iconId === undefined || options.iconId === null || !options.iconUrl) {
+        return {error: 'Не выбрана иконка'};
+    }
+    if (options.description.length > 16000) {
+        return {error: 'Слишком много описания'};
+    }
+
     var onload = function(data) {
         var item = null;
         if (options.categoryLevel === 0) {
@@ -77,15 +90,13 @@ AdminSectionsEditor.prototype.addCategory = function(options) {
         description: options.description
     };
 
-    if (options.categoryLevel === 0) {
-        ajax.create_section(data, onload, onerror);
-    } else if (options.categoryLevel === 1) {
+    if (options.categoryLevel === 1) {
         data.section = options.parentCategoryId;
-        ajax.create_subsection(data, onload, onerror);
     } else if (options.categoryLevel === 2) {
         data.subsection = options.parentCategoryId;
-        ajax.create_category(data, onload, onerror);
     }
+
+    ajax.create_category(options.categoryLevel, data, onload, onerror);
     return {success: true};
 };
 

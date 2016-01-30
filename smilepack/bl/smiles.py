@@ -17,14 +17,15 @@ from smilepack.utils.exceptions import InternalError, BadRequestError, JSONValid
 
 
 class SectionBL(BaseBL):
-    def create(self, name, icon, description=None):
-        if not name or len(name) > 128:
-            raise BadRequestError('Invalid name')
-        if description and len(description) > 16000:
-            raise BadRequestError('Too long description')
+    def create(self, data):
+        jsonschema.validate(data, schemas.SECTION)
+
+        from smilepack.models import Icon
+        icon = Icon.get(id=data['icon'])
         if not icon:
-            raise BadRequestError('Icon is required')
-        section = self._model()(name=name, description=description or '', icon=icon)
+            raise BadRequestError('Icon not found')
+
+        section = self._model()(name=data['name'], description=data.get('description') or '', icon=icon)
         section.flush()
         return section
 
@@ -91,16 +92,18 @@ class SectionBL(BaseBL):
 
 
 class SubSectionBL(BaseBL):
-    def create(self, name, icon, section, description=None):
-        if not name or len(name) > 128:
-            raise BadRequestError('Invalid name')
-        if description and len(description) > 16000:
-            raise BadRequestError('Too long description')
+    def create(self, data):
+        jsonschema.validate(data, schemas.SUBSECTION)
+
+        from smilepack.models import Icon, Section
+        icon = Icon.get(id=data['icon'])
         if not icon:
-            raise BadRequestError('Icon is required')
+            raise BadRequestError('Icon not found')
+        section = Section.get(id=data['section'])
         if not section:
-            raise BadRequestError('Section is required')
-        subsection = self._model()(name=name, description=description or '', icon=icon, section=section)
+            raise BadRequestError('Section not found')
+
+        subsection = self._model()(name=data['name'], description=data.get('description') or '', icon=icon, section=section)
         subsection.flush()
         return subsection
 
@@ -121,16 +124,18 @@ class SubSectionBL(BaseBL):
 
 
 class CategoryBL(BaseBL):
-    def create(self, name, icon, subsection, description=None):
-        if not name or len(name) > 128:
-            raise BadRequestError('Invalid name')
-        if description and len(description) > 16000:
-            raise BadRequestError('Too long description')
+    def create(self, data):
+        jsonschema.validate(data, schemas.CATEGORY)
+
+        from smilepack.models import Icon, SubSection
+        icon = Icon.get(id=data['icon'])
         if not icon:
-            raise BadRequestError('Icon is required')
+            raise BadRequestError('Icon not found')
+        subsection = SubSection.get(id=data['subsection'])
         if not subsection:
-            raise BadRequestError('Subsection is required')
-        category = self._model()(name=name, description=description or '', icon=icon, subsection=subsection)
+            raise BadRequestError('Subection not found')
+
+        category = self._model()(name=data['name'], description=data.get('description') or '', icon=icon, subsection=subsection)
         category.flush()
         return category
 
@@ -158,10 +163,7 @@ class SmileBL(BaseBL):
     def find_or_create(self, data, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
         smile_file = data.pop('file', None)
 
-        try:
-            jsonschema.validate(data, schemas.SMILE)
-        except jsonschema.ValidationError as exc:
-            raise JSONValidationError(exc)
+        jsonschema.validate(data, schemas.SMILE)
 
         if 'w' not in data or 'h' not in data:
             raise BadRequestError('Please set width and height')

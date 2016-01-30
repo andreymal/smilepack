@@ -8,6 +8,7 @@ import functools
 from datetime import datetime, timedelta
 
 import jinja2
+import jsonschema
 from werkzeug.exceptions import HTTPException, Forbidden, UnprocessableEntity
 from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort
 from flask_login import current_user
@@ -48,22 +49,23 @@ def json_answer(func):
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         try:
-            return jsonify(func(*args, **kwargs))
-        except BadRequestError as exc:
-            resp = jsonify(
-                error=exc.message,
-                at=exc.at
-            )
+            resp = jsonify(func(*args, **kwargs))
+        except jsonschema.ValidationError as exc:
+            resp = jsonify(error=exc.message, at=tuple(exc.path))
             resp.status_code = 422
-            return resp
+        except BadRequestError as exc:
+            if exc.at:
+                resp = jsonify(error=exc.message, at=exc.at)
+            else:
+                resp = jsonify(error=exc.message)
+            resp.status_code = 422
         except InternalError as exc:
             resp = jsonify(error=str(exc))
             resp.status_code = 500
-            return resp
         except HTTPException as exc:
             resp = jsonify(error=exc.description)
             resp.status_code = exc.code
-            return resp
+        return resp
 
     return decorator
 
@@ -153,6 +155,10 @@ def _handle_bad_request_error(error):
     return UnprocessableEntity(str(error))
 
 
+def _handle_validation_error(error):
+    return UnprocessableEntity('{}: {}'.format(tuple(error.path), error.message))
+
+
 def _add_nocache_header(response):
     response.cache_control.max_age = 0
     return response
@@ -162,6 +168,7 @@ def configure_for_app(app, package_root):
     app.jinja_env.globals['csrf_token'] = csrf_token
     app.jinja_env.globals['csrf_token_field'] = csrf_token_field
     app.register_error_handler(BadRequestError, _handle_bad_request_error)
+    app.register_error_handler(jsonschema.ValidationError, _handle_validation_error)
     app.after_request(_add_nocache_header)
 
     # Webpack assets

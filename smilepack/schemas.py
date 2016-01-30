@@ -1,6 +1,81 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+SECTION = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+        },
+        "icon": {
+            "type": "integer"
+        },
+        "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 16000
+        }
+
+    },
+    "required": ["name", "icon"]
+}
+
+
+SUBSECTION = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+        },
+        "icon": {
+            "type": "integer"
+        },
+        "section": {
+            "type": "integer"
+        },
+        "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 16000
+        }
+
+    },
+    "required": ["name", "icon", "section"]
+}
+
+
+CATEGORY = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+        },
+        "icon": {
+            "type": "integer"
+        },
+        "subsection": {
+            "type": "integer"
+        },
+        "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 16000
+        }
+
+    },
+    "required": ["name", "icon", "subsection"]
+}
+
+
 SMILE = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
