@@ -51,7 +51,25 @@ AdminSectionsEditor.prototype._onaction = function(options) {
     } else if (options.action == 'delete') {
         var category = this.collection.getCategoryInfo(options.level, options.categoryId);
         if (confirm('Вы действительно хотите удалить категорию «' + category.name + '»?')) {
-            console.log('TODO: delete');
+            ajax.delete_category(
+                options.level,
+                options.categoryId,
+                function(data) {
+                    if (data.success) {
+                        this.collection.removeCategory(options.level, options.categoryId);
+                        if (data.smiles > 0) {
+                            alert('В категории были неопубликованные смайлики, ' + data.smiles.toString() + ' штук');
+                        }
+                    } else {
+                        console.log(data);
+                        alert(data.error || data);
+                    }
+                }.bind(this),
+                function(data) {
+                    console.log(data);
+                    alert(data.error || data);
+                }.bind(this)
+            );
         }
     }
 };

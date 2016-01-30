@@ -286,6 +286,28 @@ var ajax = {
             data: JSON.stringify(reqData),
             headers: {'Content-Type': 'application/json'}
         });
+    },
+
+    delete_category: function(level, id, onload, onerror, onend) {
+        var url = '/admin/smiles/unknown_url/';
+        if (level === 0) {
+            url = '/admin/smiles/sections/';
+        } else if (level === 1) {
+            url = '/admin/smiles/subsections/';
+        } else if (level === 2) {
+            url = '/admin/smiles/categories/';
+        }
+
+        return this.request({
+            method: 'DELETE',
+            url: url + parseInt(id),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token()}),
+            headers: {'Content-Type': 'application/json'}
+        });
     }
 };
 

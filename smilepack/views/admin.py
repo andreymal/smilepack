@@ -87,6 +87,48 @@ def edit_category(category_id):
     return {'category': category.bl.as_json(with_parent=True)}
 
 
+@bp.route('/sections/<int:section_id>', methods=['DELETE'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def delete_section(section_id):
+    section = models.Section.get(id=section_id)
+    if not section:
+        abort(404)
+    section.bl.delete()
+    return {'success': True}
+
+
+@bp.route('/subsections/<int:subsection_id>', methods=['DELETE'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def delete_subsection(subsection_id):
+    subsection = models.SubSection.get(id=subsection_id)
+    if not subsection:
+        abort(404)
+    subsection.bl.delete()
+    return {'success': True}
+
+
+@bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def delete_category(category_id):
+    category = models.Category.get(id=category_id)
+    if not category:
+        abort(404)
+    orphans_count = category.bl.delete()
+    return {'success': True, 'smiles': orphans_count}
+
+
 @bp.route('/unpublished')
 @default_crossdomain()
 @json_answer

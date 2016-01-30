@@ -60,6 +60,12 @@ class SectionBL(BaseBL):
             section.icon = icon
         return section
 
+    def delete(self):
+        # TODO: reorder
+        if self._model().subsections.count() > 0:
+            raise BadRequestError('Cannot delete section with subsections')
+        self._model().delete()
+
     def as_json(self, with_subsections=False, with_categories=False):
         section = self._model()
         result = {
@@ -182,6 +188,12 @@ class SubSectionBL(BaseBL):
         # subsection.section = section бессмысленно =)
         return subsection
 
+    def delete(self):
+        # TODO: reorder
+        if self._model().categories.count() > 0:
+            raise BadRequestError('Cannot delete subsection with categories')
+        self._model().delete()
+
     def as_json(self, with_categories=False, with_parent=False):
         subsection = self._model()
         result = {
@@ -261,6 +273,17 @@ class CategoryBL(BaseBL):
             category.order = subsection.categories.count()
             category.subsection = subsection
         return category
+
+    def delete(self):
+        # TODO: reorder
+        if self._model().select_approved_smiles().count() > 0:
+            raise BadRequestError('Cannot delete category with smiles')
+        smiles_count = 0
+        for smile in self._model().smiles:  # suggestions
+            smile.category = None
+            smiles_count += 1
+        self._model().delete()
+        return smiles_count
 
     def get(self, i):
         return self._model().get(id=i)
@@ -455,6 +478,7 @@ class SmileBL(BaseBL):
         if 'h' in data:
             smile.height = data['h']
         if 'category' in data:
+            # TODO: reorder smiles in old category
             smile.category = category
         if 'description' in data:
             smile.description = data.get('description', '')
