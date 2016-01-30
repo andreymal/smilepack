@@ -354,6 +354,7 @@ Collection.prototype.addCategory = function(level, parentId, item) {
         name: item.name,
         description: item.description,
         dom: null,
+        childrenDom: null,
         iconId: item.icon ? item.icon.id : -1,
         iconUrl: item.icon ? item.icon.url : null,
         childrenIds: level + 1 < this._depth ? [] : null,
@@ -399,6 +400,52 @@ Collection.prototype.editCategory = function(level, categoryId, item) {
     this.callListeners('oncategoryedit', {categoryLevel: level, categoryId: category.id, added: false, removed: false});
 
     return category.id;
+};
+
+
+/**
+ * Перемещает категорию перед другой категорией или после всех.
+ * @param  {number} level           Уровень, на котором находится перемещаемая категория
+ * @param  {number} categoryId      ID перемещаемой категории
+ * @param  {number} [beforeId=null] ID категории, перед которой поместить перемещаемую, или null, если после всех
+ * @return {boolean}                true при успехе
+ */
+Collection.prototype.moveCategory = function(level, categoryId, beforeId) {
+    if (level < 0 || level >= this._depth) {
+        return false;
+    }
+    var category = this._categories[level][categoryId];
+    if (!category) {
+        return false;
+    }
+    var before = this._categories[level][beforeId];
+    if (before !== undefined && before !== null && !before) {
+        return false;
+    }
+    if (before && before.id === category.id) {
+        return true;
+    }
+    if (before && before.parentId !== category.parentId) {
+        return false;
+    }
+    var parent = level > 0 ? this._categories[level - 1][category.parentId] : null;
+
+    var childrenIds = parent ? parent.childrenIds : this._rootChildren;
+    childrenIds.splice(childrenIds.indexOf(category.id), 1);
+    if (before) {
+        childrenIds.splice(childrenIds.indexOf(before.id), 0, category.id);
+    } else {
+        childrenIds.push(category.id);
+    }
+
+    var childrenDom = parent ? parent.childrenDom : this._dom.rootCategories;
+    if (before) {
+        childrenDom.insertBefore(category.dom, before.dom);
+    } else {
+        childrenDom.appendChild(category.dom);
+    }
+
+    return true;
 };
 
 
@@ -811,6 +858,32 @@ Collection.prototype.getCategoryIds = function() {
         result.push(ids);
     }
     return result;
+};
+
+
+/**
+ * Возвращает ID категорий-потомков указанной.
+ * При level=0 возвращает категории верхнего уровня и parentId игнорируется.
+ * Если категория не существует или не может иметь потомков (самый нижний уровень), возвращается null.
+ * @param  {number}  level    Уровень, с которого надо получить ID категорий
+ * @param  {number}  parentId ID родительской категории
+ * @return {?number[]}
+ */
+Collection.prototype.getCategoryChildrenIds = function(level, parentId) {
+    if (level === undefined || level === null || isNaN(level) || level < 0 || level >= this._depth) {
+        return null;
+    }
+
+    if (level === 0) {
+        return this._rootChildren.slice();
+    }
+
+    var category = this._categories[level - 1][parentId];
+    if (!category) {
+        return null;
+    }
+
+    return category.childrenIds !== null ? category.childrenIds.slice() : null;
 };
 
 

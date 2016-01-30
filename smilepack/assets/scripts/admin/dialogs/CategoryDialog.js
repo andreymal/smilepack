@@ -76,6 +76,8 @@ CategoryDialog.prototype.onsubmit = function() {
     }
     if (old.subsections && old.subsections.length > 1 && parseInt(f.subsection.value) !== old.parentCategoryId) {
         data.subsection = parseInt(f.subsection.value);
+    } else if (!old.edit || f.before.value !== (old.before !== null ? old.before.toString() : null)) {
+        data.before = f.before.value.length ? parseInt(f.before.value) : null;
     }
 
     var result = this._submitEvent(data);
@@ -95,11 +97,12 @@ CategoryDialog.prototype.open = function(options) {
     }
     this._currentOptions = options;
 
+    var i, option;
     if (options.subsections && options.subsections.length > 1) {
         this.subsectContainer.style.display = '';
         this.subsect.innerHTML = '';
-        for (var i = 0; i < options.subsections.length; i++) {
-            var option = document.createElement('option');
+        for (i = 0; i < options.subsections.length; i++) {
+            option = document.createElement('option');
             option.value = options.subsections[i][0];
             option.textContent = options.subsections[i][1];
             this.subsect.appendChild(option);
@@ -110,6 +113,23 @@ CategoryDialog.prototype.open = function(options) {
         this.subsect.innerHTML = '';
         this.form.subsection.value = '';
     }
+
+    this.form.before.innerHTML = '';
+    for (i = 0; i < options.beforeList.length; i++) {
+        if (options.edit && options.beforeList[i][0] === options.category.id) {
+            continue;
+        }
+        option = document.createElement('option');
+        option.value = options.beforeList[i][0];
+        option.textContent = options.beforeList[i][1];
+        this.form.before.appendChild(option);
+    }
+    option = document.createElement('option');
+    option.value = '';
+    option.textContent = '---';
+    this.form.before.appendChild(option);
+
+    this.form.before.value = options.before !== null ? options.before.toString() : '';
 
     this.form.level.value = options.categoryLevel;
     this.form.parent.value = options.parentCategoryId;

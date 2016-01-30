@@ -27,27 +27,30 @@ AdminSectionsEditor.prototype._onaction = function(options) {
     if (options.action == 'add') {
         dialogsManager.open('category', {
             categoryLevel: options.level,
-            parentCategoryId: parent
+            parentCategoryId: parent,
+            beforeList: this._getCategoriesInfo(options.level, parent),
+            before: null
         }, this._editCategoryEvent.bind(this));
+
     } else if (options.action == 'edit') {
         var subsections = [];
         if (options.level === 2) {
-            var subsectionIds = this.collection.getCategoryIds()[1];
-            for (var i = 0; i < subsectionIds.length; i++) {
-                var info = this.collection.getCategoryInfo(1, subsectionIds[i], {withParent: true});
-                if (info.parentId === section) {
-                    subsections.push([subsectionIds[i], info.name]);
-                }
-            }
+            subsections = this._getCategoriesInfo(1, section);
         }
+        var beforeList = this._getCategoriesInfo(options.level, parent);
+        var beforePos = this.collection.getCategoryChildrenIds(options.level, parent).indexOf(options.categoryId) + 1;
+        beforePos = beforePos < beforeList.length ? beforeList[beforePos][0] : null;
 
         dialogsManager.open('category', {
             edit: true,
             categoryLevel: options.level,
             parentCategoryId: parent,
+            beforeList: beforeList,
+            before: beforePos,
             category: this.collection.getCategoryInfo(options.level, options.categoryId),
             subsections: subsections
         }, this._editCategoryEvent.bind(this));
+
     } else if (options.action == 'delete') {
         var category = this.collection.getCategoryInfo(options.level, options.categoryId);
         if (confirm('Вы действительно хотите удалить категорию «' + category.name + '»?')) {
@@ -99,11 +102,13 @@ AdminSectionsEditor.prototype.addCategory = function(options) {
             return;
         }
 
-        this.collection.addCategory(
-            options.categoryLevel,
-            parentId,
-            item
-        );
+        if (this.collection.addCategory(options.categoryLevel, parentId, item) !== item.id) {
+            alert('Кажется, что-то пошло не так');
+            return;
+        }
+        if (options.hasOwnProperty('before')) {
+            this.collection.moveCategory(options.categoryLevel, item.id, options.before);
+        }
         if (options.categoryLevel === 2) {
             this.collection.createGroupForCategory(options.categoryLevel, item.id);
         }
@@ -143,15 +148,17 @@ AdminSectionsEditor.prototype.editCategory = function(options) {
             return;
         }
 
-        if (parentId !== this.collection.getCategoryInfo(options.categoryLevel, item.id, {withParent: true}).parentId) {
+        if (options.categoryLevel > 0 && parentId !== this.collection.getCategoryInfo(options.categoryLevel, item.id, {withParent: true}).parentId) {
             this.collection.removeCategory(options.categoryLevel, item.id);
-            this.collection.addCategory(
-                options.categoryLevel,
-                parentId,
-                item
-            );
+            if (this.collection.addCategory(options.categoryLevel, parentId, item) !== item.id) {
+                alert('Кажется, что-то пошло не так');
+                return;
+            }
             if (options.categoryLevel === 2) {
                 this.collection.createGroupForCategory(options.categoryLevel, item.id);
+            }
+            if (options.hasOwnProperty('before')) {
+                this.collection.moveCategory(options.categoryLevel, item.id, options.before);
             }
             this.collection.selectCategory(options.categoryLevel, item.id);
         } else {
@@ -160,6 +167,9 @@ AdminSectionsEditor.prototype.editCategory = function(options) {
                 item.id,
                 item
             );
+            if (options.hasOwnProperty('before')) {
+                this.collection.moveCategory(options.categoryLevel, item.id, options.before);
+            }
         }
         options.onend({success: true});
     }.bind(this);
@@ -170,6 +180,19 @@ AdminSectionsEditor.prototype.editCategory = function(options) {
 
     ajax.edit_category(options.categoryLevel, options.categoryId, data, onload, onerror);
     return {success: true};
+};
+
+
+AdminSectionsEditor.prototype._getCategoriesInfo = function(level, parentId, ignoreId) {
+    var infos = [];
+    var itemIds = this.collection.getCategoryChildrenIds(level, parentId);
+    for (var i = 0; i < itemIds.length; i++) {
+        var info = this.collection.getCategoryInfo(level, itemIds[i], {withParent: true});
+        if (ignoreId === undefined || itemIds[i] !== ignoreId) {
+            infos.push([itemIds[i], info.name]);
+        }
+    }
+    return infos;
 };
 
 
@@ -197,6 +220,11 @@ AdminSectionsEditor.prototype._prepareCategoryData = function(options) {
     }
     if (options.hasOwnProperty('description')) {
         data.description = options.description;
+    }
+    if (options.hasOwnProperty('before')) {
+        var position = {before: options.before};
+        // TODO: check after and order
+        data.position = position;
     }
 
     if (options.categoryLevel === 1) {

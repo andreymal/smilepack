@@ -61,10 +61,26 @@ class SectionBL(BaseBL):
         return section
 
     def delete(self):
-        # TODO: reorder
         if self._model().subsections.count() > 0:
             raise BadRequestError('Cannot delete section with subsections')
         self._model().delete()
+
+        from smilepack.models import Section
+        _normalize_order(Section.select().order_by(Section.order, Section.id))
+
+    def reorder(self, before_section=None, **kwargs):
+        from smilepack.models import Section
+
+        section = self._model()
+        sections = Section.select().order_by(Section.order, Section.id)[:]
+
+        new_kwargs = {}
+        if 'check_after_section_id' in kwargs:
+            new_kwargs['after'] = kwargs['check_after_section_id']
+        if 'check_order' in kwargs:
+            new_kwargs['order'] = kwargs['check_order']
+
+        return _reorder_entity(section, sections, before_section, **kwargs)
 
     def as_json(self, with_subsections=False, with_categories=False):
         section = self._model()
@@ -189,10 +205,30 @@ class SubSectionBL(BaseBL):
         return subsection
 
     def delete(self):
-        # TODO: reorder
         if self._model().categories.count() > 0:
             raise BadRequestError('Cannot delete subsection with categories')
         self._model().delete()
+
+        from smilepack.models import SubSection
+        _normalize_order(SubSection.select().order_by(SubSection.order, SubSection.id))
+
+    def reorder(self, before_subsection=None, **kwargs):
+        from smilepack.models import SubSection
+
+        subsection = self._model()
+        if before_subsection:
+            if before_subsection.section.id != subsection.section.id:
+                raise BadRequestError('Cannot reorder subsection in other section')
+
+        subsections = subsection.section.subsections.select().order_by(SubSection.order, SubSection.id)[:]
+
+        new_kwargs = {}
+        if 'check_after_subsection_id' in kwargs:
+            new_kwargs['after'] = kwargs['check_after_subsection_id']
+        if 'check_order' in kwargs:
+            new_kwargs['order'] = kwargs['check_order']
+
+        return _reorder_entity(subsection, subsections, before_subsection, **kwargs)
 
     def as_json(self, with_categories=False, with_parent=False):
         subsection = self._model()
@@ -275,7 +311,6 @@ class CategoryBL(BaseBL):
         return category
 
     def delete(self):
-        # TODO: reorder
         if self._model().select_approved_smiles().count() > 0:
             raise BadRequestError('Cannot delete category with smiles')
         smiles_count = 0
@@ -283,7 +318,29 @@ class CategoryBL(BaseBL):
             smile.category = None
             smiles_count += 1
         self._model().delete()
+
+        from smilepack.models import Category
+        _normalize_order(Category.select().order_by(Category.order, Category.id))
+
         return smiles_count
+
+    def reorder(self, before_category=None, **kwargs):
+        from smilepack.models import Category
+
+        category = self._model()
+        if before_category:
+            if before_category.subsection.id != category.subsection.id:
+                raise BadRequestError('Cannot reorder category in other subsection')
+
+        categories = category.subsection.categories.select().order_by(Category.order, Category.id)[:]
+
+        new_kwargs = {}
+        if 'check_after_category_id' in kwargs:
+            new_kwargs['after'] = kwargs['check_after_category_id']
+        if 'check_order' in kwargs:
+            new_kwargs['order'] = kwargs['check_order']
+
+        return _reorder_entity(category, categories, before_category, **kwargs)
 
     def get(self, i):
         return self._model().get(id=i)
@@ -438,7 +495,7 @@ class SmileBL(BaseBL):
         except jsonschema.ValidationError as exc:
             raise JSONValidationError(exc)
 
-        from smilepack.models import Category
+        from smilepack.models import Category, Smile
 
         # Ищем категорию, в которую переносится смайлик
         category_id = data.get('category')
@@ -478,12 +535,18 @@ class SmileBL(BaseBL):
         if 'h' in data:
             smile.height = data['h']
         if 'category' in data:
-            # TODO: reorder smiles in old category
+            old_category = smile.category
             smile.category = category
+            if old_category and (not category or category.id != old_category.id):
+                # При вытаскивании смайлика из категории стоит привести порядок в порядок (простите за каламбур)
+                _normalize_order(old_category.select_approved_smiles().order_by(Smile.order, Smile.id))
         if 'description' in data:
             smile.description = data.get('description', '')
-        if 'approved' in data:
+        if 'approved' in data and data['approved'] != (smile.approved_at is not None):
             smile.approved_at = (smile.approved_at or datetime.utcnow()) if data['approved'] else None
+            if not smile.approved_at and smile.category:
+                # При вытаскивании смайлика из опубликованных порядок в категории тоже стоит навести
+                _normalize_order(smile.category.select_approved_smiles().order_by(Smile.order, Smile.id))
 
         if 'tags' in data:
             try:
@@ -734,7 +797,7 @@ class SmileBL(BaseBL):
             tag_obj.smiles_count += 1
 
     def reorder(self, before_smile=None, **kwargs):
-        from smilepack.models import Category, Smile
+        from smilepack.models import Smile
 
         smile = self._model()
         if not smile.category or before_smile and not before_smile.category:
@@ -743,41 +806,16 @@ class SmileBL(BaseBL):
         if before_smile:
             if before_smile.category.id != smile.category.id:
                 raise BadRequestError('Cannot reorder smile in other category')
-            if before_smile.id == smile.id:
-                return
 
-        # TODO: write more effective implementation
         smiles = smile.category.select_approved_smiles().order_by(Smile.order, Smile.id)[:]
-        smile_ids = [x.id for x in smiles]
 
-        i = smile_ids.index(smile.id)
-        del smile_ids[i]
-        del smiles[i]
-
-        if before_smile:
-            try:
-                i = smile_ids.index(before_smile.id)
-            except ValueError:
-                i = -1
-            smile_ids.insert(i, smile.id)
-            smiles.insert(i, smile)
-        else:
-            i = len(smiles)
-            smile_ids.append(smile.id)
-            smiles.append(smile)
-
+        new_kwargs = {}
         if 'check_after_smile_id' in kwargs:
-            if i == 0 and kwargs['check_after_smile_id'] is not None:
-                raise BadRequestError('Result checking failed')
-            elif i != 0 and kwargs['check_after_smile_id'] != smile_ids[i - 1]:
-                raise BadRequestError('Result checking failed')
+            new_kwargs['after'] = kwargs['check_after_smile_id']
+        if 'check_order' in kwargs:
+            new_kwargs['order'] = kwargs['check_order']
 
-        if 'check_order' in kwargs and kwargs['check_order'] != i:
-            raise BadRequestError('Result checking failed')
-
-        for o, sm in enumerate(smiles):
-            if sm.order != o:
-                sm.order = o
+        return _reorder_entity(smile, smiles, before_smile, **kwargs)
 
     def as_json(self, full_info=True, admin_info=False):
         smile = self._model()
@@ -832,3 +870,48 @@ class TagBL(BaseBL):
             } if tag.icon else None,
             'smiles': tag.smiles_count,
         }
+
+
+def _reorder_entity(obj, obj_list, before, **kwargs):
+    # TODO: write more effective implementation
+    obj_list = list(obj_list)
+    obj_ids = [x.id for x in obj_list]
+
+    old_order = obj_ids.index(obj.id)
+    if before and before.id == obj.id:
+        return False, obj_list
+    elif old_order < len(obj_ids) - 1 and before and before.id == obj_ids[old_order + 1]:
+        return False, obj_list
+    elif old_order == len(obj_ids) - 1 and not before:
+        return False, obj_list
+
+    del obj_list[old_order]
+    del obj_ids[old_order]
+
+    if before:
+        order = obj_ids.index(before.id)
+        obj_list.insert(order, obj)
+        obj_ids.insert(order, obj.id)
+    else:
+        order = len(obj_ids)
+        obj_list.append(obj)
+        obj_ids.append(obj.id)
+
+    if 'after' in kwargs:
+        if order < 0 or order == 0 and kwargs['after'] is not None:
+            raise BadRequestError('Result checking failed')
+        elif order > 0 and kwargs['after'] != obj_ids[order - 1]:
+            raise BadRequestError('Result checking failed')
+
+    if 'order' in kwargs and kwargs['order'] != order:
+        raise BadRequestError('Result checking failed')
+
+    _normalize_order(obj_list)
+
+    return True, obj_list
+
+
+def _normalize_order(obj_list):
+    for o, item in enumerate(obj_list):
+        if item.order != o:
+            item.order = o
