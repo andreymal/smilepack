@@ -162,7 +162,7 @@ class SmileHash(db.Entity):
 class Tag(db.Entity):
     """Тег смайликов (например, «твайлайт спаркл»)"""
     section = orm.Required(Section, index=True)
-    name = orm.Required(str, 64, index=True, unique=True)
+    name = orm.Required(str, 64, index=True)
     description = orm.Optional(str, 16000)
     icon = orm.Optional(Icon)
     smiles = orm.Set(Smile)

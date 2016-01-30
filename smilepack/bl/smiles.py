@@ -20,13 +20,44 @@ class SectionBL(BaseBL):
     def create(self, data):
         jsonschema.validate(data, schemas.SECTION)
 
+        if not data.get('name'):
+            raise BadRequestError('Name is required')
+        if 'icon' not in data:
+            raise BadRequestError('Icon is required')
+
         from smilepack.models import Icon
         icon = Icon.get(id=data['icon'])
         if not icon:
             raise BadRequestError('Icon not found')
 
-        section = self._model()(name=data['name'], description=data.get('description') or '', icon=icon)
+        order = self._model().select().count()
+        section = self._model()(
+            name=data['name'],
+            description=data.get('description') or '',
+            icon=icon,
+            order=order
+        )
         section.flush()
+        return section
+
+    def edit(self, data):
+        jsonschema.validate(data, schemas.SECTION)
+        section = self._model()
+
+        from smilepack.models import Icon
+
+        icon = None
+        if 'icon' in data:
+            icon = Icon.get(id=data['icon'])
+            if not icon:
+                raise BadRequestError('Icon not found')
+
+        if 'name' in data:
+            section.name = data['name']
+        if 'description' in data:
+            section.description = data['description']
+        if 'icon' in data:
+            section.icon = icon
         return section
 
     def as_json(self, with_subsections=False, with_categories=False):
@@ -95,6 +126,13 @@ class SubSectionBL(BaseBL):
     def create(self, data):
         jsonschema.validate(data, schemas.SUBSECTION)
 
+        if not data.get('name'):
+            raise BadRequestError('Name is required')
+        if 'icon' not in data:
+            raise BadRequestError('Icon is required')
+        if 'section' not in data:
+            raise BadRequestError('Section is required')
+
         from smilepack.models import Icon, Section
         icon = Icon.get(id=data['icon'])
         if not icon:
@@ -103,11 +141,48 @@ class SubSectionBL(BaseBL):
         if not section:
             raise BadRequestError('Section not found')
 
-        subsection = self._model()(name=data['name'], description=data.get('description') or '', icon=icon, section=section)
+        order = section.subsections.count()
+        subsection = self._model()(
+            name=data['name'],
+            description=data.get('description') or '',
+            icon=icon,
+            section=section,
+            order=order
+        )
         subsection.flush()
         return subsection
 
-    def as_json(self, with_categories=False):
+    def edit(self, data):
+        jsonschema.validate(data, schemas.SUBSECTION)
+        subsection = self._model()
+
+        from smilepack.models import Icon, Section
+
+        icon = None
+        if 'icon' in data:
+            icon = Icon.get(id=data['icon'])
+            if not icon:
+                raise BadRequestError('Icon not found')
+
+        section = None
+        if 'section' in data:
+            section = Section.get(id=data['section'])
+            if not section:
+                raise BadRequestError('Section not found')
+            if subsection.section.id != section.id:
+                # Теги привязаны к разделам, пересчитывать их очень долго
+                raise BadRequestError('Moving to another section is unavailable')
+
+        if 'name' in data:
+            subsection.name = data['name']
+        if 'description' in data:
+            subsection.description = data['description']
+        if 'icon' in data:
+            subsection.icon = icon
+        # subsection.section = section бессмысленно =)
+        return subsection
+
+    def as_json(self, with_categories=False, with_parent=False):
         subsection = self._model()
         result = {
             'id': subsection.id,
@@ -120,12 +195,21 @@ class SubSectionBL(BaseBL):
         }
         if with_categories:
             result['categories'] = [c.bl.as_json() for c in sorted(subsection.categories, key=lambda x: (x.order, x.id))]
+        if with_parent:
+            result['section'] = [subsection.section.id, subsection.section.name]
         return result
 
 
 class CategoryBL(BaseBL):
     def create(self, data):
         jsonschema.validate(data, schemas.CATEGORY)
+
+        if not data.get('name'):
+            raise BadRequestError('Name is required')
+        if 'icon' not in data:
+            raise BadRequestError('Icon is required')
+        if 'subsection' not in data:
+            raise BadRequestError('Subsection is required')
 
         from smilepack.models import Icon, SubSection
         icon = Icon.get(id=data['icon'])
@@ -135,16 +219,55 @@ class CategoryBL(BaseBL):
         if not subsection:
             raise BadRequestError('Subection not found')
 
-        category = self._model()(name=data['name'], description=data.get('description') or '', icon=icon, subsection=subsection)
+        order = subsection.categories.count()  # TODO: normalize order in old subsection
+        category = self._model()(
+            name=data['name'],
+            description=data.get('description') or '',
+            icon=icon,
+            subsection=subsection,
+            order=order
+        )
         category.flush()
+        return category
+
+    def edit(self, data):
+        jsonschema.validate(data, schemas.CATEGORY)
+        category = self._model()
+
+        from smilepack.models import Icon, SubSection
+
+        icon = None
+        if 'icon' in data:
+            icon = Icon.get(id=data['icon'])
+            if not icon:
+                raise BadRequestError('Icon not found')
+
+        subsection = None
+        if 'subsection' in data:
+            subsection = SubSection.get(id=data['subsection'])
+            if not subsection:
+                raise BadRequestError('Subsection not found')
+            if category.subsection.section.id != subsection.section.id:
+                # Теги привязаны к разделам, пересчитывать их очень долго
+                raise BadRequestError('Moving to another section is unavailable')
+
+        if 'name' in data:
+            category.name = data['name']
+        if 'description' in data:
+            category.description = data['description']
+        if 'icon' in data:
+            category.icon = icon
+        if 'subsection' in data and subsection.id != category.subsection.id:
+            category.order = subsection.categories.count()
+            category.subsection = subsection
         return category
 
     def get(self, i):
         return self._model().get(id=i)
 
-    def as_json(self):
+    def as_json(self, with_parent=False):
         c = self._model()
-        return {
+        result = {
             'id': c.id,
             'name': c.name,
             'icon': {
@@ -153,6 +276,9 @@ class CategoryBL(BaseBL):
             },
             'description': c.description
         }
+        if with_parent:
+            result['subsection'] = [c.subsection.id, c.subsection.name]
+        return result
 
     def get_smiles_as_json(self, admin_info=False):
         smiles = sorted(self._model().select_approved_smiles(), key=lambda x: (x.order, x.id))
@@ -334,6 +460,7 @@ class SmileBL(BaseBL):
             smile.description = data.get('description', '')
         if 'approved' in data:
             smile.approved_at = (smile.approved_at or datetime.utcnow()) if data['approved'] else None
+
         if 'tags' in data:
             try:
                 self.set_tags(data['tags'])
@@ -341,6 +468,7 @@ class SmileBL(BaseBL):
                 raise BadRequestError(str(exc))
         elif reset_tags:
             self.set_tags(old_tags)
+
         if 'add_tags' in data:
             norm_tags = [x.strip().lower() for x in data['add_tags'] if x and x.strip()]
             try:
@@ -348,6 +476,7 @@ class SmileBL(BaseBL):
             except ValueError as exc:
                 raise BadRequestError(str(exc))
             del norm_tags
+
         if 'remove_tags' in data:
             norm_tags = [x.strip().lower() for x in data['remove_tags'] if x and x.strip()]
             if norm_tags:

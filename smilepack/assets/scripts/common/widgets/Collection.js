@@ -808,7 +808,7 @@ Collection.prototype.getCategoryIds = function() {
     var parse = function(x) {return parseInt(x, 10);};
     for (var i = 0; i < this._categories.length; i++){
         var ids = Object.keys(this._categories[i]).map(parse);
-        Array.prototype.push(ids);
+        result.push(ids);
     }
     return result;
 };

@@ -253,6 +253,39 @@ var ajax = {
             data: JSON.stringify(reqData),
             headers: {'Content-Type': 'application/json'}
         });
+    },
+
+    edit_category: function(level, id, data, onload, onerror, onend) {
+        var url = '/admin/smiles/unknown_url/';
+        if (level === 0) {
+            url = '/admin/smiles/sections/';
+        } else if (level === 1) {
+            url = '/admin/smiles/subsections/';
+        } else if (level === 2) {
+            url = '/admin/smiles/categories/';
+        }
+
+        var reqData = {csrf_token: this.get_csrf_token()};
+        var name = 'item';
+        if (level === 0) {
+            name = 'section';
+        } else if (level === 1) {
+            name = 'subsection';
+        } else if (level === 2) {
+            name = 'category';
+        }
+        reqData[name] = data;
+
+        return this.request({
+            method: 'POST',
+            url: url + parseInt(id),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify(reqData),
+            headers: {'Content-Type': 'application/json'}
+        });
     }
 };
 

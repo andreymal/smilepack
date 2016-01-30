@@ -82,6 +82,11 @@
         <label for="name">{{ _("Category name") }}:</label><br/>
         <input name="name" class="text input-width-full" /><br/>
 
+        <div class="subsection-container">
+            <label for="subsection">{{ _("Move to another subsection") }}:</label><br/>
+            <select class="input-width-full" name="subsection"></select><br/>
+        </div>
+
         <label for="icon">{{ _("Icon") }}:</label><br/>
         <div class="icon-container">
         {%- for icon in icons %}

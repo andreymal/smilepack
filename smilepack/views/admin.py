@@ -31,7 +31,7 @@ def create_section():
 @for_admin
 def create_subsection():
     subsection = models.SubSection.bl.create(request.json.get('subsection'))
-    return {'subsection': subsection.bl.as_json()}
+    return {'subsection': subsection.bl.as_json(with_parent=True)}
 
 
 @bp.route('/categories', methods=['POST'])
@@ -42,7 +42,49 @@ def create_subsection():
 @for_admin
 def create_category():
     category = models.Category.bl.create(request.json.get('category'))
-    return {'category': category.bl.as_json()}
+    return {'category': category.bl.as_json(with_parent=True)}
+
+
+@bp.route('/sections/<int:section_id>', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def edit_section(section_id):
+    section = models.Section.get(id=section_id)
+    if not section:
+        abort(404)
+    section.bl.edit(request.json.get('section'))
+    return {'section': section.bl.as_json()}
+
+
+@bp.route('/subsections/<int:subsection_id>', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def edit_subsection(subsection_id):
+    subsection = models.SubSection.get(id=subsection_id)
+    if not subsection:
+        abort(404)
+    subsection.bl.edit(request.json.get('subsection'))
+    return {'subsection': subsection.bl.as_json(with_parent=True)}
+
+
+@bp.route('/categories/<int:category_id>', methods=['POST'])
+@default_crossdomain()
+@json_answer
+@csrf_protect
+@db_session
+@for_admin
+def edit_category(category_id):
+    category = models.Category.get(id=category_id)
+    if not category:
+        abort(404)
+    category.bl.edit(request.json.get('category'))
+    return {'category': category.bl.as_json(with_parent=True)}
 
 
 @bp.route('/unpublished')

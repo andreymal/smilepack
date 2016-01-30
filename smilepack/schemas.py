@@ -19,8 +19,7 @@ SECTION = {
             "maxLength": 16000
         }
 
-    },
-    "required": ["name", "icon"]
+    }
 }
 
 
@@ -45,8 +44,7 @@ SUBSECTION = {
             "maxLength": 16000
         }
 
-    },
-    "required": ["name", "icon", "section"]
+    }
 }
 
 
@@ -71,8 +69,7 @@ CATEGORY = {
             "maxLength": 16000
         }
 
-    },
-    "required": ["name", "icon", "subsection"]
+    }
 }
 
 
