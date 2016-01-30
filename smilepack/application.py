@@ -14,8 +14,9 @@ import flask_babel
 from werkzeug.contrib import cache
 from werkzeug.contrib.fixers import ProxyFix
 
+from smilepack import models  # pylint: disable=unused-import
 from smilepack import database
-from smilepack.views import auth, admin, smiles, smilepacks, pages, utils as views_utils
+from smilepack.views import utils as views_utils
 from smilepack.bl import init_bl
 
 __all__ = ['create_app']
@@ -82,6 +83,7 @@ def create_app():
 
     if app.config['X_RUNTIME_HEADER']:
         old_app = app.wsgi_app
+
         def timer_middleware(environ, start_response):
             import time
 
@@ -104,13 +106,24 @@ def create_app():
         app.logger.addHandler(handler)
 
     # Routing
-    app.register_blueprint(auth.bp)
-    app.register_blueprint(pages.bp)
-    app.register_blueprint(smiles.bp, url_prefix='/smiles')
-    app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
-    app.register_blueprint(admin.bp, url_prefix='/admin/smiles')
+    register_blueprints(app)
 
     # Webpack assets, error handlers, nocache and more
     views_utils.configure_for_app(app, here)
 
     return app
+
+
+def register_blueprints(app):
+    from smilepack.views import auth, smiles, smilepacks, pages
+    from smilepack.views.admin import sections, subsections, categories, smiles as admin_smiles
+
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(pages.bp)
+    app.register_blueprint(smiles.bp, url_prefix='/smiles')
+    app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
+
+    app.register_blueprint(sections.bp, url_prefix='/admin/sections')
+    app.register_blueprint(subsections.bp, url_prefix='/admin/subsections')
+    app.register_blueprint(categories.bp, url_prefix='/admin/categories')
+    app.register_blueprint(admin_smiles.bp, url_prefix='/admin/smiles')

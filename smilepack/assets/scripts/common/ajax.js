@@ -223,13 +223,13 @@ var ajax = {
     },
 
     create_category: function(level, data, onload, onerror, onend) {
-        var url = '/admin/smiles/unknown_url';
+        var url = '/admin/unknown_url';
         if (level === 0) {
-            url = '/admin/smiles/sections';
+            url = '/admin/sections';
         } else if (level === 1) {
-            url = '/admin/smiles/subsections';
+            url = '/admin/subsections';
         } else if (level === 2) {
-            url = '/admin/smiles/categories';
+            url = '/admin/categories';
         }
 
         var reqData = {csrf_token: this.get_csrf_token()};
@@ -256,13 +256,13 @@ var ajax = {
     },
 
     edit_category: function(level, id, data, onload, onerror, onend) {
-        var url = '/admin/smiles/unknown_url/';
+        var url = '/admin/unknown_url/';
         if (level === 0) {
-            url = '/admin/smiles/sections/';
+            url = '/admin/sections/';
         } else if (level === 1) {
-            url = '/admin/smiles/subsections/';
+            url = '/admin/subsections/';
         } else if (level === 2) {
-            url = '/admin/smiles/categories/';
+            url = '/admin/categories/';
         }
 
         var reqData = {csrf_token: this.get_csrf_token()};
@@ -289,13 +289,13 @@ var ajax = {
     },
 
     delete_category: function(level, id, onload, onerror, onend) {
-        var url = '/admin/smiles/unknown_url/';
+        var url = '/admin/unknown_url/';
         if (level === 0) {
-            url = '/admin/smiles/sections/';
+            url = '/admin/sections/';
         } else if (level === 1) {
-            url = '/admin/smiles/subsections/';
+            url = '/admin/subsections/';
         } else if (level === 2) {
-            url = '/admin/smiles/categories/';
+            url = '/admin/categories/';
         }
 
         return this.request({
