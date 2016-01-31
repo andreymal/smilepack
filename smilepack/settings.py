@@ -60,15 +60,17 @@ class Config(object):
         }
     ]
 
+    IMGUR_ID = None
+
+    ALLOW_CUSTOM_URLS = True
+
     UPLOAD_METHOD = None
     COMPRESSION = True
     FORCE_COMPRESSION = False
     SMILES_DIRECTORY = None
-    IMGUR_ID = None
-
-    ALLOW_CUSTOM_URLS = True
     MIN_SMILE_SIZE = (4, 4)
     MAX_SMILE_SIZE = (1024, 1024)
+    SMILE_PROCESSING_MODE = 'optional'  # or 'none' or 'required'
 
     ISSUE_REPORT_LINK = None
 

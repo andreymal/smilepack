@@ -125,15 +125,21 @@ def create(session_id, first_visit):
     if current_app.config['COMPRESSION']:
         compress = current_app.config['FORCE_COMPRESSION'] or compress
 
-    # FIXME: Pony ORM with sqlite3 crashes here
-    with db_session:
-        created, smile = models.Smile.bl.find_or_create(
-            dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags')),  # 'approved' key is not allowed
-            user_addr=request.remote_addr,
-            session_id=session_id,
-            compress=compress
-        )
-        smile_id = smile.id
+    # FIXME: sometimes Pony ORM with sqlite3 crashes here in __exit__
+    # https://github.com/ponyorm/pony/issues/157
+    import pony.orm
+    try:
+        with db_session:
+            created, smile = models.Smile.bl.find_or_create(
+                dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags')),  # 'approved' key is not allowed
+                user_addr=request.remote_addr,
+                session_id=session_id,
+                compress=compress
+            )
+            smile_id = smile.id
+    except pony.orm.core.CommitException as exc:
+        # but really commit works, we can just ignore it
+        current_app.logger.error('pony.orm.core.CommitException ignored: %s', exc)
 
     with db_session:
         admin_info = r.get('extended') and current_user.is_authenticated and current_user.is_admin

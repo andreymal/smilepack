@@ -5,7 +5,6 @@ import os
 from base64 import b64decode, b64encode
 
 import scrypt
-from flask import current_app
 from werkzeug.security import safe_str_cmp
 
 

@@ -14,6 +14,127 @@ class BadImageError(Exception):
     pass
 
 
+class Uploader(object):
+    def __init__(self, method, directory, maxbytes, minres, maxres, processing_mode):
+        '''Параметры загрузки:
+        * method — None, 'imgur' или 'directory' — куда сохранять картинку (None означает отсутствие сохранения и требует url)
+        * directory — каталог, в который будет сохранена картинка, для метода directory
+        * maxbytes — максимальный размер картинки в байтах
+        * minres — (длина, ширина) — минимальное разрешение картинки
+        * maxres — (длина, ширина) — максимальное разрешение картинки
+        * processing_mode — режим обработки картинки:
+          - 'none' — не делать ничего, разрешние не проверяется и сжатие не делается
+          - 'optional' — при отсутствии Pillow ничего не будет делаться
+          - 'required' — при отсутствии Pillow будет выброшено исключение
+        '''
+        if method and method not in ('imgur', 'directory'):
+            raise RuntimeError('Unknown upload method setted in settings')
+        self.method = method
+        self.directory = directory
+        self.maxbytes = maxbytes
+        self.minres = minres
+        self.maxres = maxres
+        if processing_mode not in ('none', 'required', 'optional'):
+            raise ValueError('Invalid processing_mode')
+        self.processing_mode = processing_mode
+
+    def upload(self, data=None, url=None, compress=False, hashsum=None, image_format=None):
+        '''Проверяет, обрабатывает и сохраняет картинку согласно параметрам.
+        Если передать url, то при отсутствии изменений у картинки она пересохранена не будет.
+        Если передать image_format (JPEG/PNG/GIF), то не будет проверяться валидность картинки.
+        '''
+        if data is None:
+            data = get_data(None, url, self.maxbytes)
+
+        if len(data) > self.maxbytes:
+            raise BadImageError('Too big image size')
+
+        if not hashsum:
+            hashsum = calc_hashsum(data)
+
+        image = None
+
+        # Если нас просят обрабатывать картинку, проверяем её валидность
+        if self.processing_mode != 'none':
+            if not image_format:
+                image, image_format = self.open_and_check(data, image_format)
+
+        # Обработка картинки
+        compression_method = None
+        try:
+            # Если нас просили её сжимать, сжимаем
+            if  self.method and self.processing_mode != 'none':
+                if compress:
+                    data, compression_method = compress_image(data, image=image, optional=self.processing_mode == 'optional')
+                    if compression_method:
+                        hashsum = calc_hashsum(data)
+        finally:
+            if image:
+                image.close()
+                image = None
+
+        # Если нам дали ссылку и картинку не сжали или мы не можем сохранять у себя, то больше ничего и не надо
+        if url and not compression_method:
+            if '?' in url or url.endswith('/'):
+                return {'filename': 'image', 'url': url, 'hashsum': hashsum, 'compression_method': None}
+            else:
+                return {'filename': url[url.rfind('/') + 1:], 'url': url, 'hashsum': hashsum, 'compression_method': None}
+
+        # Если картинку сохранять оказалось надо, а мы не можем, то облом
+        if not self.method:
+            raise RuntimeError('Uploading is not available')
+
+        # Сохраняем
+        if self.method == 'imgur':
+            result = upload_to_imgur(data, hashsum)
+        elif self.method == 'directory':
+            result = upload_to_directory(self.directory, data, hashsum, image_format=image_format)
+        else:
+            raise NotImplementedError
+
+        result['compression_method'] = compression_method
+        return result
+
+    def open_and_check(self, data, image_format=None):
+        try:
+            from PIL import Image
+        except ImportError:
+            if self.processing_mode == 'required':
+                raise
+
+            if data.startswith(b'\xff\xd8\xff\xe0'):
+                image_format = 'JPEG'
+            elif data.startswith(b'GIF8'):
+                image_format = 'GIF'
+            elif data.startswith(b'\x89PNG\r\n\x1a\n'):
+                image_format = 'PNG'
+            elif not image_format:
+                raise BadImageError('image_format missing')
+
+            return None, image_format
+
+        try:
+            image = Image.open(BytesIO(data))
+        except:
+            raise BadImageError('Cannot decode image')
+
+        try:
+            if image.format not in ('JPEG', 'GIF', 'PNG'):
+                raise BadImageError('Invalid image format')
+
+            w, h = image.size
+            if w < self.minres[0] or h < self.minres[1]:
+                raise BadImageError('Too small size')
+            if w > self.maxres[0] or h > self.maxres[1]:
+                raise BadImageError('Too big size')
+
+            return image, image.format
+        except:
+            image.close()
+            image = None
+            raise
+
+
 def download(url, maxlen=None, timeout=10, chunksize=16384):
     req = Request(url)
     req.add_header('User-Agent', 'smilepack/0.1.1')
@@ -41,58 +162,34 @@ def calc_hashsum(data):
     return sha256(data).hexdigest()
 
 
-def get_data_and_hashsum(stream=None, url=None):
+def get_data(stream=None, url=None, maxbytes=None):
     if not stream and not url or stream and url:
         raise ValueError('Please set stream or url')
 
     if stream:
         data = stream.read()
     else:
-        data = download(url, current_app.config['MAX_CONTENT_LENGTH'])
+        data = download(url, maxbytes)
 
-    hashsum = calc_hashsum(data)
-
-    return data, hashsum
+    return data
 
 
-def check_image_format(data=None, image=None):
-    from PIL import Image
-
-    if data:
-        try:
-            image = Image.open(BytesIO(data))
-        except:
-            raise BadImageError('Cannot decode image')
-
-    try:
-        if image.format not in ('JPEG', 'GIF', 'PNG'):
-            raise BadImageError('Invalid image format')
-
-        w, h = image.size
-        min_size = current_app.config['MIN_SMILE_SIZE']
-        max_size = current_app.config['MAX_SMILE_SIZE']
-        if w < min_size[0] or h < min_size[1]:
-            raise BadImageError('Too small size')
-        if w > max_size[0] or h > max_size[1]:
-            raise BadImageError('Too big size')
-
-        return image.format
-    finally:
-        if data:
-            image.close()
-
-
-def compress_image(data, hashsum, image=None, compress_size=None):
-    from PIL import Image
-
+def compress_image(data, image=None, optional=False, compress_size=None):
     min_size = len(data)
 
     # Если сжимать совсем нет смысла
     if min_size <= 4096:
-        return data, hashsum, None
+        return data, None
 
-    image_local = not image
-    if image_local:
+    image_local = False
+    if not image:
+        image_local = True
+        try:
+            from PIL import Image
+        except ImportError:
+            if not optional:
+                raise
+            return data, None
         try:
             image = Image.open(BytesIO(data))
         except:
@@ -101,7 +198,7 @@ def compress_image(data, hashsum, image=None, compress_size=None):
     try:
         # Если сжимать не умеем
         if image.format != 'PNG':
-            return data, hashsum, None
+            return data, None
 
         # TODO: придумать, как защититься от вандализма загрузкой смайлов
         # по урлу с неадекватным изменением размера, и уже тогда включить
@@ -124,10 +221,9 @@ def compress_image(data, hashsum, image=None, compress_size=None):
 
     # Сохраняем сжатие, только если оно существенно
     if test_data and min_size - len(test_data) > 1024:
-        new_hashsum = calc_hashsum(test_data)
-        return test_data, new_hashsum, method
+        return test_data, method
     else:
-        return data, hashsum, None
+        return data, None
 
 
 def compress_png(image):
@@ -170,61 +266,6 @@ def compress_png(image):
     return min_stream.getvalue(), method
 
 
-def upload(data=None, url=None, hashsum=None, disable_url_upload=False, image_format=None, compress=False, compress_size=None):
-    """Загружает смайлик согласно настройкам и переданным аргументам.
-    Возвращает словарь, содержащий filename (для SMILE_URL), url (для custom_url при необходимости), hashsum
-    (может не совпадать с входным аргументом при включенном сжатии) и compression_method.
-
-    * Если не передать содержимое файла (data), оно будет автоматически загружено по url. А если передать, то url необязателен.
-    * disable_url_upload=True отключает перезалив смайлика при переданном url и отключенном сжатии (compress).
-    * image_format — "JPEG", "GIF" или "PNG" — позволяет пропустить проверку формата изображения (в т.ч. проверку
-      размера). Если не задано, проверка будет проведена и формат установлен, при проблемах выбрасывается
-      BadImageError.
-    * compress=True — сжимает изображение по возможности (без изменения разрешения и без потери качества, если не
-      указан compress_size).
-    * compress_size — кортеж из двух чисел; если задан вместе с compress, то уменьшает изображение до указанного
-      разрешения, сохраняя расширение (если в итоге оно станет весить меньше, что, например, не всегда верно для
-      PNG).
-    """
-    from PIL import Image
-
-    if not data:
-        data, hashsum = get_data_and_hashsum(None, url)
-    elif not hashsum:
-        hashsum = calc_hashsum(data)
-
-    try:
-        image = Image.open(BytesIO(data))
-    except:
-        raise BadImageError('Cannot decode image')
-
-    with image:
-        if not image_format:
-            image_format = check_image_format(image=image)
-
-        if url and not compress and (disable_url_upload or not current_app.config['UPLOAD_METHOD'] or current_app.config['ALLOW_CUSTOM_URLS']):
-            if '?' in url or url.endswith('/'):
-                return {'filename': 'image', 'url': url, 'hashsum': hashsum, 'compression_method': None}
-            else:
-                return {'filename': url[url.rfind('/') + 1:], 'url': url, 'hashsum': hashsum, 'compression_method': None}
-
-        if compress and current_app.config['UPLOAD_METHOD']:
-            data, hashsum, compression_method = compress_image(data, hashsum, image=image, compress_size=compress_size)
-        else:
-            compression_method = None
-
-        if current_app.config['UPLOAD_METHOD'] == 'imgur':
-            result = upload_to_imgur(data, hashsum)
-            result['compression_method'] = compression_method
-            return result
-        elif current_app.config['UPLOAD_METHOD'] == 'directory':
-            result = upload_to_directory(data, hashsum, image_format)
-            result['compression_method'] = compression_method
-            return result
-        else:
-            raise RuntimeError('Unknown upload method setted in settings')
-
-
 def upload_to_imgur(data, hashsum):
     image_data = current_app.imgur.send_image(BytesIO(data))
     if not image_data.get('success'):
@@ -232,13 +273,11 @@ def upload_to_imgur(data, hashsum):
         raise IOError('Cannot upload image')
 
     link = image_data['data']['link']
-    new_hashsum = calc_hashsum(download(link))
+    new_hashsum = calc_hashsum(download(link))  # Imgur имеет свойство пережимать большие картинки
     return {'filename': link[link.rfind('/') + 1:], 'url': link, 'hashsum': new_hashsum}
 
 
-def upload_to_directory(data, hashsum, image_format=None):
-    upload_dir = current_app.config['SMILES_DIRECTORY']
-
+def upload_to_directory(upload_dir, data, hashsum, image_format=None):
     subdir = os.path.join(hashsum[:2], hashsum[2:4])
     filename = hashsum[4:10]
     if image_format == 'PNG':
@@ -247,14 +286,17 @@ def upload_to_directory(data, hashsum, image_format=None):
         filename += '.jpg'
     elif image_format == 'GIF':
         filename += '.gif'
+    else:
+        current_app.logger.error('Saved image %s.wtf with unknown format %s', filename, image_format)
+        filename += '.wtf'
 
-    full_filename = os.path.join(subdir, filename)
-    upload_dir = os.path.join(upload_dir, subdir)
+    full_filename = os.path.join(subdir, filename)  # ab/cd/ef0123.ext
+    upload_dir = os.path.join(upload_dir, subdir)  # /path/to/smiles/
 
     if not os.path.isdir(upload_dir):
         os.makedirs(upload_dir)
 
-    full_path = os.path.join(upload_dir, filename)
+    full_path = os.path.join(upload_dir, filename)  # /path/to/smiles/ab/cd/ef0123.ext
     with open(full_path, 'wb') as fp:
         fp.write(data)
     return {'filename': full_filename.replace(os.path.sep, '/'), 'url': None, 'hashsum': hashsum}

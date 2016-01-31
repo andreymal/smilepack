@@ -7,7 +7,6 @@ scrypt
 Flask-Login
 Flask-Limiter
 pymemcache
-Pillow
 Flask-Script
 Flask-Webpack
 Flask-Babel

@@ -391,20 +391,22 @@ class SmileBL(BaseBL):
             smile_by_url = self.search_by_url(check_and_normalize(data['url']))
             if smile_by_url:
                 return False, smile_by_url
+        del smile_by_url
 
         # Проверяем доступность загрузки файлов
         if smile_file and not current_app.config['UPLOAD_METHOD']:
             raise BadRequestError('Uploading is not available')
 
-        from ..utils import uploader
+        from smilepack.utils import uploader
 
         # Качаем смайлик и считаем хэш
         try:
-            image_data, hashsum = uploader.get_data_and_hashsum(smile_file, data.get('url'))
+            image_data = uploader.get_data(smile_file, data.get('url'), maxbytes=current_app.config['MAX_CONTENT_LENGTH'])
         except ValueError as exc:
             raise BadRequestError(str(exc))
         except IOError as exc:
             raise BadRequestError('Cannot download smile')
+        hashsum = uploader.calc_hashsum(image_data)
 
         # Ищем смайлик по хэшу
         smile_by_hashsum = self.search_by_hashsum(hashsum)
@@ -412,14 +414,20 @@ class SmileBL(BaseBL):
             return False, smile_by_hashsum
 
         # Раз ничего не нашлось, сохраняем смайлик себе
+        smile_uploader = uploader.Uploader(
+            method=current_app.config['UPLOAD_METHOD'],
+            directory=current_app.config['SMILES_DIRECTORY'],
+            maxbytes=current_app.config['MAX_CONTENT_LENGTH'],
+            minres=current_app.config['MIN_SMILE_SIZE'],
+            maxres=current_app.config['MAX_SMILE_SIZE'],
+            processing_mode=current_app.config['SMILE_PROCESSING_MODE'],
+        )
         try:
-            upload_info = uploader.upload(
+            upload_info = smile_uploader.upload(
                 image_data,
-                data.get('url') if not smile_file else None,
-                hashsum,
-                disable_url_upload,
-                compress=compress,
-                compress_size=(data['w'], data['h']),
+                data['url'] if data.get('url') and current_app.config['ALLOW_CUSTOM_URLS'] else None,
+                compress=current_app.config['FORCE_COMPRESSION'] or (current_app.config['COMPRESSION'] and compress),
+                hashsum=hashsum,
             )
         except uploader.BadImageError as exc:
             raise BadRequestError(str(exc))
@@ -441,7 +449,7 @@ class SmileBL(BaseBL):
             approved_at=datetime.utcnow() if data.get('approved') else None,
         )
         smile.flush()
-        if 'tags' in data:
+        if data.get('tags'):
             try:
                 smile.bl.set_tags(data['tags'])
             except ValueError as exc:
@@ -450,7 +458,7 @@ class SmileBL(BaseBL):
         # Сохраняем инфу о урле и хэшах, дабы не плодить дубликаты смайликов
 
         # Если загружен новый смайлик по урлу
-        if data.get('url') and not smile_by_url:
+        if data.get('url'):
             SmileUrl(
                 url=data['url'],
                 smile=smile,

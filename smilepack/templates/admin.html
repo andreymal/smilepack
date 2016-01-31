@@ -145,7 +145,7 @@
             <input name="h" type="number" style="width: 6em;" value="" placeholder="{{ _('Height') }}" class="text" />
             <button class="action-reset" title="{{ _('Reset smile size') }}">X</button>
             <label><input type="checkbox" name="keep-aspect" checked />{{ _("Keep aspect ratio") }}</label><br/>
-            {%- if config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
+            {%- if config['UPLOAD_METHOD'] and config['COMPRESSION'] and not config['FORCE_COMPRESSION'] %}
             <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
             <br/>
             {%- endif %}
