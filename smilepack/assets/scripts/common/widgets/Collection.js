@@ -382,10 +382,16 @@ Collection.prototype.editCategory = function(level, categoryId, item) {
     }
     var category = this._categories[level][categoryId];
 
-    category.name = item.name;
-    category.description = item.description;
-    category.iconId = item.icon ? item.icon.id : -1;
-    category.iconUrl = item.icon ? item.icon.url : null;
+    if (item.hasOwnProperty('name')) {
+        category.name = item.name;
+    }
+    if (item.hasOwnProperty('description')) {
+        category.description = item.description;
+    }
+    if (item.hasOwnProperty('icon')) {
+        category.iconId = item.icon ? item.icon.id : -1;
+        category.iconUrl = item.icon ? item.icon.url : null;
+    }
 
     var newDom = this._buildCategoryDom(level, categoryId, false);
     if (this._selectedIds[level] == categoryId) {

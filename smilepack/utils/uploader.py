@@ -166,10 +166,14 @@ def get_data(stream=None, url=None, maxbytes=None):
     if not stream and not url or stream and url:
         raise ValueError('Please set stream or url')
 
-    if stream:
+    if stream and maxbytes is not None:
+        data = stream.read(maxbytes + 1)
+    elif stream:
         data = stream.read()
     else:
         data = download(url, maxbytes)
+    if maxbytes is not None and len(data) > maxbytes:
+        raise IOError('Too long response')
 
     return data
 

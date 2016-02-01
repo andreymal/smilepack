@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+ICON = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": "string",
+            "minLength": 9,
+            "maxLength": 512
+        },
+        "approved": {
+            "type": "boolean"
+        }
+    }
+}
+
+
 SECTION = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",

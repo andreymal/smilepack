@@ -29,7 +29,12 @@ class Icon(db.Entity):
     filename = orm.Required(str, 128)
     custom_url = orm.Optional(str, 512)
     created_at = orm.Required(datetime, default=datetime.utcnow)
+    approved_at = orm.Optional(datetime, nullable=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+    hashsum = orm.Optional(str, 128, index=True)
+
+    user_addr = orm.Optional(str, 255, nullable=True, default=None)  # TODO: другой тип?
+    user_cookie = orm.Optional(str, 64, nullable=True, default=None)
 
     sections = orm.Set('Section')
     subsections = orm.Set('SubSection')
@@ -37,12 +42,30 @@ class Icon(db.Entity):
     pack_categories = orm.Set('SmilePackCategory')
     tags = orm.Set('Tag')
 
+    hashes = orm.Set('IconHash')
+    urls = orm.Set('IconUrl')
+
+    bl = Resource('bl.icon')
+
     @property
     def url(self):
         return self.custom_url or current_app.config['ICON_URL'].format(id=self.id, filename=self.filename)
 
     def before_update(self):
         self.updated_at = datetime.utcnow()
+
+
+class IconUrl(db.Entity):
+    """Ссылка, привязанная к иконке. Чтобы не пересоздавать одну и ту же иконку несколько раз."""
+    url_hash = orm.Required(str, 128, index=True, unique=True)
+    url = orm.Optional(str, 512)
+    icon = orm.Required(Icon)
+
+
+class IconHash(db.Entity):
+    """Хэш, привязанный к иконке. Может быть несколько хэшей у иконки (сжатый и несжатый варианты, например)."""
+    hashsum = orm.Required(str, 128, index=True, unique=True)
+    icon = orm.Required(Icon)
 
 
 class Section(db.Entity):
@@ -116,12 +139,12 @@ class Smile(db.Entity):
     approved_at = orm.Optional(datetime, nullable=True, index=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
     hashsum = orm.Optional(str, 128, index=True)
-    hashes = orm.Set('SmileHash')
 
     user_addr = orm.Optional(str, 255, nullable=True, default=None)  # TODO: другой тип?
     user_cookie = orm.Optional(str, 64, nullable=True, default=None)
 
     smp_smiles = orm.Set('SmilePackSmile')
+    hashes = orm.Set('SmileHash')
     urls = orm.Set('SmileUrl')
 
     bl = Resource('bl.smile')
@@ -154,7 +177,7 @@ class SmileUrl(db.Entity):
 
 
 class SmileHash(db.Entity):
-    """Хэш, привязанная к смайлику. Может быть несколько хэшей у смайлика (сжатый и несжатый варианты, например)."""
+    """Хэш, привязанный к смайлику. Может быть несколько хэшей у смайлика (сжатый и несжатый варианты, например)."""
     hashsum = orm.Required(str, 128, index=True, unique=True)
     smile = orm.Required(Smile)
 

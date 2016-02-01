@@ -115,15 +115,17 @@ def create_app():
 
 
 def register_blueprints(app):
-    from smilepack.views import auth, smiles, smilepacks, pages
-    from smilepack.views.admin import sections, subsections, categories, smiles as admin_smiles
+    from smilepack.views import auth, pages, icons, smiles, smilepacks
+    from smilepack.views.admin import sections, subsections, categories, icons as admin_icons, smiles as admin_smiles
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(pages.bp)
+    app.register_blueprint(icons.bp, url_prefix='/icons')
     app.register_blueprint(smiles.bp, url_prefix='/smiles')
     app.register_blueprint(smilepacks.bp, url_prefix='/smilepack')
 
     app.register_blueprint(sections.bp, url_prefix='/admin/sections')
     app.register_blueprint(subsections.bp, url_prefix='/admin/subsections')
     app.register_blueprint(categories.bp, url_prefix='/admin/categories')
+    app.register_blueprint(admin_icons.bp, url_prefix='/admin/icons')
     app.register_blueprint(admin_smiles.bp, url_prefix='/admin/smiles')

@@ -49,7 +49,7 @@ class Config(object):
     ALLOW_LIFETIME_SELECT = True
 
     SMILE_URL = '/smiles/images/{filename}'
-    ICON_URL = '/smiles/images/{filename}'
+    ICON_URL = '/icons/images/{filename}'
 
     URL_PARSER_REGEX = [
         {
@@ -71,6 +71,14 @@ class Config(object):
     MIN_SMILE_SIZE = (4, 4)
     MAX_SMILE_SIZE = (1024, 1024)
     SMILE_PROCESSING_MODE = 'optional'  # or 'none' or 'required'
+
+    ICON_UPLOAD_METHOD = None
+    ICON_COMPRESSION = True
+    ICON_FORCE_COMPRESSION = False
+    ICONS_DIRECTORY = None
+    ICON_SIZE = (50, 50)
+    MAX_ICON_BYTES = 32 * 1024
+    ICON_PROCESSING_MODE = 'optional'
 
     ISSUE_REPORT_LINK = None
 

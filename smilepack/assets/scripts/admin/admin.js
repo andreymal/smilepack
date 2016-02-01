@@ -6,6 +6,7 @@ var dialogsManager = require('../common/dialogsManager.js'),
     AdminCategoriesEditor = require('./AdminCategoriesEditor.js'),
     AdminSectionsEditor = require('./AdminSectionsEditor.js'),
     AdminSmileEditor = require('./AdminSmileEditor.js'),
+    AdminIconsEditor = require('./AdminIconsEditor.js'),
     Collection = require('../common/widgets/Collection.js'),
     ActionPanel = require('../common/widgets/ActionPanel.js');
 
@@ -19,6 +20,7 @@ var admin = {
     categoriesEditor: null,
     sectionsEditor: null,
     smileEditor: null,
+    iconsEditor: null,
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
@@ -124,6 +126,9 @@ var admin = {
     },
 
     bindButtonEvents: function() {
+        document.getElementById('action-edit-icons').addEventListener('click', function() {
+            this.iconsEditor.openDialog();
+        }.bind(this));
         document.getElementById('action-toggle-dark').addEventListener('click', this.toggleDark.bind(this));
         document.querySelector('#collection .additional .action-upload').addEventListener('click', this.openUploader.bind(this));
     },
@@ -131,6 +136,7 @@ var admin = {
     initDialogs: function() {
         dialogsManager.init(document.getElementById('dialog-background'), {});
         this.smileEditor = new AdminSmileEditor(this.collection, this.suggestions);
+        this.iconsEditor = new AdminIconsEditor();
     },
 
     _onbeforeunload: function() {

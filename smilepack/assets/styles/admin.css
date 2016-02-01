@@ -104,3 +104,18 @@
 #dialog-new-category.mode-edit .mode-add {
     display: none;
 }
+
+.admin-icon-item {
+    line-height: 2.5em;
+    display: inline-block;
+    padding: 0 0.25em;
+}
+
+.admin-icon-item:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.admin-icon-img {
+    height: 2.5em;
+    vertical-align: middle;
+}

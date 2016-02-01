@@ -58,7 +58,8 @@ def generator(session_id, first_visit, smp_id):
         pack=pack,
         pack_deletion_date=format_datetime(pack.delete_at) if pack and pack.delete_at else None,
         lifetime=(pack.delete_at - pack.created_at).total_seconds() if pack and pack.delete_at else None,
-        icons=Icon.select().order_by(Icon.id)[:],
+        icons=Icon.bl.select_published()[:],
+        icon_size=current_app.config['ICON_SIZE'],
         collection_data={"sections": Section.bl.get_all_with_categories()},
     )
 
@@ -67,7 +68,12 @@ def generator(session_id, first_visit, smp_id):
 @db_session
 @for_admin
 def admin():
-    return render_template('admin.html', icons=Icon.select().order_by(Icon.id)[:])
+    return render_template(
+        'admin.html',
+        icons=Icon.bl.select_published()[:],
+        admin_icons=Icon.select()[:],
+        icon_size=current_app.config['ICON_SIZE'],
+    )
 
 
 @bp.route('/setlocale', methods=['GET', 'POST'])

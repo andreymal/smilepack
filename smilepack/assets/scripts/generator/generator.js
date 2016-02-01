@@ -112,7 +112,7 @@ var generator = {
         if (action == 'delete' && categoryId !== undefined && categoryId !== null) {
             this.deleteSmilepackCategory(categoryId, true);
         } else if (action == 'add') {
-            dialogsManager.open('category', {}, this.modifySmilepackCategory.bind(this));
+            dialogsManager.open('category', {edit: false}, this.modifySmilepackCategory.bind(this));
         } else if (action == 'edit') {
             dialogsManager.open('category', {
                 edit: true,
@@ -393,21 +393,57 @@ var generator = {
         if (options.name.length > 128) {
             return {error: 'Длинновато имя у категории!'};
         }
-        if (options.iconId === undefined || options.iconId === null || !options.iconUrl) {
+        if (options.iconType === 'url' && !options.iconUrl) {
+            return {error: 'Укажите ссылку для иконки'};
+        } else if (options.iconType === 'file' && !options.iconFile) {
+            return {error: 'Выберите файл для иконки'};
+        } else if (options.iconType === 'id' && (options.iconId === undefined || options.iconId === null || !options.iconUrl)) {
             return {error: 'Не выбрана иконка'};
         }
 
+        if (options.iconType === 'id' || options.iconType === 'nothing') {
+            setTimeout(function() {
+                this._modifySmilepackCategoryFinish(options, options.iconId, options.iconUrl, options.onend);
+            }.bind(this), 0); // call onend after return
+        } else if (options.iconType === 'url') {
+            ajax.create_icon(
+                {url: options.iconUrl, compress: true},
+                function(data) {
+                    this._modifySmilepackCategoryFinish(options, data.icon.id, data.icon.url, options.onend);
+                }.bind(this),
+                options.onend
+            );
+        } else if (options.iconType === 'file') {
+            ajax.upload_icon(
+                {file: options.iconFile, compress: '1'},
+                function(data) {
+                    this._modifySmilepackCategoryFinish(options, data.icon.id, data.icon.url, options.onend);
+                }.bind(this),
+                options.onend
+            );
+        } else {
+            return {error: '?'};
+        }
+
+        return {success: true};
+    },
+
+    _modifySmilepackCategoryFinish: function(options, iconId, iconUrl, onend) {
         var id;
         if (options.categoryId === undefined || options.categoryId === null) {
             id = this.smilepack.addCategory(0, 0, {
                 name: options.name,
-                icon: {id: options.iconId, url: options.iconUrl}
+                icon: {id: iconId, url: options.iconUrl}
             });
             this.smilepack.createGroupForCategory(0, id);
-        } else {
+        } else if (iconId !== undefined && iconId !== null) {
             id = this.smilepack.editCategory(0, options.categoryId, {
                 name: options.name,
-                icon: {id: options.iconId, url: options.iconUrl}
+                icon: {id: iconId, url: iconUrl}
+            });
+        } else {
+            id = this.smilepack.editCategory(0, options.categoryId, {
+                name: options.name
             });
         }
 
@@ -418,7 +454,9 @@ var generator = {
             this.smilepack.selectCategory(0, id);
         }
         this.modified = true;
-        return {success: true, categoryId: id};
+        if (onend) {
+            onend({success: true, categoryId: id});
+        }
     },
 
     deleteSmilepackCategory: function(categoryId, interactive) {

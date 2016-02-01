@@ -2,9 +2,10 @@
 
 
 def init_bl():
-    from smilepack.bl import user, smiles, smilepacks, utils, registry
+    from smilepack.bl import user, icon, smiles, smilepacks, utils, registry
 
     registry.register('bl.user', user.UserBL)
+    registry.register('bl.icon', icon.IconBL)
     registry.register('bl.section', smiles.SectionBL)
     registry.register('bl.subsection', smiles.SubSectionBL)
     registry.register('bl.category', smiles.CategoryBL)

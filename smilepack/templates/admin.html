@@ -15,7 +15,7 @@
         <div class="actions-menu">
             {{ _("Other actions") }} ▼
             <ul class="actions-list">
-                <li id="action-edit-icons">TODO: {{ _("Icon management") }}</li>
+                <li id="action-edit-icons">{{ _("Icon management") }}</li>
                 {% if current_user.is_superadmin %}<li id="action-edit-users">TODO: {{ _("User management") }}</li>
                 {% endif -%}
                 <li><a href="/" target="_blank">TODO: {{ _("Profile settings") }}</a></li>
@@ -149,7 +149,7 @@
             <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
             <br/>
             {%- endif %}
-            <div class="smile-preview-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
+            <div class="dialog-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
 
             <div class="smile-preview-area">
                 <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
@@ -221,6 +221,34 @@
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>
+</div>
+
+<div id="dialog-icons" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a> {{ _("Icon management") }}</div>
+
+    <div class="admin-icons-list">
+    {%- for icon in admin_icons %}
+        <div class="admin-icon-item">
+            <label>
+                <input type="checkbox" data-id="{{ icon.id }}" title="{{ _('Tick for publication') }}" class="admin-icon-publish"{{ ' checked' if icon.approved_at else '' }} />
+                <img class="admin-icon-img" src="{{ icon.url }}" alt="{{ icon.id }}" title="{{ icon.id }}" />
+            </label>
+        </div>
+    {%- endfor %}
+    </div>
+    <div class="admin-icon-upload">
+        <form action="#">
+            <label for="file">{{ _('Upload new icon') }}:</label><br/>
+
+            <label><input type="radio" name="icon_type" value="file" checked />{{ _('From computer') }}</label><br/>
+            <input type="file" name="file" class="input-width-full" /><br/>
+
+            <label><input type="radio" name="icon_type" value="url" />{{ _('From link') }}</label><br/>
+            <input type="text" name="url" class="text input-width-full" placeholder="{{ _('Link to icon') }}" /><br/>
+
+            <span class="dialog-notice">{{ _('Icon resolution must be {w}x{h} pixels').format(w=icon_size[0], h=icon_size[1]) }}</span><br/>
+            <input type="submit" class="button button-primary" value="{{ _('Upload') }}" />
+    </div>
 </div>
 
 {{ javascript_tag("admin_js") | safe }}

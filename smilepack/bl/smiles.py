@@ -366,7 +366,7 @@ class CategoryBL(BaseBL):
 
 
 class SmileBL(BaseBL):
-    def find_or_create(self, data, user_addr=None, session_id=None, disable_url_upload=False, compress=False):
+    def find_or_create(self, data, user_addr=None, session_id=None, compress=False):
         smile_file = data.pop('file', None)
 
         jsonschema.validate(data, schemas.SMILE)

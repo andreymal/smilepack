@@ -166,6 +166,49 @@ var ajax = {
         });
     },
 
+    create_icon: function(data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/icons/',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify(data),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    upload_icon: function(data, onload, onerror, onend) {
+        var fdata = new FormData();
+        for (var x in data) {
+            fdata.append(x, data[x]);
+        }
+
+        return this.request({
+            method: 'POST',
+            url: '/icons/',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: fdata
+        });
+    },
+
+    edit_icon: function(id, data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/icons/' + parseInt(id),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), icon: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
     create_smile: function(data, onload, onerror, onend) {
         return this.request({
             method: 'POST',

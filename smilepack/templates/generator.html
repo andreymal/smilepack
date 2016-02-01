@@ -121,6 +121,9 @@
         <input name="name" class="text input-width-full" /><br/>
 
         <label for="icon">{{ _("Icon") }}:</label><br/>
+        <span class="mode-edit">
+            <label><input type="radio" name="icon" value="nothing">{{ _("Don't change") }}</label><br/>
+        </span>
         <div class="icon-container">
         {%- for icon in icons %}
             <label>
@@ -129,11 +132,18 @@
             </label>
         {%- endfor %}
         </div>
+        <label><input type="radio" name="icon" value="file" />{{ _('Upload icon from computer') }}:</label><br/>
+        <input type="file" name="icon_file" class="input-width-full" accept="image/jpeg,image/png,image/gif" /><br/>
+
+        <label><input type="radio" name="icon" value="url" />{{ _('Upload icon from link') }}:</label><br/>
+        <input type="text" name="icon_url" class="text input-width-full" placeholder="{{ _('Link to icon') }}" /><br/>
+
+        <span class="dialog-notice">{{ _('Icon resolution must be {w}x{h} pixels').format(w=icon_size[0], h=icon_size[1]) }}</span><br/>
 
         <input type="hidden" name="category" value="" />
 
-        <span class="mode-add"><input type="submit" class="button button-primary" value="{{ _("Add") }}" /></span>
-        <span class="mode-edit"><input type="submit" class="button button-primary" value="{{ _("Save") }}" /></span>
+        <span class="mode-add"><input type="submit" class="button button-primary" value="{{ _('Add') }}" /></span>
+        <span class="mode-edit"><input type="submit" class="button button-primary" value="{{ _('Save') }}" /></span>
     </form>
 </div>
 
@@ -168,7 +178,7 @@
             <label><input type="checkbox" name="compress" checked />{{ _("Compress if possible (lossless)") }}</label>
             <br/>
             {%- endif %}
-            <div class="smile-preview-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
+            <div class="dialog-notice">{{ _("Image will not be resized.") }}  {{ _("If possible, it's best to compress it yourself in a graphics editor.") }}</div>
 
             <div class="smile-preview-area">
                 <img class="smile-preview" src="data:image/gif;base64,R0lGODdhAQABAIABAP///+dubiwAAAAAAQABAAACAkQBADs=" width="0" height="0" />
