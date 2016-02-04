@@ -12,7 +12,7 @@ from smilepack.bl.registry import Resource
 
 
 class User(db.Entity, UserMixin):
-    username = orm.Required(str, 32)
+    username = orm.Required(str, 32, unique=True)
     password = orm.Optional(str, 255, default='')
     is_admin = orm.Required(bool, default=lambda: False)
     is_superadmin = orm.Required(bool, default=lambda: False)
@@ -22,6 +22,9 @@ class User(db.Entity, UserMixin):
     last_login_at = orm.Optional(datetime)
 
     bl = Resource('bl.user')
+
+    def before_update(self):
+        self.updated_at = datetime.utcnow()
 
 
 class Icon(db.Entity):

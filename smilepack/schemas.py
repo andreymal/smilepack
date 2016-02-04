@@ -1,6 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+USER = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "username": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 32
+        },
+        "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32
+        },
+        "is_admin": {
+            "type": "boolean"
+        },
+        "is_superadmin": {
+            "type": "boolean"
+        },
+        "is_active": {
+            "type": "boolean"
+        }
+    }
+}
+
+
 ICON = {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",

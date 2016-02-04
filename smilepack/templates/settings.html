@@ -1,0 +1,22 @@
+{% extends 'simple_page.html' %}
+{% block modal_body %}
+<div class="modal-title">{{ _("Profile settings") }}: {{ current_user.username }}</div>
+{% if errors %}
+    {% for error in errors %}
+        <em>{{ error }}</em><br/>
+    {% endfor %}
+{% endif %}
+{% if ok %}
+    <em>{{ _('Saved!') }}</em><br/>
+{% endif %}
+<form method="POST" action="{{ url_for('settings.settings_page') }}">
+      {{ csrf_token_field() }}
+      <label for="password">{{ _("New password") }}:</label><br/>
+      <input type="password" name="password1" style="width: 100%" /><br/>
+
+      <label for="password">{{ _("Confirm new password") }}:</label><br/>
+      <input type="password" name="password2" style="width: 100%" /><br/>
+
+      <input type="submit" value="{{ _('Apply') }}" />
+</form>
+{% endblock %}

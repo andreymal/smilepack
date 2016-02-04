@@ -18,8 +18,6 @@ AdminIconsEditor.prototype.openDialog = function() {
 
 
 AdminIconsEditor.prototype.upload = function(options) {
-    console.log(options);
-
     if (!options.file && (!options.url || options.url.length < 9)) {
         return {error: 'Надо бы икноку'};
     }

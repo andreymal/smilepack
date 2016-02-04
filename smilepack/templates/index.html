@@ -13,15 +13,20 @@
         {{ ngettext("%(num)d smile in collection,", "%(num)d smiles in collection,", smiles_count) }}
         {{ ngettext("%(num)d smilepack created", "%(num)d smilepacks created", smilepacks_count) }}
     </div>
+
     <div class="actions-panel">
     {% if current_user.is_authenticated %}
         {{ _("Logged in as {username}").format(username=current_user.username) }}
         <form class="inline-form" method="POST" action="{{ url_for('auth.logout_page') }}">
             {{ csrf_token_field() }}
             <input type="submit" class="landing-button" value="{{ _('Log out') }}" />
-        </form>
+        </form><br/>
+
+        {% if current_user.is_admin %}<a href="{{ url_for('pages.admin') }}">{{ _('Smilepack administration') }}</a>{% endif %}
+        <a href="{{ url_for('settings.settings_page') }}">{{ _('Profile settings') }}</a>
     {% endif %}
     </div>
+
     <div class="main-action-panel">
         <a href="{{ url_for('pages.generator') }}" class="landing-button generate-button">{{ _("Create smilepack") }}</a>
     </div>

@@ -41,6 +41,38 @@ def rehash_smiles(store=None):
         smiles.calc_hashsums_if_needed(store_path=store)
 
 
+@manager.command
+def createsuperuser():
+    from getpass import getpass
+    import jsonschema
+    from smilepack.models import User
+    from smilepack.utils.exceptions import BadRequestError
+
+    username = input('Username: ')
+    while True:
+        password = getpass('Password: ')
+        password2 = getpass('Password again: ')
+        if password == password2:
+            break
+        print('Passwords do not match')
+    orm.sql_debug(False)
+    try:
+        with db_session:
+            user = User.bl.create({
+                'username': username,
+                'password': password,
+                'is_active': True,
+                'is_admin': True,
+                'is_superadmin': True,
+            })
+    except jsonschema.ValidationError as exc:
+        print(exc.message)
+    except BadRequestError as exc:
+        print(exc)
+    else:
+        print('Created superuser {} (id={}), enjoy!'.format(user.username, user.id))
+
+
 @manager.option('-h', '--host', dest='host', help='Server host (default 127.0.0.1)')
 @manager.option('-p', '--port', dest='port', help='Server port (default 5000)', type=int)
 @manager.option('-t', '--threaded', dest='threaded', help='Threaded mode', action='store_true')

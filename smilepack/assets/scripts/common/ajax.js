@@ -351,6 +351,42 @@ var ajax = {
             data: JSON.stringify({csrf_token: this.get_csrf_token()}),
             headers: {'Content-Type': 'application/json'}
         });
+    },
+
+    get_users: function(params, onload, onerror, onend) {
+        return this.request({
+            url: '/admin/users/?' + this.buildQS(params),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend
+        });
+    },
+
+    create_user: function(data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/users/',
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), user: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
+    },
+
+    edit_user: function(id, data, onload, onerror, onend) {
+        return this.request({
+            method: 'POST',
+            url: '/admin/users/' + parseInt(id),
+            format: 'json',
+            onload: onload,
+            onerror: onerror,
+            onend: onend,
+            data: JSON.stringify({csrf_token: this.get_csrf_token(), user: data}),
+            headers: {'Content-Type': 'application/json'}
+        });
     }
 };
 

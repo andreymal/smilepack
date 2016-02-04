@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.1.1\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2016-02-01 22:04+0300\n"
+"POT-Creation-Date: 2016-02-04 22:47+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -18,6 +18,7 @@ msgstr ""
 "Generated-By: Babel 2.2.0\n"
 
 #: smilepack/templates/admin.html:5 smilepack/templates/admin.html:30
+#: smilepack/templates/index.html:25
 msgid "Smilepack administration"
 msgstr "Администрирование смайлопака"
 
@@ -29,11 +30,13 @@ msgstr "Другие действия"
 msgid "Icon management"
 msgstr "Управление иконками"
 
-#: smilepack/templates/admin.html:19
+#: smilepack/templates/admin.html:19 smilepack/templates/admin.html:257
+#: smilepack/templates/admin.html:272
 msgid "User management"
 msgstr "Управление пользователями"
 
-#: smilepack/templates/admin.html:21
+#: smilepack/templates/admin.html:21 smilepack/templates/index.html:26
+#: smilepack/templates/settings.html:3
 msgid "Profile settings"
 msgstr "Настройки профиля"
 
@@ -42,7 +45,7 @@ msgid "Change background"
 msgstr "Поменять фон"
 
 #: smilepack/templates/admin.html:27 smilepack/templates/generator.html:25
-#: smilepack/templates/index.html:62
+#: smilepack/templates/index.html:67
 msgid "Report an issue"
 msgstr "Сообщить о проблеме"
 
@@ -256,7 +259,56 @@ msgstr "Разрешение иконки должно быть {w}x{h} пикс
 msgid "Upload"
 msgstr "Загрузить"
 
-#: smilepack/templates/generator.html:5 smilepack/templates/index.html:26
+#: smilepack/templates/admin.html:260 smilepack/templates/admin.html:277
+#: smilepack/templates/login.html:12
+msgid "Username"
+msgstr "Имя пользователя"
+
+#: smilepack/templates/admin.html:261
+msgid "Search"
+msgstr "Поиск"
+
+#: smilepack/templates/admin.html:262
+msgid "Create"
+msgstr "Создать"
+
+#: smilepack/templates/admin.html:268
+msgid "Load more"
+msgstr "Загрузить ещё"
+
+#: smilepack/templates/admin.html:280
+msgid "Registered at"
+msgstr "Зарегистрирован"
+
+#: smilepack/templates/admin.html:281
+msgid "Last login at"
+msgstr "Последний вход"
+
+#: smilepack/templates/admin.html:283
+msgid "Is active"
+msgstr "Активен"
+
+#: smilepack/templates/admin.html:284
+msgid "Is admin"
+msgstr "Администратор"
+
+#: smilepack/templates/admin.html:285
+msgid "Is superadmin"
+msgstr "Суперадмин"
+
+#: smilepack/templates/admin.html:287 smilepack/templates/settings.html:14
+msgid "New password"
+msgstr "Новый пароль"
+
+#: smilepack/templates/admin.html:290 smilepack/templates/settings.html:17
+msgid "Confirm new password"
+msgstr "Подтвердите новый пароль"
+
+#: smilepack/templates/admin.html:293 smilepack/templates/settings.html:20
+msgid "Apply"
+msgstr "Применить"
+
+#: smilepack/templates/generator.html:5 smilepack/templates/index.html:31
 msgid "Create smilepack"
 msgstr "Создать смайлопак"
 
@@ -467,29 +519,25 @@ msgstr[0] "%(num)d смайлопак создан"
 msgstr[1] "%(num)d смайлопака создано"
 msgstr[2] "%(num)d смайлопаков создано"
 
-#: smilepack/templates/index.html:18
+#: smilepack/templates/index.html:19
 msgid "Logged in as {username}"
 msgstr "Вы вошли как {username}"
 
-#: smilepack/templates/index.html:21
+#: smilepack/templates/index.html:22
 msgid "Log out"
 msgstr "Выйти"
 
-#: smilepack/templates/index.html:29
+#: smilepack/templates/index.html:34
 msgid "Or open existing:"
 msgstr "Или открыть существующий:"
 
-#: smilepack/templates/index.html:41
+#: smilepack/templates/index.html:46
 msgid "New smiles:"
 msgstr "Новые смайлы:"
 
 #: smilepack/templates/login.html:3
 msgid "Staff Only"
 msgstr "Посторонним вход воспрещён"
-
-#: smilepack/templates/login.html:12
-msgid "Username"
-msgstr "Имя пользователя"
 
 #: smilepack/templates/login.html:15
 msgid "Password"
@@ -498,3 +546,23 @@ msgstr "Пароль"
 #: smilepack/templates/login.html:18
 msgid "Log In"
 msgstr "Войти"
+
+#: smilepack/templates/settings.html:10
+msgid "Saved!"
+msgstr "Сохранено!"
+
+#: smilepack/views/auth.py:35
+msgid "Account is disabled"
+msgstr "Аккаунт отключен"
+
+#: smilepack/views/auth.py:35
+msgid "Cannot login"
+msgstr "Не удалось войти"
+
+#: smilepack/views/auth.py:37
+msgid "Invalid username or password"
+msgstr "Неверные имя пользователя или пароль"
+
+#: smilepack/views/settings.py:31
+msgid "Passwords do not match"
+msgstr "Пароли не совпадают"
