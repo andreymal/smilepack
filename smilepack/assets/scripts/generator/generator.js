@@ -615,7 +615,7 @@ var generator = {
         if (id !== null) {
             this.usedSmiles.push(id);
             this.modified = true;
-            if (!data.created && data.smile.category !== undefined && data.smile.category !== null) {
+            if (!data.created && this.collection.getSmileInfo(data.smile.id)) {
                 this.collection.setDragged(data.smile.id, true);
             }
         }
