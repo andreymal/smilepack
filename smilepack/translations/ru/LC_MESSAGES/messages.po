@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.2.0\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2016-02-04 22:47+0300\n"
+"POT-Creation-Date: 2016-02-07 00:45+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -26,12 +26,12 @@ msgstr "Администрирование смайлопака"
 msgid "Other actions"
 msgstr "Другие действия"
 
-#: smilepack/templates/admin.html:18 smilepack/templates/admin.html:227
+#: smilepack/templates/admin.html:18 smilepack/templates/admin.html:242
 msgid "Icon management"
 msgstr "Управление иконками"
 
-#: smilepack/templates/admin.html:19 smilepack/templates/admin.html:257
-#: smilepack/templates/admin.html:272
+#: smilepack/templates/admin.html:19 smilepack/templates/admin.html:272
+#: smilepack/templates/admin.html:287
 msgid "User management"
 msgstr "Управление пользователями"
 
@@ -45,7 +45,7 @@ msgid "Change background"
 msgstr "Поменять фон"
 
 #: smilepack/templates/admin.html:27 smilepack/templates/generator.html:25
-#: smilepack/templates/index.html:67
+#: smilepack/templates/index.html:56
 msgid "Report an issue"
 msgstr "Сообщить о проблеме"
 
@@ -123,188 +123,217 @@ msgstr "Переместить перед"
 msgid "Icon"
 msgstr "Иконка"
 
-#: smilepack/templates/admin.html:104
+#: smilepack/templates/admin.html:105
 msgid "If you edit icons, refresh the page"
 msgstr "Если вы редактировали иконки, обновите страницу"
 
-#: smilepack/templates/admin.html:110
+#: smilepack/templates/admin.html:107
+msgid ""
+"Please open \"Other actions -> Icon management\", add at least one "
+"published icon and refresh the page before creating a category"
+msgstr ""
+"Откройте «Другие действия -> Управление иконками», добавьте не менее одной "
+"опубликованной иконки и обновите страницу, прежде чем создавать категорию"
+
+#: smilepack/templates/admin.html:114
 msgid "Description"
 msgstr "Описание"
 
-#: smilepack/templates/admin.html:114
+#: smilepack/templates/admin.html:118
 msgid "Added category will be immediately visible to all users."
 msgstr "Добавленная категория сразу будет видна всем пользователям."
 
-#: smilepack/templates/admin.html:115 smilepack/templates/generator.html:145
-#: smilepack/templates/generator.html:191
+#: smilepack/templates/admin.html:119 smilepack/templates/generator.html:149
+#: smilepack/templates/generator.html:200
 msgid "Add"
 msgstr "Добавить"
 
-#: smilepack/templates/admin.html:117 smilepack/templates/admin.html:196
-#: smilepack/templates/admin.html:222 smilepack/templates/generator.html:146
+#: smilepack/templates/admin.html:121 smilepack/templates/admin.html:206
+#: smilepack/templates/admin.html:237 smilepack/templates/generator.html:150
 msgid "Save"
 msgstr "Сохранить"
 
-#: smilepack/templates/admin.html:122 smilepack/templates/generator.html:151
+#: smilepack/templates/admin.html:126 smilepack/templates/generator.html:155
 msgid "Adding a smile"
 msgstr "Добавление смайлика"
 
-#: smilepack/templates/admin.html:127 smilepack/templates/admin.html:246
-#: smilepack/templates/generator.html:156
+#: smilepack/templates/admin.html:131 smilepack/templates/admin.html:261
+#: smilepack/templates/generator.html:160
 msgid "From link"
 msgstr "По ссылке"
 
-#: smilepack/templates/admin.html:128 smilepack/templates/admin.html:243
-#: smilepack/templates/generator.html:157
+#: smilepack/templates/admin.html:132 smilepack/templates/admin.html:258
+#: smilepack/templates/generator.html:161
 msgid "From computer"
 msgstr "С компьютера"
 
-#: smilepack/templates/admin.html:137 smilepack/templates/generator.html:166
+#: smilepack/templates/admin.html:142 smilepack/templates/generator.html:171
 msgid "Link"
 msgstr "Ссылка"
 
-#: smilepack/templates/admin.html:142 smilepack/templates/admin.html:169
-#: smilepack/templates/generator.html:171
+#: smilepack/templates/admin.html:147 smilepack/templates/admin.html:179
+#: smilepack/templates/generator.html:176
 msgid "Smile size"
 msgstr "Размер смайлика"
 
-#: smilepack/templates/admin.html:143 smilepack/templates/admin.html:170
-#: smilepack/templates/generator.html:172
+#: smilepack/templates/admin.html:148 smilepack/templates/admin.html:180
+#: smilepack/templates/generator.html:177
 msgid "Width"
 msgstr "Длина"
 
-#: smilepack/templates/admin.html:145 smilepack/templates/admin.html:172
-#: smilepack/templates/generator.html:174
+#: smilepack/templates/admin.html:150 smilepack/templates/admin.html:182
+#: smilepack/templates/generator.html:179
 msgid "Height"
 msgstr "Ширина"
 
-#: smilepack/templates/admin.html:146 smilepack/templates/admin.html:173
-#: smilepack/templates/generator.html:175
+#: smilepack/templates/admin.html:151 smilepack/templates/admin.html:183
+#: smilepack/templates/generator.html:180
 msgid "Reset smile size"
 msgstr "Сбросить размер смайлика"
 
-#: smilepack/templates/admin.html:147 smilepack/templates/admin.html:174
-#: smilepack/templates/generator.html:176
+#: smilepack/templates/admin.html:152 smilepack/templates/admin.html:184
+#: smilepack/templates/generator.html:181
 msgid "Keep aspect ratio"
 msgstr "Сохранить соотн. сторон"
 
-#: smilepack/templates/admin.html:149 smilepack/templates/generator.html:178
+#: smilepack/templates/admin.html:154 smilepack/templates/generator.html:183
 msgid "Compress if possible (lossless)"
 msgstr "Сжать по возможности (без потери качества)"
 
-#: smilepack/templates/admin.html:152 smilepack/templates/admin.html:176
-#: smilepack/templates/generator.html:181
+#: smilepack/templates/admin.html:157 smilepack/templates/admin.html:186
+#: smilepack/templates/generator.html:186
 msgid "Image will not be resized."
 msgstr "Разрешение не будет изменено."
 
-#: smilepack/templates/admin.html:152 smilepack/templates/generator.html:181
+#: smilepack/templates/admin.html:157 smilepack/templates/generator.html:186
 msgid "If possible, it's best to compress it yourself in a graphics editor."
 msgstr ""
 "Если есть возможность, лучше сжать картинку самостоятельно в графическом "
 "редакторе."
 
-#: smilepack/templates/admin.html:159
+#: smilepack/templates/admin.html:165 smilepack/templates/generator.html:197
+#: smilepack/templates/generator.html:219
+msgid "Create a smile"
+msgstr "Создание смайлика"
+
+#: smilepack/templates/admin.html:168
 msgid "Upload and edit"
 msgstr "Загрузить и редактировать"
 
-#: smilepack/templates/admin.html:164 smilepack/templates/admin.html:201
+#: smilepack/templates/admin.html:169 smilepack/templates/generator.html:201
+msgid "Cancel"
+msgstr "Отмена"
+
+#: smilepack/templates/admin.html:174 smilepack/templates/admin.html:211
 msgid "Smile editing"
 msgstr "Редактирование смайлика"
 
-#: smilepack/templates/admin.html:183
+#: smilepack/templates/admin.html:193
 msgid "Tags (separated by comma)"
 msgstr "Теги (через запятую)"
 
-#: smilepack/templates/admin.html:186
+#: smilepack/templates/admin.html:196
 msgid "Category"
 msgstr "Категория"
 
-#: smilepack/templates/admin.html:193
+#: smilepack/templates/admin.html:203 smilepack/templates/admin.html:234
 msgid "Publish in collection (only if category is specified)"
 msgstr "Опубликовать в коллекции (только если указана категория)"
 
-#: smilepack/templates/admin.html:206
+#: smilepack/templates/admin.html:216
 msgid "Add tags (separated by comma)"
 msgstr "Добавить теги (через запятую)"
 
-#: smilepack/templates/admin.html:209
+#: smilepack/templates/admin.html:219
 msgid "Remove tags (separated by comma)"
 msgstr "Удалить теги (через запятую)"
 
-#: smilepack/templates/admin.html:213
+#: smilepack/templates/admin.html:223
 msgid "Change category"
 msgstr "Изменить категорию"
 
-#: smilepack/templates/admin.html:218
+#: smilepack/templates/admin.html:228
 msgid "Change description"
 msgstr "Изменить описание"
 
-#: smilepack/templates/admin.html:233
+#: smilepack/templates/admin.html:232
+msgid "Published?"
+msgstr "Опубликован?"
+
+#: smilepack/templates/admin.html:233 smilepack/templates/generator.html:125
+msgid "Don't change"
+msgstr "Не менять"
+
+#: smilepack/templates/admin.html:235
+msgid "Don't publish"
+msgstr "Не публиковать"
+
+#: smilepack/templates/admin.html:248
 msgid "Tick for publication"
 msgstr "Поставьте галочку для публикации"
 
-#: smilepack/templates/admin.html:241
+#: smilepack/templates/admin.html:256
 msgid "Upload new icon"
 msgstr "Загрузить новую иконку"
 
-#: smilepack/templates/admin.html:247 smilepack/templates/generator.html:139
+#: smilepack/templates/admin.html:262 smilepack/templates/generator.html:143
 msgid "Link to icon"
 msgstr "Ссылка на иконку"
 
-#: smilepack/templates/admin.html:249 smilepack/templates/generator.html:141
+#: smilepack/templates/admin.html:264 smilepack/templates/generator.html:145
 msgid "Icon resolution must be {w}x{h} pixels"
 msgstr "Разрешение иконки должно быть {w}x{h} пикселей"
 
-#: smilepack/templates/admin.html:250
+#: smilepack/templates/admin.html:265
 msgid "Upload"
 msgstr "Загрузить"
 
-#: smilepack/templates/admin.html:260 smilepack/templates/admin.html:277
+#: smilepack/templates/admin.html:275 smilepack/templates/admin.html:292
 #: smilepack/templates/login.html:12
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: smilepack/templates/admin.html:261
+#: smilepack/templates/admin.html:276
 msgid "Search"
 msgstr "Поиск"
 
-#: smilepack/templates/admin.html:262
+#: smilepack/templates/admin.html:277
 msgid "Create"
 msgstr "Создать"
 
-#: smilepack/templates/admin.html:268
+#: smilepack/templates/admin.html:283
 msgid "Load more"
 msgstr "Загрузить ещё"
 
-#: smilepack/templates/admin.html:280
+#: smilepack/templates/admin.html:295
 msgid "Registered at"
 msgstr "Зарегистрирован"
 
-#: smilepack/templates/admin.html:281
+#: smilepack/templates/admin.html:296
 msgid "Last login at"
 msgstr "Последний вход"
 
-#: smilepack/templates/admin.html:283
+#: smilepack/templates/admin.html:298
 msgid "Is active"
 msgstr "Активен"
 
-#: smilepack/templates/admin.html:284
+#: smilepack/templates/admin.html:299
 msgid "Is admin"
 msgstr "Администратор"
 
-#: smilepack/templates/admin.html:285
+#: smilepack/templates/admin.html:300
 msgid "Is superadmin"
 msgstr "Суперадмин"
 
-#: smilepack/templates/admin.html:287 smilepack/templates/settings.html:14
+#: smilepack/templates/admin.html:302 smilepack/templates/settings.html:14
 msgid "New password"
 msgstr "Новый пароль"
 
-#: smilepack/templates/admin.html:290 smilepack/templates/settings.html:17
+#: smilepack/templates/admin.html:305 smilepack/templates/settings.html:17
 msgid "Confirm new password"
 msgstr "Подтвердите новый пароль"
 
-#: smilepack/templates/admin.html:293 smilepack/templates/settings.html:20
+#: smilepack/templates/admin.html:308 smilepack/templates/settings.html:20
 msgid "Apply"
 msgstr "Применить"
 
@@ -423,59 +452,55 @@ msgstr "Переместить в другую категорию"
 msgid "Remove selected smiles from smilepack"
 msgstr "Убрать выделенные смайлы из смайлопака"
 
-#: smilepack/templates/generator.html:125
-msgid "Don't change"
-msgstr "Не менять"
+#: smilepack/templates/generator.html:137
+msgid "Database has no icons, please contact the administrator of a website."
+msgstr "В базе данных нет иконок, пожалуйста, обратитесь к администратору сайта."
 
-#: smilepack/templates/generator.html:135
+#: smilepack/templates/generator.html:139
 msgid "Upload icon from computer"
 msgstr "Загрузить иконку с компьютера"
 
-#: smilepack/templates/generator.html:138
+#: smilepack/templates/generator.html:142
 msgid "Upload icon from link"
 msgstr "Загрузить иконку по ссылке"
 
-#: smilepack/templates/generator.html:196
+#: smilepack/templates/generator.html:206
 msgid "Importing a userscript"
 msgstr "Импортирование юзерскрипта"
 
-#: smilepack/templates/generator.html:199
+#: smilepack/templates/generator.html:209
 msgid "Select an userscript file"
 msgstr "Выберите файл с юзерскриптом"
 
-#: smilepack/templates/generator.html:202
+#: smilepack/templates/generator.html:212
 msgid "Import"
 msgstr "Импортировать"
 
-#: smilepack/templates/generator.html:207
+#: smilepack/templates/generator.html:217
 msgid "Saving the smilepack"
 msgstr "Сохранение смайлопака"
 
-#: smilepack/templates/generator.html:209
-msgid "Create a smile"
-msgstr "Создание смайлика"
-
-#: smilepack/templates/generator.html:210
+#: smilepack/templates/generator.html:220
 msgid "Saving..."
 msgstr "Сохраняем..."
 
-#: smilepack/templates/generator.html:213
+#: smilepack/templates/generator.html:223
 msgid "Smilepack saved!"
 msgstr "Смайлопак сохранён!"
 
-#: smilepack/templates/generator.html:214
+#: smilepack/templates/generator.html:224
 msgid "His id:"
 msgstr "Его id:"
 
-#: smilepack/templates/generator.html:216
+#: smilepack/templates/generator.html:226
 msgid "Now you can:"
 msgstr "Теперь вы можете:"
 
-#: smilepack/templates/generator.html:218
+#: smilepack/templates/generator.html:228
 msgid "Download userscript"
 msgstr "Скачать юзерскрипт"
 
-#: smilepack/templates/generator.html:218
+#: smilepack/templates/generator.html:228
 msgid ""
 "and install it in your browser to use smilepack at all sites that support"
 " HTML or BBCode."
@@ -483,11 +508,11 @@ msgstr ""
 "и установить его в браузере, чтобы пользоваться смайлопаком на всех "
 "сайтах с поддержкой HTML или BBCode."
 
-#: smilepack/templates/generator.html:219
+#: smilepack/templates/generator.html:229
 msgid "Give a look to someone your smilepack by sharing this link:"
 msgstr "Дать посмотреть кому-нибудь ваш смайлопак, поделившись ссылкой:"
 
-#: smilepack/templates/generator.html:221
+#: smilepack/templates/generator.html:231
 msgid ""
 "Close this message and continue editing to create another smilepack "
 "(previous saved smilepack will be unchanged)."
@@ -495,7 +520,7 @@ msgstr ""
 "Закрыть это сообщение и продолжить редактирование, чтобы создать ещё один"
 " смайлопак (предыдущий сохранённый смайлопак не будет изменён)."
 
-#: smilepack/templates/generator.html:224
+#: smilepack/templates/generator.html:234
 msgid "Back to editing"
 msgstr "Вернуться к редактированию"
 
