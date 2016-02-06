@@ -133,6 +133,7 @@ class SmilePackBL(BaseBL):
         if current_app.cache.get(key) is not None:
             return smp.views_count
 
+        # FIXME: sometimes optimistic check fails here
         smp.views_count += 1
         smp.last_viewed_at = datetime.utcnow()
         current_app.cache.set(key, str(smp.last_viewed_at), timeout=600)

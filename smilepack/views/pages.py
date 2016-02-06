@@ -3,8 +3,7 @@
 from pony.orm import db_session
 
 from flask import Blueprint, render_template, abort, current_app, request, redirect, url_for
-from flask_babel import gettext, format_datetime
-from flask_login import current_user
+from flask_babel import format_datetime
 
 from smilepack.models import Section, SmilePack, Smile, Icon
 from smilepack.views.utils import user_session, for_admin

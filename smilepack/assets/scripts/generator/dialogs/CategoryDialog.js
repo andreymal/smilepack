@@ -3,7 +3,7 @@
 var BasicDialog = require('../../common/BasicDialog.js');
 
 
-var CategoryDialog = function(element){
+var CategoryDialog = function(element) {
     BasicDialog.apply(this, [element || document.getElementById('dialog-new-category')]);
     this.form = this.dom.querySelector('form');
     var btns = this.dom.querySelectorAll('form input[type="submit"]');
@@ -42,22 +42,9 @@ CategoryDialog.prototype.onsubmit = function() {
     };
 
     // Safari не умеет в f.[radio].value
-    var value, url;
-    if (f.icon.length) {
-        for (var i = 0; i < f.icon.length; i++){
-            if (!f.icon[i].checked && i !== 0) {
-                continue;
-            }
-            value = f.icon[i].value;
-            url = f.icon[i].dataset.valueUrl;
-            if (f.icon[i].checked) {
-                break;
-            }
-        }
-    } else {
-        value = f.icon.value;
-        url = f.icon.dataset.valueUrl;
-    }
+    var checkedIcon = this.form.querySelector('input[name="icon"]:checked');
+    var value = checkedIcon ? checkedIcon.value : null;
+    var url = checkedIcon ? checkedIcon.dataset.valueUrl : null;
 
     if (value === 'url') {
         data.iconType = 'url';
@@ -74,7 +61,7 @@ CategoryDialog.prototype.onsubmit = function() {
     }
 
     var result = this._submitEvent(data);
-    if(!result.success) {
+    if (!result.success) {
         return this.error(result.error);
     }
     this.btnAdd.disabled = true;
@@ -82,20 +69,20 @@ CategoryDialog.prototype.onsubmit = function() {
 };
 
 
-CategoryDialog.prototype.open = function(options){
-    if(options.edit != this.dom.classList.contains('mode-edit')){
+CategoryDialog.prototype.open = function(options) {
+    if (options.edit != this.dom.classList.contains('mode-edit')) {
         this.dom.classList.toggle('mode-add');
         this.dom.classList.toggle('mode-edit');
     }
 
     if (options.edit) {
         this.form.name.value = options.category.name;
-        this.form.icon.value = 'nothing'; // FIXME: Safari
+        this.form.icon[0].checked = true;
         this.form.category.value = options.category.id;
     } else {
         this.form.name.value = '';
         if (this.form.icon[1]) {
-            this.form.icon.value = this.form.icon[1].value;
+            this.form.icon[1].checked = true;
         }
         this.form.category.value = "";
     }

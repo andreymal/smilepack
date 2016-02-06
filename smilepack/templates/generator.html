@@ -124,6 +124,7 @@
         <span class="mode-edit">
             <label><input type="radio" name="icon" value="nothing">{{ _("Don't change") }}</label><br/>
         </span>
+        {% if icons %}
         <div class="icon-container">
         {%- for icon in icons %}
             <label>
@@ -132,6 +133,9 @@
             </label>
         {%- endfor %}
         </div>
+        {%- elif not config['NO_ICONS_IS_THE_NORM'] %}
+        <em>{{ _('Database has no icons, please contact the administrator of a website.') }}</em><br/>
+        {% endif %}
         <label><input type="radio" name="icon" value="file" />{{ _('Upload icon from computer') }}:</label><br/>
         <input type="file" name="icon_file" class="input-width-full" accept="image/jpeg,image/png,image/gif" /><br/>
 

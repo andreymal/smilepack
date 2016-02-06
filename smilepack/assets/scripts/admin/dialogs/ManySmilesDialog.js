@@ -45,11 +45,15 @@ ManySmilesDialog.prototype.open = function(options) {
     this.form['change-description'].checked = false;
     this.form.description.value = '';
 
-    // FIXME: Safari
+    // Safari не умеет в f.[radio].value
     if (options.approvedByDefault !== undefined && options.approvedByDefault !== null) {
-        this.form.approved.value = options.approvedByDefault ? 'yes' : 'no';
+        if (options.approvedByDefault) {
+            this.form.querySelector('input[name="approved"][value="yes"]').checked = true;
+        } else {
+            this.form.querySelector('input[name="approved"][value="no"]').checked = true;
+        }
     } else {
-        this.form.approved.value = '';
+        this.form.querySelector('input[name="approved"][value=""]').checked = true;
     }
 
     BasicDialog.prototype.open.apply(this);

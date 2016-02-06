@@ -184,6 +184,7 @@
 
 .widget-collection .smiles-list {
     padding: 0.5em;
+    position: relative; /* for drop-hint */
 }
 
 .widget-collection .smiles-list.hidden {
@@ -222,6 +223,7 @@
     width: 0px;
     min-height: 16px;
     outline: 1px solid red;
+    position: absolute; /* IE11 is buggy without this lol */
 }
 
 .widget-collection .smile.dragged {

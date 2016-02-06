@@ -66,8 +66,9 @@ var dragdrop = {
                 var name = style[i];
                 if (elemOld === element && (
                     name == "width" || name == "height" ||
-                    name == "position" || name.indexOf("margin") == 0 ||  // Safari don't support startsWith
-                    name == "box-sizing" || name.indexOf("transition") == 0
+                    name == "position" || name.indexOf("margin") === 0 ||  // Safari don't support startsWith
+                    name == "box-sizing" || name.indexOf("transition") === 0 ||
+                    name.indexOf('-webkit-animation') === 0  // Safari
                 )) {
                     continue;
                 }
@@ -322,6 +323,7 @@ var dragdrop = {
 
         overlay.classList.add('stopping');
         overlay.style.transitionDuration = this.transitionDuration + 'ms';
+        overlay.style.transitionProperty = 'left, top';
         overlay.style.left = stopX + 'px';
         overlay.style.top = stopY + 'px';
 

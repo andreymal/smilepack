@@ -22,7 +22,7 @@ IconsDialog.prototype.constructor = IconsDialog;
 
 IconsDialog.prototype.setToggleFunc = function(func) {
     this._toggleFunc = func;
-}
+};
 
 
 IconsDialog.prototype.onsubmit = function() {
@@ -41,7 +41,8 @@ IconsDialog.prototype.onsubmit = function() {
     }.bind(this);
 
     var data = {onend: onend};
-    if (this.form.icon_type.value == 'file') {
+    var iconType = this.form.querySelector('input[name="icon_type"]:checked').value;
+    if (iconType == 'file') {
         data.file = this.form.file.files[0];
     } else {
         data.url = this.form.url.value;

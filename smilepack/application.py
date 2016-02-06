@@ -30,7 +30,7 @@ def create_app():
     app.config.from_object(os.environ.get('SMILEPACK_SETTINGS', 'smilepack.settings.Development'))
     app.config["WEBPACK_MANIFEST_PATH"] = os.path.join(here, "manifest.json")
     webpack.init_app(app)
-    database.configure_for_app(app, db_seed=True)
+    database.configure_for_app(app)
     init_bl()
 
     # Localization

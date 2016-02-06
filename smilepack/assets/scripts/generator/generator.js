@@ -187,7 +187,12 @@ var generator = {
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
-        window.localStorage.generatorDark = document.body.classList.contains('dark') ? '1' : '0';
+        var dark = document.body.classList.contains('dark') ? '1' : '0';
+        try {
+            window.localStorage.generatorDark = dark;
+        } catch (e) {
+            console.error('Cannot use localStorage:', e);
+        }
     },
 
     changeTab: function(tab) {
@@ -399,6 +404,15 @@ var generator = {
             return {error: 'Выберите файл для иконки'};
         } else if (options.iconType === 'id' && (options.iconId === undefined || options.iconId === null || !options.iconUrl)) {
             return {error: 'Не выбрана иконка'};
+        }
+
+        if (options.categoryId === undefined || options.categoryId === null) {
+            var cats = this.smilepack.getCategoriesWithHierarchy();
+            for (var i = 0; i < cats.length; i++) {
+                if (cats[i].name == options.name) {
+                    return {error: 'Категория с таким именем уже существует'};
+                }
+            }
         }
 
         if (options.iconType === 'id' || options.iconType === 'nothing') {
@@ -707,15 +721,32 @@ var generator = {
         }
 
         data.categories = categories;
-        window.localStorage.smiles = JSON.stringify(data);
-        this.modified = false;
-        if (interactive) {
-            alert('Сохранено!');
+        var jdata = JSON.stringify(data);
+        try {
+            window.localStorage.smiles = jdata;
+            this.modified = false;
+            if (interactive) {
+                alert('Сохранено!');
+            }
+        } catch (e) {
+            console.error('Cannot use localStorage:', e);
+            if (interactive) {
+                alert('Нет доступа к localStorage :(');
+            }
         }
     },
 
     storageLoad: function(interactive) {
-        var data = window.localStorage.smiles;
+        var data;
+        try {
+            data = window.localStorage.smiles;
+        } catch (e) {
+            if (interactive) {
+                alert('Нет доступа к localStorage :(');
+            }
+            return false;
+        }
+
         if (!data || data.length < 3) {
             if (interactive) {
                 alert('Нечего загружать!');
@@ -1031,7 +1062,13 @@ var generator = {
     },
 
     init: function() {
-        if (window.localStorage.generatorDark == '1') {
+        var dark = '';
+        try {
+            dark = window.localStorage.generatorDark;
+        } catch (e) {
+            console.error('Cannot use localStorage:', e);
+        }
+        if (dark == '1') {
             this.toggleDark();
         }
 

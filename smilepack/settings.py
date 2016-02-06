@@ -79,6 +79,7 @@ class Config(object):
     ICON_SIZE = (50, 50)
     MAX_ICON_BYTES = 32 * 1024
     ICON_PROCESSING_MODE = 'optional'
+    NO_ICONS_IS_THE_NORM = False
 
     ISSUE_REPORT_LINK = None
 

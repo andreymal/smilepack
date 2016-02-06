@@ -12,7 +12,7 @@ from smilepack.bl.registry import Resource
 
 
 class User(db.Entity, UserMixin):
-    username = orm.Required(str, 32, unique=True)
+    username = orm.Required(str, 32, unique=True, autostrip=False)
     password = orm.Optional(str, 255, default='')
     is_admin = orm.Required(bool, default=lambda: False)
     is_superadmin = orm.Required(bool, default=lambda: False)
@@ -29,8 +29,8 @@ class User(db.Entity, UserMixin):
 
 class Icon(db.Entity):
     """Иконка категории или раздела"""
-    filename = orm.Required(str, 128)
-    custom_url = orm.Optional(str, 512)
+    filename = orm.Required(str, 128, autostrip=False)
+    custom_url = orm.Optional(str, 512, autostrip=False)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     approved_at = orm.Optional(datetime, nullable=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
@@ -60,20 +60,20 @@ class Icon(db.Entity):
 
 class IconUrl(db.Entity):
     """Ссылка, привязанная к иконке. Чтобы не пересоздавать одну и ту же иконку несколько раз."""
-    url_hash = orm.Required(str, 128, index=True, unique=True)
-    url = orm.Optional(str, 512)
+    url_hash = orm.Required(str, 128, index=True, unique=True, autostrip=False)
+    url = orm.Optional(str, 512, autostrip=False)
     icon = orm.Required(Icon)
 
 
 class IconHash(db.Entity):
     """Хэш, привязанный к иконке. Может быть несколько хэшей у иконки (сжатый и несжатый варианты, например)."""
-    hashsum = orm.Required(str, 128, index=True, unique=True)
+    hashsum = orm.Required(str, 128, index=True, unique=True, autostrip=False)
     icon = orm.Required(Icon)
 
 
 class Section(db.Entity):
     """Раздел (например, «My Little Pony»)"""
-    name = orm.Required(str, 128)
+    name = orm.Required(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     subsections = orm.Set('SubSection')
@@ -91,7 +91,7 @@ class Section(db.Entity):
 
 class SubSection(db.Entity):
     """Подраздел (например, «Mane 6»)"""
-    name = orm.Required(str, 128)
+    name = orm.Required(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     section = orm.Required(Section)
@@ -109,7 +109,7 @@ class SubSection(db.Entity):
 class Category(db.Entity):
     """Категория (например, «Твайлайт Спаркл»)"""
     subsection = orm.Required(SubSection)
-    name = orm.Required(str, 128)
+    name = orm.Required(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     smiles = orm.Set('Smile')
@@ -129,10 +129,10 @@ class Category(db.Entity):
 class Smile(db.Entity):
     """Смайлик, как из коллекции, так и пользовательский"""
     category = orm.Optional(Category, index=True)
-    filename = orm.Required(str, 128, index=True)  # индекс для поиска смайликов по готовым ссылкам
+    filename = orm.Required(str, 128, index=True, autostrip=False)  # индекс для поиска смайликов по готовым ссылкам
     width = orm.Required(int)
     height = orm.Required(int)
-    custom_url = orm.Optional(str, 512)
+    custom_url = orm.Optional(str, 512, autostrip=False)
     description = orm.Optional(str, 16000)
     tags = orm.Set('Tag')
     tags_cache = orm.Optional(str, nullable=True)
@@ -174,14 +174,14 @@ class Smile(db.Entity):
 
 class SmileUrl(db.Entity):
     """Ссылка, привязанная к смайлику. Чтобы не пересоздавать один и тот же смайлик несколько раз."""
-    url_hash = orm.Required(str, 40, index=True, unique=True)
-    url = orm.Optional(str, 512)
+    url_hash = orm.Required(str, 40, index=True, unique=True, autostrip=False)
+    url = orm.Optional(str, 512, autostrip=False)
     smile = orm.Required(Smile)
 
 
 class SmileHash(db.Entity):
     """Хэш, привязанный к смайлику. Может быть несколько хэшей у смайлика (сжатый и несжатый варианты, например)."""
-    hashsum = orm.Required(str, 128, index=True, unique=True)
+    hashsum = orm.Required(str, 128, index=True, unique=True, autostrip=False)
     smile = orm.Required(Smile)
 
 
@@ -239,7 +239,7 @@ class SmilePack(db.Entity):
 class SmilePackCategory(db.Entity):
     """Категория смайлопака"""
     smilepack = orm.Required(SmilePack)
-    name = orm.Required(str, 128)
+    name = orm.Required(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     smiles = orm.Set('SmilePackSmile')

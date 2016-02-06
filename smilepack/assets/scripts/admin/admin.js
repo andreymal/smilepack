@@ -26,7 +26,12 @@ var admin = {
 
     toggleDark: function() {
         document.body.classList.toggle('dark');
-        window.localStorage.generatorDark = document.body.classList.contains('dark') ? '1' : '0';
+        var dark = document.body.classList.contains('dark') ? '1' : '0';
+        try {
+            window.localStorage.generatorDark = dark;
+        } catch (e) {
+            console.error('Cannot use localStorage:', e);
+        }
     },
 
     onactionCollection: function(panel, action, options) {
@@ -156,7 +161,13 @@ var admin = {
     },
 
     init: function() {
-        if (window.localStorage.generatorDark == '1') {
+        var dark = '';
+        try {
+            dark = window.localStorage.generatorDark;
+        } catch (e) {
+            console.error('Cannot use localStorage:', e);
+        }
+        if (dark == '1') {
             this.toggleDark();
         }
         this.initCollections();

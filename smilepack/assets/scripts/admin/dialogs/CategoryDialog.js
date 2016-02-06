@@ -26,22 +26,9 @@ CategoryDialog.prototype.onsubmit = function() {
     var f = this.form;
 
     // Safari не умеет в f.[radio].value
-    var value, url;
-    if (f.icon.length) {
-        for (var i = 0; i < f.icon.length; i++) {
-            if (!f.icon[i].checked && i !== 0) {
-                continue;
-            }
-            value = f.icon[i].value;
-            url = f.icon[i].dataset.valueUrl;
-            if (f.icon[i].checked) {
-                break;
-            }
-        }
-    } else {
-        value = f.icon.value;
-        url = f.icon.dataset.valueUrl;
-    }
+    var checkedIcon = this.form.querySelector('input[name="icon"]:checked');
+    var value = checkedIcon ? checkedIcon.value : null;
+    var url = checkedIcon ? checkedIcon.dataset.valueUrl : null;
 
     var onend = function(options) {
         this.btnAdd.disabled = false;
@@ -135,19 +122,26 @@ CategoryDialog.prototype.open = function(options) {
     this.form.parent.value = options.parentCategoryId;
     if (options.edit) {
         this.form.name.value = options.category.name;
-        this.form.icon.value = options.category.icon.id;
+        if (this.form.icon) {
+            this.form.querySelector('input[name="icon"][value="' + parseInt(options.category.icon.id) + '"]').checked = true;
+        }
         this.form.category.value = options.category.id;
         this.form.description.value = options.category.description;
     } else {
         this.form.name.value = '';
-        if (this.form.icon[0]) {
-            this.form.icon.value = this.form.icon[0].value;
+        if (this.form.icon && this.form.icon[0]) {
+            this.form.icon[0].checked = true;
         }
         this.form.category.value = '';
         this.form.description.value = '';
     }
-    this.btnAdd.disabled = false;
-    this.btnEdit.disabled = false;
+    if (!this.form.icon) {
+        this.btnAdd.disabled = true;
+        this.btnEdit.disabled = true;
+    } else {
+        this.btnAdd.disabled = false;
+        this.btnEdit.disabled = false;
+    }
     BasicDialog.prototype.open.apply(this, arguments);
 };
 

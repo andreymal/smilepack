@@ -21,6 +21,7 @@ html, body {
 
 body {
     font-family: Helvetica, Arial, sans-serif;
+    background-color: white; /* IE11 is buggy without that lol */
 }
 
 body.drag-enabled * {
@@ -100,6 +101,8 @@ body.drag-enabled * {
     font-family: inherit;
     font-size: inherit;
     color: black;
+    line-height: normal;
+    text-align: center;
 }
 
 .button-primary {

@@ -1,4 +1,4 @@
-pony
+pony>=0.6.3
 jsonschema
 pytz
 mysqlclient

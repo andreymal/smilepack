@@ -93,6 +93,7 @@
         <select class="input-width-full" name="before"></select><br/>
 
         <label for="icon">{{ _("Icon") }}:</label><br/>
+        {% if icons %}
         <div class="icon-container">
         {%- for icon in icons %}
             <label>
@@ -102,6 +103,9 @@
         {%- endfor %}
         </div>
         <em>{{ _("If you edit icons, refresh the page") }}</em><br/>
+        {% else %}
+        <em>{{ _('Please open "Other actions -> Icon management", add at least one published icon and refresh the page before creating a category') }}</em><br/>
+        {% endif %}
 
         <input type="hidden" name="level" value="" />
         <input type="hidden" name="parent" value="" />
