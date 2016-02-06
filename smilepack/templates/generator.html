@@ -158,7 +158,8 @@
         </div>
 
         <div class="file-uploader" style="display: none">
-            <input name="file" type="file" class="input-width-full" accept="image/jpeg,image/png,image/gif" /><br/>
+            <input name="file" type="file" class="input-width-full" multiple accept="image/jpeg,image/png,image/gif" />
+            <select class="smile-preview-select"></select>
         </div>
         {% endif -%}
 
@@ -188,7 +189,12 @@
         <input type="hidden" name="level" value="0" />
         <input type="hidden" name="category" value="0" />
 
-        <input type="submit" class="button button-primary" value="{{ _("Add") }}" disabled />
+        <div class="smile-progress-block" style="display: none;">
+            {{ _('Create a smile') }} <span class="smile-progress-current">%d</span> / <span class="smile-progress-count">%d</span>...</span>
+        </div>
+
+        <input type="submit" class="button button-primary" value="{{ _('Add') }}" disabled />
+        <button class="button upload-action-cancel" style="display: none">{{ _('Cancel') }}</button>
     </form>
 </div>
 

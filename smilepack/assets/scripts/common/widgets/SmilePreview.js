@@ -26,6 +26,16 @@ var SmilePreview = function(element) {
 };
 
 
+SmilePreview.prototype.show = function() {
+    this.element.style.display = '';
+};
+
+
+SmilePreview.prototype.hide = function() {
+    this.element.style.display = 'none';
+};
+
+
 SmilePreview.prototype.get = function() {
     return {
         cleaned: this.cleaned,

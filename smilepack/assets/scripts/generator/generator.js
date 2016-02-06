@@ -195,7 +195,7 @@ var generator = {
         if (tab == oldTab) {
             return;
         }
-        
+
         if (tab == 'collection') {
             this.collection.setTabsVisibility(true);
         } else if (tab == 'new_smiles') {
@@ -531,6 +531,54 @@ var generator = {
     },
 
     addCustomSmile: function(options) {
+        if (!options.smiles || options.smiles.length < 1) {
+            return {error: 'Не выбраны смайлики'};
+        }
+
+        var results = [];
+        var i = -1;
+        var count = options.smiles.length;
+        var categoryId = generator.smilepack.getSelectedCategory(0);
+        var cancelled = false;
+
+        var oncancel = function() {
+            cancelled = true;
+        };
+
+        var upload = function() {
+            i++;
+            if (cancelled || i === count) {
+                this._finishCustomSmile(results, options.onend);
+                return;
+            }
+            if (options.onprogress) {
+                options.onprogress({current: i + 1, count: count});
+            }
+
+            var startedAt = Date.now();
+            var result = this._uploadSmile(
+                options.smiles[i],
+                categoryId,
+                function(data) {
+                    results.push(data);
+                    var sleep = 350 - (Date.now() - startedAt);
+                    setTimeout(upload, sleep > 40 ? sleep : 40);
+                }
+            );
+            if (!result.success) {
+                results.push(result);
+                upload();
+            }
+        }.bind(this);
+
+        upload();
+        return {success: true, cancelfunc: oncancel};
+    },
+
+    _uploadSmile: function(options, categoryId, onend) {
+        if (options.error) {
+            return {error: options.error};
+        }
         if (!options.file && (!options.url || options.url.length < 9)) {
             return {error: 'Надо бы смайлик'};
         }
@@ -541,11 +589,8 @@ var generator = {
             return {error: 'Размеры смайлика кривоваты'};
         }
 
-        var onend = options.onend;
-        var categoryId = generator.smilepack.getSelectedCategory(0);
-
         var onload = function(data) {
-            this._addCustomSmileEvent(data, options, categoryId, onend);
+            this._uploadSmileEvent(data, options, categoryId, onend);
         }.bind(this);
         var onerror = function(data, x) {
             if (onend) {
@@ -574,13 +619,15 @@ var generator = {
         return {success: true};
     },
 
-    _addCustomSmileEvent: function(data, options, categoryId, onend) {
+    _uploadSmileEvent: function(data, options, categoryId, onend) {
         if (!data.smile) {
             console.log(data);
             if (onend) {
-                onend({error: data.error || data});
+                onend({success: false, error: data.error || data});
             }
         }
+
+        var notice = null;
         if (this.usedSmiles.indexOf(data.smile.id) >= 0) {
             var usedSmile = this.smilepack.getSmileInfo(data.smile.id, {withParent: true});
             var oldCategory = this.smilepack.getCategoryInfo(usedSmile.categoryLevel, usedSmile.categoryId);
@@ -593,13 +640,9 @@ var generator = {
                 }
             }
 
-            var msg = 'Этот смайлик уже используется в категории «' + oldCategory.name + '»\n';
-            msg += 'Перенести в категорию «' + category.name + '»?';
-            if (!onend || !onend({confirm: msg})) {
-                return;
-            }
             this.smilepack.removeSmile(data.smile.id);
             this.usedSmiles.splice(this.usedSmiles.indexOf(data.smile.id), 1);
+            notice = 'Перемещено из категории «' + oldCategory.name + '»';
         }
 
         var id = generator.smilepack.addSmile({
@@ -620,7 +663,21 @@ var generator = {
             }
         }
         if (onend) {
-            onend({success: true, smileId: id});
+            onend({success: true, smileId: id, notice: notice});
+        }
+    },
+
+    _finishCustomSmile: function(results, onend) {
+        var msg = '';
+        for (var i = 0; i < results.length; i++) {
+            if (results[i].error) {
+                msg += (i + 1).toString() + ': ' + results[i].error + '\n';
+            } else if (results[i].notice) {
+                msg += (i + 1).toString() + ': ' + results[i].notice + '\n';
+            }
+        }
+        if (onend) {
+            onend({success: true, notice: msg.length > 0 ? msg : null});
         }
     },
 
