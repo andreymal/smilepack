@@ -36,9 +36,21 @@ ManySmilesDialog.prototype.open = function(options) {
     this.form['add-tags'].value = '';
     this.form['remove-tags'].value = '';
 
-    this.form['change-category'].checked = false;
+    if (options.categoryByDefault !== undefined && options.categoryByDefault !== null) {
+        this.form['change-category'].checked = true;
+        this.form.category.value = options.categoryByDefault.toString();
+    } else {
+        this.form['change-category'].checked = false;
+    }
     this.form['change-description'].checked = false;
     this.form.description.value = '';
+
+    // FIXME: Safari
+    if (options.approvedByDefault !== undefined && options.approvedByDefault !== null) {
+        this.form.approved.value = options.approvedByDefault ? 'yes' : 'no';
+    } else {
+        this.form.approved.value = '';
+    }
 
     BasicDialog.prototype.open.apply(this);
 };
@@ -128,6 +140,18 @@ ManySmilesDialog.prototype.onsubmit = function() {
     }
     if (f['change-description'].checked) {
         options.description = f.description.value;
+    }
+    if (f.approved.length) {
+        for (i = 0; i < f.approved.length; i++) {
+            if (f.approved[i].checked) {
+                if (f.approved[i].value === 'yes') {
+                    options.approved = true;
+                } else if (f.approved[i].value === 'no') {
+                    options.approved = false;
+                }
+                break;
+            }
+        }
     }
 
     var result = this._submitEvent(options);

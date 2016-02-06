@@ -20,12 +20,15 @@ AdminSmileEditor.prototype.openEditDialog = function(smileIds, options) {
     if (!smileIds || smileIds.length < 1) {
         return false;
     }
+    options = options || {};
+    options.collection = this.collection; // not function argument; needed for categories list
     if (smileIds.length == 1) {
-        options.collection = this.collection; // not function argument; needed for categories list
         dialogsManager.open('editOneSmile', options, this.editSmile.bind(this));
     } else if (smileIds.length <= 50) {
-        dialogsManager.open('editManySmiles', {collection: this.collection, smileIds: smileIds}, this.editManySmiles.bind(this));
+        options.smileIds = smileIds;
+        dialogsManager.open('editManySmiles', options, this.editManySmiles.bind(this));
     } else {
+        // TODO: аккуратно убрать ограничение
         alert('Выделено более 50 смайликов, это как-то многовато');
     }
     return true;
@@ -38,6 +41,55 @@ AdminSmileEditor.prototype.openUploader = function() {
 
 
 AdminSmileEditor.prototype.upload = function(options) {
+    if (!options.smiles || options.smiles.length < 1) {
+        return {error: 'Не выбраны смайлики'};
+    }
+
+    var results = [];
+    var i = -1;
+    var count = options.smiles.length;
+    var categoryId = this.collection.getSelectedCategory(2);
+    var cancelled = false;
+
+    var oncancel = function() {
+        cancelled = true;
+    };
+
+    var upload = function() {
+        i++;
+        if (cancelled || i === count) {
+            this._finishSmileUpload(results, categoryId, options.onend);
+            return;
+        }
+        if (options.onprogress) {
+            options.onprogress({current: i + 1, count: count});
+        }
+
+        var startedAt = Date.now();
+        var result = this._uploadSmile(
+            options.smiles[i],
+            categoryId,
+            function(data) {
+                results.push(data);
+                var sleep = 350 - (Date.now() - startedAt);
+                setTimeout(upload, sleep > 40 ? sleep : 40);
+            }
+        );
+        if (!result.success) {
+            results.push(result);
+            upload();
+        }
+    }.bind(this);
+
+    upload();
+    return {success: true, cancelfunc: oncancel};
+};
+
+
+AdminSmileEditor.prototype._uploadSmile = function(options, categoryId, onend) {
+    if (options.error) {
+        return {error: options.error};
+    }
     if (!options.file && (!options.url || options.url.length < 9)) {
         return {error: 'Надо бы смайлик'};
     }
@@ -47,9 +99,6 @@ AdminSmileEditor.prototype.upload = function(options) {
     if (isNaN(options.w) || options.w < 1 || isNaN(options.h) || options.h < 1) {
         return {error: 'Размеры смайлика кривоваты'};
     }
-
-    var onend = options.onend;
-    var categoryId = this.collection.getSelectedCategory(2);
 
     var onload = function(data) {
         this._uploadEvent(data, onend);
@@ -86,24 +135,49 @@ AdminSmileEditor.prototype.upload = function(options) {
     return {success: true};
 };
 
-
 AdminSmileEditor.prototype._uploadEvent = function(data, onend) {
     if (!data.smile) {
         console.log(data);
         if (onend) {
-            onend({error: data.error || data});
+            onend({success: false, error: data.error || data});
         } else {
             alert(data.error || data);
         }
         return;
     }
-    data.smile.approvedByDefault = data.created;
-    this.openEditDialog([data.smile.id], data.smile);
     if (!data.created) {
-        alert('Этот смайлик уже был создан! Дата загрузки: ' + data.smile.created_at);
+        if (onend) {
+            onend({success: true, data: data, notice: 'Этот смайлик уже был создан! Дата загрузки: ' + data.smile.created_at});
+        }
+    } else if (onend) {
+        onend({success: true, data: data});
     }
+};
+
+AdminSmileEditor.prototype._finishSmileUpload = function(results, categoryId, onend) {
+    var msg = '';
+    var smileIds = [];
+    for (var i = 0; i < results.length; i++) {
+        if (results[i].error) {
+            msg += (i + 1).toString() + ': ' + results[i].error + '\n';
+        } else if (results[i].notice) {
+            msg += (i + 1).toString() + ': ' + results[i].notice + '\n';
+        }
+        if (results[i].data && results[i].data.smile) {
+            smileIds.push(results[i].data.smile.id);
+        }
+    }
+
+    if (smileIds.length == 1) {
+        var smile = results[0].data.smile;
+        smile.approvedByDefault = results[0].data.created;
+        this.openEditDialog(smileIds, smile);
+    } else if (smileIds.length > 1) {
+        this.openEditDialog(smileIds, {approvedByDefault: true, categoryByDefault: categoryId});
+    }
+
     if (onend) {
-        onend({success: true});
+        onend({success: true, notice: msg.length > 0 ? msg : null});
     }
 };
 
@@ -166,6 +240,9 @@ AdminSmileEditor.prototype.editManySmiles = function(options) {
     }
     if (options.hasOwnProperty('removeTags')) {
         item.remove_tags = options.removeTags;
+    }
+    if (options.hasOwnProperty('approved')) {
+        item.approved = options.approved;
     }
 
     var items = [];

@@ -130,6 +130,7 @@ SmileDialog.prototype.refreshFile = function() {
         if (!f.file.files || !f.file.files.length) {
             return;
         } else if (f.file.files.length > 1000) {
+            this.previewSelect.style.display = 'none';
             this.error('Многовато будет');
             return;
         }

@@ -129,7 +129,8 @@
         </div>
 
         <div class="file-uploader" style="display: none">
-            <input name="file" type="file" class="input-width-full" accept="image/jpeg,image/png,image/gif" /><br/>
+            <input name="file" type="file" class="input-width-full" multiple accept="image/jpeg,image/png,image/gif" /><br/>
+            <select class="smile-preview-select"></select>
         </div>
         {% endif -%}
 
@@ -156,7 +157,12 @@
             </div>
         </div>
 
+        <div class="smile-progress-block" style="display: none;">
+            {{ _('Create a smile') }} <span class="smile-progress-current">%d</span> / <span class="smile-progress-count">%d</span>...</span>
+        </div>
+
         <input type="submit" class="button button-primary" value="{{ _('Upload and edit') }}" disabled />
+        <button class="button upload-action-cancel" style="display: none">{{ _('Cancel') }}</button>
     </form>
 </div>
 
@@ -218,6 +224,11 @@
             <input type="checkbox" name="change-description"> {{ _("Change description") }}:
         </label><br/>
         <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
+
+        {{ _('Published?') }}<br/>
+        <label><input type="radio" name="approved" value="" checked /> {{ _("Don't change") }}</label><br/>
+        <label><input type="radio" name="approved" value="yes" /> {{ _("Publish in collection (only if category is specified)") }}</label><br/>
+        <label><input type="radio" name="approved" value="no" /> {{ _("Don't publish") }}</label><br/>
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>
