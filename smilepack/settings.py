@@ -29,7 +29,7 @@ class Config(object):
     X_RUNTIME_HEADER = False
 
     ADMINS = []
-    ERROR_EMAIL_FROM = 'smilepack@localhost.com',
+    ERROR_EMAIL_FROM = 'smilepack@localhost.com'
     ERROR_EMAIL_SUBJECT = 'Smilepack error'
     ERROR_EMAIL_HANDLER_PARAMS = {'mailhost': '127.0.0.1'}
 

@@ -33,6 +33,20 @@ class Production(settings.Config):
     MAX_LIFETIME = 3600 * 7 * 24
     # ALLOW_LIFETIME_SELECT = False
 
+    # If you want reupload smiles to Imgur:
+    # IMGUR_ID = '0123456789abcde'
+
     UPLOAD_METHOD = 'directory'
     SMILES_DIRECTORY = '/path/to/project/smilepack/media/smiles/'
-    # IMGUR_ID = '538bd2a48c13f9e'
+    # also COMPRESSION = False or FORCE_COMPRESSION = True
+    SMILE_PROCESSING_MODE = 'required'  # for installed Pillow
+
+    ICON_UPLOAD_METHOD = 'directory'
+    ICONS_DIRECTORY = '/path/to/project/smilepack/media/icons/'
+    # also ICON_COMPRESSION = False or ICON_FORCE_COMPRESSION = True
+    MAX_ICON_BYTES = 32 * 1024
+    ICON_PROCESSING_MODE = 'required'  # for installed Pillow
+
+    # Error notifications
+    ADMINS = ['webmaster@my-cool-smilepack.tk']
+    ERROR_EMAIL_FROM = 'smilepack@my-cool-smilepack.tk'

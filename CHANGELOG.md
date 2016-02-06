@@ -1,10 +1,14 @@
 # Changelog
 
 
-## (unreleased)
+## 0.2.0 (unreleased)
 
 * New smiles tab
-* Bug fixes
+* Administration page
+* Icon uploading and management
+* Uploading of multiple smiles at the same time
+* Suggestions: user can offer to add a smile to the collection (in development)
+* Many bug fixes (including frontend fixes for Safari and IE11)
 
 
 ## 0.1.1 (2015-12-14)

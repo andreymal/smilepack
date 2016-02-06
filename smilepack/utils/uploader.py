@@ -137,7 +137,7 @@ class Uploader(object):
 
 def download(url, maxlen=None, timeout=10, chunksize=16384):
     req = Request(url)
-    req.add_header('User-Agent', 'smilepack/0.1.1')
+    req.add_header('User-Agent', 'smilepack/0.2.0')
     resp = urlopen(req, timeout=timeout)
 
     buf = []
