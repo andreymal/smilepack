@@ -37,13 +37,14 @@ def index(session_id, first_visit):
     )
 
 
-@bp.route('/generate', defaults={'smp_id': None})
-@bp.route('/generate/<smp_id>')
+@bp.route('/generate', defaults={'smp_hid': None, 'version': None})
+@bp.route('/generate/<smp_hid>', defaults={'version': None})
+@bp.route('/generate/<smp_hid>/<int:version>')
 @user_session
 @db_session
-def generator(session_id, first_visit, smp_id):
-    if smp_id:
-        pack = SmilePack.bl.get_by_hid(smp_id)
+def generator(session_id, first_visit, smp_hid, version):
+    if smp_hid:
+        pack = SmilePack.bl.get_by_hid(smp_hid, version=version)
         if not pack:
             abort(404)
         pack.bl.add_view(request.remote_addr, session_id if not first_visit else None)

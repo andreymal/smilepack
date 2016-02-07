@@ -15,110 +15,133 @@ from smilepack.bl.utils import BaseBL
 
 from smilepack import schemas
 from smilepack.database import db
-from smilepack.utils.exceptions import JSONValidationError
+from smilepack.utils.exceptions import BadRequestError
 
 
 class SmilePackBL(BaseBL):
     def get_by_user(self, session_id):
         packs = self._model().select(lambda x: x.user_cookie == session_id)[:]
-        packs = [pack for pack in packs if not pack.delete_at or pack.delete_at >= datetime.utcnow()]
+        packs = [
+            pack for pack in packs
+            if pack.version == 1 and (not pack.delete_at or pack.delete_at >= datetime.utcnow())
+        ]
         return packs
 
-    def create(self, session_id, smiles, categories, name=None, description=None, lifetime=None, user_addr=None, validate=True):
-        if validate:
-            try:
-                jsonschema.validate(smiles, schemas.SMILEPACK_SMILE)
-            except jsonschema.ValidationError as exc:
-                raise JSONValidationError(exc)
-            try:
-                jsonschema.validate(categories, schemas.SMILEPACK_CATEGORIES)
-            except jsonschema.ValidationError as exc:
-                raise JSONValidationError(exc)
+    def create(self, data, session_id, user_addr):
+        jsonschema.validate(data, schemas.SMILEPACK)
 
+        if data.get('fork') is not None and data.get('edit') is not None:
+            raise BadRequestError('Please set edit or fork')
+
+        # Проверяем валидность родительского смайлопака при его наличии
+        fork = False
+        parent = None
+        if data.get('fork') is not None:
+            fork = True
+            parent = self.get_by_hid(data['fork'])
+            if not parent:
+                raise BadRequestError('Parent not found')
+        elif data.get('edit') is not None:
+            parent = self.get_by_hid(data['edit'])
+            if not parent:
+                raise BadRequestError('Parent not found')
+            if parent.user_cookie != session_id:
+                raise BadRequestError('Access denied')
+
+        # Проверяем и устанавливаем время жизни смайлопака
         try:
-            lifetime = max(0, int(lifetime)) if lifetime is not None else 0
+            lifetime = max(0, int(data['lifetime'])) if 'lifetime' in data else 0
         except ValueError:
             lifetime = 0
 
         if current_app.config['MAX_LIFETIME'] and (not lifetime or lifetime > current_app.config['MAX_LIFETIME']):
             lifetime = current_app.config['MAX_LIFETIME']
 
-        # Нормализуем данные
-        smiles = [dict(x) for x in smiles]
-        categories = [dict(x) for x in categories]
-        category_names = [x['name'] for x in categories]
-
-        # Добавляем несуществующие категории
-        for x in smiles:
-            if x['category_name'] not in category_names:
-                categories.append({
-                    'name': x['category_name'],
-                    'icon': None
-                })
-                category_names.append(x['category_name'])
-
         from ..models import SmilePackCategory, Smile, Icon
 
+        # Проверяем валидность категорий
+        for s in data['smiles']:
+            if s['category'] >= len(data['categories']):
+                raise BadRequestError('Invalid category ids')
+
         # Загружаем имеющиеся смайлики
-        smile_ids = [s['id'] for s in smiles if s.get('id')]
+        smile_ids = set(s['id'] for s in data['smiles'])
+        if len(smile_ids) != len(data['smiles']):
+            raise BadRequestError('Non-unique smiles')
         db_smiles = {ds.id: ds for ds in Smile.select(lambda x: x.id in smile_ids)} if smile_ids else {}
+        if len(db_smiles) != len(smile_ids):
+            raise BadRequestError('Some smiles not found')
+        del smile_ids
 
         # Загружаем имеющиеся иконки
-        first_icon = Icon.select().first()
-        icon_ids = set((x.get('icon') or {}).get('id', 0) for x in categories)
+        icon_ids = set(x['icon'] for x in data['categories'])
         db_icons = {di.id: di for di in Icon.select(lambda x: x.id in icon_ids)} if icon_ids else {}
+        if len(db_icons) != len(icon_ids):
+            raise BadRequestError('Some icons not found')
+        del icon_ids
 
-        # Создаём смайлопак
-        pack = self._model()(
-            hid=''.join(
+        if fork or not parent:
+            # Если новый пак или форк, а не редактирование, то hid будет hid родителя
+            hid = ''.join(
                 random.choice(current_app.config['SYMBOLS_FOR_HID'])
                 for _
                 in range(current_app.config['HID_LENGTH'])
-            ),
+            )
+            version = 1
+        else:
+            # Если редактирование, то hid будет hid родителя
+            hid = parent.hid
+            version = parent.version + 1
+
+        # Создаём смайлопак
+        pack = self._model()(
+            hid=hid,
+            version=version,
+            parent=parent,
             user_cookie=session_id,
-            name=str(name) if name else '',
-            description=str(description) if description else '',
+            name=data.get('name') or '',
+            description=data.get('description') or '',
             delete_at=(datetime.utcnow() + timedelta(0, lifetime)) if lifetime else None,
             user_addr=user_addr,
         )
-        if not smiles and not categories:
+        if not data['smiles'] and not data['categories']:
             return pack
-        pack.flush()
+        pack.flush()  # for pack.id
 
         # Создаём категории смайлопака
-        db_categories = {}
-        for x in categories:
+        db_categories = []
+        for x in data['categories']:
             c = SmilePackCategory(
-                name=x['name'],
-                icon=db_icons.get((x.get('icon') or {}).get('id'), first_icon),
+                name=x.get('name') or '',
+                icon=db_icons[x['icon']],
                 description=x.get('description') or '',
                 smilepack=pack,
             )
             c.flush()
-            db_categories[c.name] = c
+            db_categories.append(c)
 
         # Добавляем смайлики
-        smile_ids = {x: [] for x in db_categories.keys()}
-        for x in smiles:
-            c = db_categories[x['category_name']]
+        smile_orders = [0] * len(db_categories)
+        for x in data['smiles']:
+            c = db_categories[x['category']]
+            smile = db_smiles[x['id']]
 
-            if x.get('id') in db_smiles:
-                smile = db_smiles[x['id']]
-            else:
-                continue  # TODO: тоже сделать что-нибудь?
-
-            if smile.id not in smile_ids[x['category_name']]:
-                # FIXME: тут ОЧЕНЬ много insert-запросов
-                c.smiles.create(
-                    smile=smile,
-                    order=len(smile_ids[x['category_name']]),
-                    width=x['w'] if x.get('w') and x['w'] != smile.width else None,
-                    height=x['h'] if x.get('h') and x['h'] != smile.height else None,
-                )
-                smile_ids[x['category_name']].append(smile.id)
+            # FIXME: тут ОЧЕНЬ много insert-запросов
+            c.smiles.create(
+                smile=smile,
+                order=smile_orders[x['category']],
+                width=x['w'] if x.get('w') and x['w'] != smile.width else None,
+                height=x['h'] if x.get('h') and x['h'] != smile.height else None,
+            )
+            smile_orders[x['category']] += 1
         db.flush()
         current_app.cache.set('smilepacks_count', None, timeout=1)
-        current_app.logger.info('Created smilepack %s (%d smiles)', pack.hid, sum(len(x) for x in smile_ids.values()))
+        current_app.logger.info(
+            'Created smilepack %s/%d (%d smiles)',
+            pack.hid,
+            pack.version,
+            sum(smile_orders)
+        )
 
         return pack
 
@@ -139,10 +162,14 @@ class SmilePackBL(BaseBL):
         current_app.cache.set(key, str(smp.last_viewed_at), timeout=600)
         return smp.views_count
 
-    def get_by_hid(self, hid):
+    def get_by_hid(self, hid, version=None):
         if not hid or len(hid) > 16:
             return
-        pack = self._model().get(hid=hid)
+        pack = self._model().select(lambda x: x.hid == hid)
+        if version is None:
+            pack = pack.order_by(self._model().version.desc()).first()
+        else:
+            pack = pack.filter(lambda x: x.version == version).first()
 
         if not pack or pack.delete_at and pack.delete_at < datetime.utcnow():
             return
@@ -150,13 +177,22 @@ class SmilePackBL(BaseBL):
         return pack
 
     def as_json(self, with_smiles=False):
+        smp = self._model()
+
         categories = []
-        for cat in sorted(self._model().categories, key=lambda x: (x.order, x.id)):
+        for cat in sorted(smp.categories, key=lambda x: (x.order, x.id)):
             categories.append(cat.bl.as_json(with_smiles=with_smiles))
 
         return {
-            'name': self._model().name,
-            'description': self._model().description,
+            'hid': smp.hid,
+            'version': smp.version,
+            'parent': {
+                'hid': smp.parent.hid,
+                'version': smp.parent.version,
+                'name': smp.parent.name
+            } if smp.parent else None,
+            'name': smp.name,
+            'description': smp.description,
             'categories': categories
         }
 
@@ -177,14 +213,12 @@ class SmilePackBL(BaseBL):
 
 
 class SmilePackCategoryBL(BaseBL):
-    def get_by_smilepack(self, hid, category_id):
-        if not hid or category_id is None or len(hid) > 16:
+    def get_by_smilepack(self, hid, category_id, version=None):
+        if category_id is None:
             return
 
         from ..models import SmilePack
-        pack = SmilePack.get(hid=hid)
-        if not pack or pack.delete_at and pack.delete_at < datetime.utcnow():
-            return
+        pack = SmilePack.bl.get_by_hid(hid=hid, version=version)
         return pack.categories.select(lambda x: x.id == category_id).first()
 
     def as_json(self, with_smiles=False):

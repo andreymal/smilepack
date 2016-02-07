@@ -260,11 +260,18 @@ var generator = {
             alert('Добавьте хотя бы один смайлик!');
             return;
         }
-        var categories = this.smilepack.getCategoriesWithHierarchy({short: true, withoutIds: true, withoutIconUrl: true});
+        var rawCategories = this.smilepack.getCategoriesWithHierarchy({short: true});
+        var categories = [];
+        var categoryIdsTable = {};
+        var i;
+        for (i = 0; i < rawCategories.length; i++) {
+            categories.push({name: rawCategories[i].name, icon: rawCategories[i].icon.id});
+            categoryIdsTable[rawCategories[i].id] = i;
+        }
 
         var smiles = [];
         var smilesToCreate = [];
-        for (var i = 0; i < smileIds.length; i++) {
+        for (i = 0; i < smileIds.length; i++) {
             var smile = this.smilepack.getSmileInfo(smileIds[i], {withoutIds: true, withParent: true});
             if (smileIds[i] >= 0) {
                 smile.id = smileIds[i];
@@ -273,7 +280,7 @@ var generator = {
             } else {
                 smilesToCreate.push(smile);
             }
-            smile.category_name = this.smilepack.getCategoryInfo(0, smile.categoryId).name;
+            smile.category = categoryIdsTable[smile.categoryId];
             delete smile.cateogryLevel;
             delete smile.categoryId;
             smiles.push(smile);
@@ -392,9 +399,6 @@ var generator = {
     },
 
     modifySmilepackCategory: function(options) {
-        if (!options.name) {
-            return {error: 'Введите имя категории'};
-        }
         if (options.name.length > 128) {
             return {error: 'Длинновато имя у категории!'};
         }
@@ -404,15 +408,6 @@ var generator = {
             return {error: 'Выберите файл для иконки'};
         } else if (options.iconType === 'id' && (options.iconId === undefined || options.iconId === null || !options.iconUrl)) {
             return {error: 'Не выбрана иконка'};
-        }
-
-        if (options.categoryId === undefined || options.categoryId === null) {
-            var cats = this.smilepack.getCategoriesWithHierarchy();
-            for (var i = 0; i < cats.length; i++) {
-                if (cats[i].name == options.name) {
-                    return {error: 'Категория с таким именем уже существует'};
-                }
-            }
         }
 
         if (options.iconType === 'id' || options.iconType === 'nothing') {
@@ -446,18 +441,18 @@ var generator = {
         var id;
         if (options.categoryId === undefined || options.categoryId === null) {
             id = this.smilepack.addCategory(0, 0, {
-                name: options.name,
+                name: options.name || '',
                 icon: {id: iconId, url: options.iconUrl}
             });
             this.smilepack.createGroupForCategory(0, id);
         } else if (iconId !== undefined && iconId !== null) {
             id = this.smilepack.editCategory(0, options.categoryId, {
-                name: options.name,
+                name: options.name || '',
                 icon: {id: iconId, url: iconUrl}
             });
         } else {
             id = this.smilepack.editCategory(0, options.categoryId, {
-                name: options.name
+                name: options.name || ''
             });
         }
 

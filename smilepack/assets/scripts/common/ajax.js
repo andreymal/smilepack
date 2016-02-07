@@ -144,12 +144,12 @@ var ajax = {
             onload: onload,
             onerror: onerror,
             onend: onend,
-            data: JSON.stringify({
+            data: JSON.stringify({smilepack: {
                 name: name,
                 lifetime: lifetime,
                 categories: categories,
                 smiles: smiles
-            }),
+            }}),
             headers: {'Content-Type': 'application/json'}
         });
     },

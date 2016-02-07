@@ -8,6 +8,8 @@
 * Icon uploading and management
 * Uploading of multiple smiles at the same time
 * Suggestions: user can offer to add a smile to the collection (in development)
+* Editing and forking of smilepacks (in development)
+* The ability to create multiple categories with the same name (including empty name) in smilepacks
 * Many bug fixes (including frontend fixes for Safari and IE11)
 
 

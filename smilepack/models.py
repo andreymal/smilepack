@@ -209,7 +209,7 @@ class Tag(db.Entity):
 class TagSynonym(db.Entity):
     """Синоним тега смайлика (например, «twilight sparkle» -> «твайлайт спаркл»)"""
     section = orm.Required(Section, index=True)
-    name = orm.Required(str, 64, unique=True)
+    name = orm.Required(str, 64, index=True)
     tag = orm.Required(Tag)
     tag_name = orm.Required(str, 64)  # экономим на джойне
 
@@ -218,7 +218,9 @@ class TagSynonym(db.Entity):
 
 class SmilePack(db.Entity):
     """Смайлопак"""
-    hid = orm.Required(str, 16, index=True, unique=True)
+    hid = orm.Required(str, 16, index=True)
+    version = orm.Required(int, default=1)
+    parent = orm.Optional('SmilePack')
     user_addr = orm.Optional(str, 255, nullable=True, default=None)
     user_cookie = orm.Required(str, 64, index=True)
     categories = orm.Set('SmilePackCategory')
@@ -230,6 +232,10 @@ class SmilePack(db.Entity):
     updated_at = orm.Required(datetime, default=datetime.utcnow)
     delete_at = orm.Optional(datetime, default=datetime.utcnow)
 
+    children = orm.Set('SmilePack')
+
+    orm.composite_key(hid, version)
+
     bl = Resource('bl.smilepack')
 
     def before_update(self):
@@ -239,7 +245,7 @@ class SmilePack(db.Entity):
 class SmilePackCategory(db.Entity):
     """Категория смайлопака"""
     smilepack = orm.Required(SmilePack)
-    name = orm.Required(str, 128, autostrip=False)
+    name = orm.Optional(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
     smiles = orm.Set('SmilePackSmile')

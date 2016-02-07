@@ -82,8 +82,8 @@ def smilepacks_status(app):
         else:
             items.append({'key': 'last_smp', 'name': 'Last', 'value': 'none', 'status': 'ok'})
 
-        test_smp = models.SmilePack.bl.create('00', [], [], validate=False)
-        items.append({'key': 'sample_url', 'name': 'Sample URL', 'value': url_for('pages.generator', smp_id=test_smp.hid), 'status': 'ok'})
+        test_smp = models.SmilePack.bl.create({'categories': [], 'smiles': []}, '00', '::1')
+        items.append({'key': 'sample_url', 'name': 'Sample URL', 'value': url_for('pages.generator', smp_hid=test_smp.hid), 'status': 'ok'})
         test_smp.delete()
 
         db.rollback()

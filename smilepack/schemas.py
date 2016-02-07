@@ -172,60 +172,72 @@ SMILE = {
 }
 
 
-SMILEPACK_SMILE = {
+SMILEPACK = {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "id": {
-                "type": "integer"
-            },
-            "category_name": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-            },
-            "w": {
-                "type": "integer",
-                "minimum": 1
-            },
-            "h": {
-                "type": "integer",
-                "minimum": 1
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 64
+        },
+        "fork": {
+            "type": ["string", "null"]
+        },
+        "edit": {
+            "type": ["string", "null"]
+        },
+        "categories": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 128
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 16000
+                    },
+                    "icon": {
+                        "type": "integer"
+                    }
+                },
+                "required": ["icon"]
             }
         },
-        "required": ["category_name", "id"],
-    },
-    "minItems": 1
-}
-
-
-SMILEPACK_CATEGORIES = {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "name": {
-                "type": "string",
-                "minLength": 1
-            },
-            "description": {
-                "type": "string"
-            },
-            "icon": {
+        "smiles": {
+            "type": "array",
+            "items": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "integer"
+                    },
+                    "category": {
+                        "type": "integer",
+                        "mininum": 0
+                    },
+                    "w": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "h": {
+                        "type": "integer",
+                        "minimum": 1
                     }
                 },
-                "required": ["id"]
+                "required": ["category", "id"],
             }
         },
-        "required": ["name"]
-    }
+        "lifetime": {
+            "type": "integer"
+        }
+    },
+    "required": ["categories", "smiles"]
 }
 
 

@@ -47,7 +47,7 @@
     {%- endif %}
     {% if pack %}
     <button class="button button-primary action-save">{{ _("Save new smilepack") }}</button>
-    <a href="{{ url_for('smilepacks.download_compat', smp_id=pack.hid) }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
+    <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
     {% else %}
     <button class="button button-primary action-save">{{ _("Save and download smilepack!") }}</button>
     <a href="#" target="_blank" id="smp-last-url" style="display: none;">{{ _("Download last saved version") }}</a>

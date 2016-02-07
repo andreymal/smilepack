@@ -15,13 +15,14 @@ from smilepack.utils.exceptions import BadRequestError
 bp = Blueprint('smilepacks', __name__)
 
 
-@bp.route('/<smp_id>')
+@bp.route('/<smp_hid>', defaults={'version': None})
+@bp.route('/<smp_hid>/<int:version>')
 @user_session
 @default_crossdomain()
 @json_answer
 @db_session
-def show(session_id, first_visit, smp_id):
-    smp = SmilePack.bl.get_by_hid(smp_id)
+def show_version(session_id, first_visit, smp_hid, version):
+    smp = SmilePack.bl.get_by_hid(smp_hid, version=version)
     if not smp:
         abort(404)
 
@@ -29,26 +30,26 @@ def show(session_id, first_visit, smp_id):
     return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
 
 
-@bp.route('/<smp_id>/<int:category_id>')
+@bp.route('/<smp_hid>/<int:version>/<int:category_id>')
 @default_crossdomain()
 @json_answer
 @db_session
-def show_category(smp_id, category_id):
-    cat = SmilePackCategory.bl.get_by_smilepack(smp_id, category_id)
+def show_category(smp_hid, version, category_id):
+    cat = SmilePackCategory.bl.get_by_smilepack(smp_hid, category_id, version=version)
     if not cat:
         abort(404)
 
     return cat.bl.as_json(with_smiles=True)
 
 
-@bp.route('/<smp_id>.compat.user.js')
+@bp.route('/<smp_hid>.compat.user.js')
 @user_session
 @db_session
-def download_compat(session_id, first_visit, smp_id):
-    ckey = 'compat_js_{}'.format(smp_id)
+def download_compat(session_id, first_visit, smp_hid):
+    ckey = 'compat_js_{}'.format(smp_hid)
     result = current_app.cache.get(ckey)
 
-    smp = SmilePack.bl.get_by_hid(smp_id)
+    smp = SmilePack.bl.get_by_hid(smp_hid)
     if not smp:
         abort(404)
     smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
@@ -62,7 +63,7 @@ def download_compat(session_id, first_visit, smp_id):
             pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
             pack_json_compat=smp.bl.as_json_compat(),
             host=request.host,
-            generator_url=url_for('pages.generator', smp_id=None, _external=True),
+            generator_url=url_for('pages.generator', smp_hid=None, _external=True),
             pack_ico_url=Icon.select().first().url,
         ).encode('utf-8')
 
@@ -81,10 +82,10 @@ def download_compat(session_id, first_visit, smp_id):
 @db_session
 def create(session_id, first_visit):
     r = request.json
-    if not r:
+    if not r or not r.get('smilepack'):
         raise BadRequestError('Empty request')
 
-    pack = SmilePack.bl.create(
+    '''pack = SmilePack.bl.create(
         session_id,
         r.get('smiles'),
         r.get('categories'),
@@ -92,15 +93,21 @@ def create(session_id, first_visit):
         description=r.get('description'),
         lifetime=r.get('lifetime') if current_app.config['ALLOW_LIFETIME_SELECT'] else 0,
         user_addr=request.remote_addr,
+    )'''
+
+    pack = SmilePack.bl.create(
+        r['smilepack'],
+        session_id,
+        user_addr=request.remote_addr,
     )
 
     deletion_date = pack.delete_at
 
     return {
         'smilepack_id': pack.hid,
-        'download_url': url_for('.download_compat', smp_id=pack.hid, _external=True),
-        'view_url': url_for('pages.generator', smp_id=pack.hid, _external=True),
-        'path': url_for('pages.generator', smp_id=pack.hid),
+        'download_url': url_for('.download_compat', smp_hid=pack.hid, _external=True),
+        'view_url': url_for('pages.generator', smp_hid=pack.hid, _external=True),
+        'path': url_for('pages.generator', smp_hid=pack.hid),
         'deletion_date': deletion_date.strftime('%Y-%m-%dT%H:%M:%SZ') if deletion_date else None,
         'fancy_deletion_date': format_datetime(deletion_date) if deletion_date else None
     }
