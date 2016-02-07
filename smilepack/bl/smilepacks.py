@@ -23,9 +23,20 @@ class SmilePackBL(BaseBL):
         packs = self._model().select(lambda x: x.user_cookie == session_id)[:]
         packs = [
             pack for pack in packs
-            if pack.version == 1 and (not pack.delete_at or pack.delete_at >= datetime.utcnow())
+            if not pack.delete_at or pack.delete_at >= datetime.utcnow()
         ]
-        return packs
+
+        # find latest available versions
+        lastpacks = {}
+        pack_hids = []
+        for pack in packs:
+            if pack.hid not in lastpacks:
+                lastpacks[pack.hid] = pack
+                pack_hids.append(pack.hid)
+            elif pack.version > lastpacks[pack.hid]:
+                lastpacks[pack.hid] = pack
+
+        return [lastpacks[i] for i in pack_hids]
 
     def create(self, data, session_id, user_addr):
         jsonschema.validate(data, schemas.SMILEPACK)
@@ -175,6 +186,18 @@ class SmilePackBL(BaseBL):
             return
 
         return pack
+
+    def get_versions(self, hid):
+        if not hid or len(hid) > 16:
+            return []
+        packs = self._model().select(lambda x: x.hid == hid)
+
+        now = datetime.utcnow()
+        return [x for x in packs if not x.delete_at or x.delete_at >= now]
+
+    def available(self):
+        pack = self._model()
+        return not pack.delete_at or pack.delete_at >= datetime.utcnow()
 
     def as_json(self, with_smiles=False):
         smp = self._model()

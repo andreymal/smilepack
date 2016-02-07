@@ -25,38 +25,34 @@
                 <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">{{ _("Report an issue") }}</a>
             {%- endif %}
         </div>
-        <div class="logo"><a href="{{ url_for('pages.index') }}" id="index_link">{{ _("Smilepack") }}</a></div>
+        <span class="page-title">
+            <a href="{{ url_for('pages.index') }}" id="index_link">{{ _("Smilepack") }}</a>
+            <span id="smp-name"{{ ' style="display: none;"'|safe if not pack else '' }}>"{{ (pack.name or pack.hid) if pack else '' }}"</span>
+        </span>
+
+        <span id="smp-versions-area" class="smp-versions-area"{{ ' style="display: none;"'|safe if (versions|length) < 2 else '' }}>
+            {{ _('Version') }}:
+            <select data-hid="{{ pack.hid if pack else '' }}" id="smp-versions">
+            {%- for packver in versions %}
+                <option value="{{ url_for('pages.generator', smp_hid=packver.hid, version=packver.version) }}"
+                    {{- ' selected' if pack and packver.version == pack.version else '' -}}
+                    >{{ packver.version }} ({{ packver.created_at|datetimeformat }})</option>
+            {%- endfor %}
+            </select>
+        </span>
+
+        <span id="smp-delete-container"{{ ' style="display: none;"'|safe if not pack_deletion_date else '' }}>
+            ({{ _("will be available until") }} <span id="smp-delete-date">{{ pack_deletion_date if pack_deletion_date else '' }}</span>)
+        </span>
     </div>
 
-    <div class="settings">
-    {{ _("Name") }}: <input class="text" id="name" value="{{ pack.name if pack else '' }}" autocomplete="off" placeholder="{{ _("Optional") }}" />
-    {% if config['ALLOW_LIFETIME_SELECT'] -%}
-    {{ _("Delete from server after") }}:
-    <select id="lifetime" autocomplete="off">
-        <option{{ ' selected' if (not pack and config['MAX_LIFETIME']) or lifetime == 1800 else '' }} value="1800">{{ _("Half an hour") }}</option>
-        {% for tm, title in [[28800, _("8 hours")], [86400, _("1 day")], [604800, _("Week")], [2592000, _("30 days")]] -%}
-        {%- if not config['MAX_LIFETIME'] or config['MAX_LIFETIME'] >= tm -%}
-            <option{{ ' selected' if pack and lifetime == tm else '' }} value="{{ tm }}">{{ title }}</option>
-        {% endif -%}
-        {%- endfor %}
-
-        {%- if not config['MAX_LIFETIME'] -%}
-            <option{{ ' selected' if not lifetime else '' }} value="0">{{ _("Keep forever") }}</option>
-        {%- endif %}
-    </select>
-    {%- endif %}
-    {% if pack %}
-    <button class="button button-primary action-save">{{ _("Save new smilepack") }}</button>
-    <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
-    {% else %}
-    <button class="button button-primary action-save">{{ _("Save and download smilepack!") }}</button>
-    <a href="#" target="_blank" id="smp-last-url" style="display: none;">{{ _("Download last saved version") }}</a>
-    {% endif %}
-    {% if pack_deletion_date %}
-    <span id="smp-delete-container">({{ _("smilepack will be deleted") }} <span id="smp-delete-date">{{ pack_deletion_date }}</span>)</span>
-    {% else %}
-    <span id="smp-delete-container" style="display: none;">({{ _("smilepack will be deleted") }} <span id="smp-delete-date"></span>)</span>
-    {% endif %}
+    <div id="settings-new" class="settings settings-new"{{ ' style="display: none;"'|safe if pack else '' }}>
+        <button class="button button-primary action-create">{{ _('Save and download smilepack!') }}</button>
+    </div>
+    <div id="settings-edit" class="settings settings-edit"{{ ' style="display: none;"'|safe if not pack else '' }}>
+        <button class="button button-primary action-edit"{{ ' style="display: none;"'|safe if not can_edit else '' }}>{{ _('Save changes') }}</button>
+        <button class="button button-primary action-fork">{{ _('Save as new smilepack') }}</button>
+        <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) if pack else '#' }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
     </div>
 </div>
 
@@ -213,6 +209,37 @@
     </form>
 </div>
 
+<div id="dialog-saving" class="dialog hidden">
+    <div class="dialog-title"><a class="dialog-close"></a> {{ _("Saving the smilepack") }}</div>
+    <form action="#">
+        <input type="hidden" name="mode" value="{{ 'edit' if pack else 'create' }}" />
+        <input type="hidden" name="hid" value="{{ pack.hid if pack else '' }}" />
+        <input type="hidden" name="version" value="{{ pack.version if pack else 1 }}" />
+
+        <label for="name">{{ _('Name') }}:</label><br/>
+        <input type="text" name="name" class="text input-width-full" value="{{ pack.name if pack else '' }}" placeholder="{{ _('Optional') }}" /><br/>
+
+        {% if config['ALLOW_LIFETIME_SELECT'] -%}
+        <label for="lifetime">{{ _("How long to store smilepack on the server") }}:</label><br/>
+        <select id="lifetime" class="input-width-full" autocomplete="off">
+            <option{{ ' selected' if (not pack and config['MAX_LIFETIME']) or lifetime == 1800 else '' }} value="1800">{{ _("Half an hour") }}</option>
+            {% for tm, title in [[28800, _("8 hours")], [86400, _("1 day")], [604800, _("Week")], [2592000, _("30 days")]] -%}
+            {%- if not config['MAX_LIFETIME'] or config['MAX_LIFETIME'] >= tm -%}
+                <option{{ ' selected' if pack and lifetime == tm else '' }} value="{{ tm }}">{{ title }}</option>
+            {% endif -%}
+            {%- endfor %}
+
+            {%- if not config['MAX_LIFETIME'] -%}
+                <option{{ ' selected' if not lifetime else '' }} value="0">{{ _("Keep forever") }}</option>
+            {%- endif %}
+        </select><br/>
+        <span class="dialog-notice">{{ _('You can download userscript after saving; in the userscript smilepack will be always available') }}</span><br/>
+        {%- endif %}
+        <br/>
+        <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
+    </form>
+</div>
+
 <div id="dialog-save" class="dialog hidden">
     <div class="dialog-title">{{ _("Saving the smilepack") }}</div>
     <div class="processing">
@@ -234,6 +261,7 @@
         <a href="#" class="dialog-close">{{ _("Back to editing") }}</a>
     </div>
 </div>
+
 {{ javascript_tag("generator_js") | safe }}
 {# TODO: This should loaded with ajax #}
 <script>

@@ -85,16 +85,6 @@ def create(session_id, first_visit):
     if not r or not r.get('smilepack'):
         raise BadRequestError('Empty request')
 
-    '''pack = SmilePack.bl.create(
-        session_id,
-        r.get('smiles'),
-        r.get('categories'),
-        name=r.get('name'),
-        description=r.get('description'),
-        lifetime=r.get('lifetime') if current_app.config['ALLOW_LIFETIME_SELECT'] else 0,
-        user_addr=request.remote_addr,
-    )'''
-
     pack = SmilePack.bl.create(
         r['smilepack'],
         session_id,
@@ -104,10 +94,16 @@ def create(session_id, first_visit):
     deletion_date = pack.delete_at
 
     return {
+        'name': pack.name,
+        'can_edit': True,
         'smilepack_id': pack.hid,
+        'version': pack.version,
         'download_url': url_for('.download_compat', smp_hid=pack.hid, _external=True),
         'view_url': url_for('pages.generator', smp_hid=pack.hid, _external=True),
         'path': url_for('pages.generator', smp_hid=pack.hid),
+        'extended_path': url_for('pages.generator', smp_hid=pack.hid, version=pack.version),
+        'created_at': pack.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'fancy_created_at': format_datetime(pack.created_at),
         'deletion_date': deletion_date.strftime('%Y-%m-%dT%H:%M:%SZ') if deletion_date else None,
         'fancy_deletion_date': format_datetime(deletion_date) if deletion_date else None
     }

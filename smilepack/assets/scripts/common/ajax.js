@@ -136,7 +136,18 @@ var ajax = {
         });
     },
 
-    create_smilepack: function(name, lifetime, categories, smiles, onload, onerror, onend) {
+    create_smilepack: function(mode, parent, name, lifetime, categories, smiles, onload, onerror, onend) {
+        var data = {
+            name: name,
+            lifetime: lifetime,
+            categories: categories,
+            smiles: smiles
+        };
+        if (mode === 'edit') {
+            data.edit = parent;
+        } else if (mode === 'fork') {
+            data.fork = parent;
+        }
         return this.request({
             method: 'POST',
             url: '/smilepack/',
@@ -144,12 +155,7 @@ var ajax = {
             onload: onload,
             onerror: onerror,
             onend: onend,
-            data: JSON.stringify({smilepack: {
-                name: name,
-                lifetime: lifetime,
-                categories: categories,
-                smiles: smiles
-            }}),
+            data: JSON.stringify({smilepack: data}),
             headers: {'Content-Type': 'application/json'}
         });
     },

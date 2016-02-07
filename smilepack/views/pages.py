@@ -44,18 +44,30 @@ def index(session_id, first_visit):
 @db_session
 def generator(session_id, first_visit, smp_hid, version):
     if smp_hid:
-        pack = SmilePack.bl.get_by_hid(smp_hid, version=version)
+        packs = SmilePack.bl.get_versions(smp_hid)
+        if not packs:
+            abort(404)
+        pack = None
+        for x in packs:
+            if version is not None and x.version == version:
+                pack = x
+                break
+            elif not version and (not pack or x.version > pack.version):
+                pack = x
         if not pack:
             abort(404)
         pack.bl.add_view(request.remote_addr, session_id if not first_visit else None)
     else:
         pack = None
+        packs = []
 
     return render_template(
         'generator.html',
         session_id=session_id,
+        can_edit=pack and pack.user_cookie == session_id,
         first_visit=first_visit,
         pack=pack,
+        versions=packs,
         pack_deletion_date=format_datetime(pack.delete_at) if pack and pack.delete_at else None,
         lifetime=(pack.delete_at - pack.created_at).total_seconds() if pack and pack.delete_at else None,
         icons=Icon.bl.select_published()[:],

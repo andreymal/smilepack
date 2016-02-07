@@ -9,6 +9,7 @@ var ajax = require('../common/ajax.js'),
     CategoryDialog = require('./dialogs/CategoryDialog.js'),
     SmileDialog = require('./dialogs/SmileDialog.js'),
     ImportUserscriptDialog = require('./dialogs/ImportUserscriptDialog.js'),
+    SmilepackSavingDialog = require('./dialogs/SmilepackSavingDialog.js'),
     SmilepackDialog = require('./dialogs/SmilepackDialog.js');
 
 
@@ -33,6 +34,7 @@ var generator = {
     usedSmiles: [], // неупорядоченный
 
     saveStatus: null,
+    lastSavedPack: null,
 
     /* dragdrop */
 
@@ -215,6 +217,10 @@ var generator = {
         this.currentTab = tab;
     },
 
+    _changeVersionEvent: function(event) {
+        window.location = event.target.value;
+    },
+
     importUserscript: function(options) {
         if (!options.form || !options.form.file.value) {
             return {error: 'Выберите файл'};
@@ -254,12 +260,38 @@ var generator = {
         }
     },
 
-    saveSmilepack: function() {
+    openSavingDialog: function(mode) {
         var smileIds = this.smilepack.getLevelSmileIds(0);
         if (!smileIds || smileIds.length < 1) {
             alert('Добавьте хотя бы один смайлик!');
             return;
         }
+
+        var data = {mode: mode || 'create'};
+        if (this.lastSavedPack !== null) {
+            data.hid = this.lastSavedPack.smilepack_id;
+            data.version = this.lastSavedPack.version;
+        }
+        dialogsManager.open('saving', data, this.saveSmilepack.bind(this));
+    },
+
+    saveSmilepack: function(options) {
+        if (this.saveStatus !== null) {
+            return {error: 'Кажется, уже что-то сохраняется'};
+        }
+        if (options.mode == 'fork') {
+            if (!options.hid) {
+                return {error: 'Кого форкаем?'};
+            }
+        } else if (options.mode == 'edit') {
+            if (!options.hid) {
+                return {error: 'Кого редактируем?'};
+            }
+        } else if (options.mode != 'create') {
+            return {error: 'Неверный режим'};
+        }
+        var smileIds = this.smilepack.getLevelSmileIds(0);
+
         var rawCategories = this.smilepack.getCategoriesWithHierarchy({short: true});
         var categories = [];
         var categoryIdsTable = {};
@@ -288,23 +320,18 @@ var generator = {
 
         dialogsManager.open('smilepack', {mode: 'saving'});
 
-        var lifetime = document.getElementById('lifetime');
-        if (lifetime) {
-            lifetime = parseInt(lifetime.value);
-        }
-        if (lifetime === null || isNaN(lifetime) || lifetime < 0) {
-            lifetime = 0;
-        }
-
         this.saveStatus = {
-            name: document.getElementById('name').value || undefined,
-            lifetime: lifetime,
+            name: options.name || '',
+            lifetime: options.lifetime || 0,
             categories: categories,
             smiles: smiles,
             smilesToCreate: smilesToCreate,
-            createPos: 0
+            createPos: 0,
+            mode: options.mode,
+            parent: options.hid
         };
         this._saveSmilepackProcessing();
+        return {success: true};
     },
 
     _saveSmilepackProcessing: function(data) {
@@ -343,6 +370,8 @@ var generator = {
         dialogsManager.open('smilepack', {mode: 'saving'});
 
         ajax.create_smilepack(
+            this.saveStatus.mode,
+            this.saveStatus.parent,
             this.saveStatus.name,
             this.saveStatus.lifetime,
             this.saveStatus.categories,
@@ -376,26 +405,68 @@ var generator = {
     },
 
     savedSmilepackEvent: function(data) {
-        if (data.path && window.history) {
-            document.title = document.getElementById('name').value;
-            window.history.replaceState(null, null, data.path + location.hash);
-        }
+        this.saveStatus = null;
+        this.lastSavedPack = data;
+        this.repaintPageForSmilepack(data);
 
         var options = {mode: 'saved', savedData: data};
         dialogsManager.open('smilepack', options);
 
+        this.modified = false;
+    },
+
+    repaintPageForSmilepack: function(pack) {
+        if (!pack) {
+            document.getElementById('settings-new').style.display = '';
+            document.getElementById('settings-edit').style.display = 'none';
+            document.getElementById('smp-versions-area').style.display = 'none';
+            // url and title are missing
+            return;
+        }
+        if (pack.path && window.history) {
+            document.title = pack.name || pack.smilepack_id;
+            window.history.replaceState(null, null, pack.path + location.hash);
+        }
+        document.getElementById('settings-new').style.display = 'none';
+        document.getElementById('settings-edit').style.display = '';
+
+        var smpName = document.getElementById('smp-name');
+        smpName.style.display = '';
+        smpName.textContent = '"' + (pack.name || pack.smilepack_id) + '"';
+
         var lastUrl = document.getElementById('smp-last-url');
-        lastUrl.href = options.savedData.download_url;
+        lastUrl.href = pack.download_url;
         lastUrl.style.display = '';
 
+        var editBtn = document.querySelector('.action-edit');
+        editBtn.style.display = pack.can_edit ? '' : 'none';
+
         var deletionDate = document.getElementById('smp-delete-container');
-        if (options.savedData.fancy_deletion_date) {
+        if (pack.fancy_deletion_date) {
             deletionDate.style.display = '';
-            document.getElementById('smp-delete-date').textContent = options.savedData.fancy_deletion_date;
+            document.getElementById('smp-delete-date').textContent = pack.fancy_deletion_date;
         } else {
             deletionDate.style.display = 'none';
         }
-        this.modified = false;
+
+        var versions = document.getElementById('smp-versions');
+        var versionsArea = document.getElementById('smp-versions-area');
+        if (versions.dataset.hid != pack.smilepack_id) {
+            versions.innerHTML = '';
+            versions.dataset.hid = pack.smilepack_id;
+        }
+
+        var option = document.createElement('option');
+        option.value = pack.extended_path || pack.path;
+        option.textContent = pack.version.toString() + ' (' + pack.fancy_created_at + ')';
+        versions.appendChild(option);
+        versions.value = option.value;
+
+        if (versions.querySelectorAll('option').length > 1) {
+            versionsArea.style.display = '';
+        } else {
+            versionsArea.style.display = 'none';
+        }
     },
 
     modifySmilepackCategory: function(options) {
@@ -1021,7 +1092,20 @@ var generator = {
             dialogsManager.open('smile', {}, this.addCustomSmile.bind(this));
         }.bind(this));
 
-        document.querySelector('.action-save').addEventListener('click', this.saveSmilepack.bind(this));
+        var openSavingDialog = this.openSavingDialog.bind(this);
+        var openEvent = function() {
+            var mode = 'create';
+            if (this.classList.contains('action-edit')) {
+                mode = 'edit';
+            } else if (this.classList.contains('action-fork')) {
+                mode = 'fork';
+            }
+            openSavingDialog(mode);
+            return false;
+        };
+        document.querySelector('.action-create').addEventListener('click', openEvent);
+        document.querySelector('.action-edit').addEventListener('click', openEvent);
+        document.querySelector('.action-fork').addEventListener('click', openEvent);
 
         document.getElementById('action-storage-save').addEventListener('click', function() {this.storageSave(true);}.bind(this));
         document.getElementById('action-storage-load').addEventListener('click', function() {this.storageLoad(true);}.bind(this));
@@ -1045,6 +1129,8 @@ var generator = {
             this.tabs[tabs[i].dataset.tab] = tabs[i];
             tabs[i].addEventListener('click', changeTabEvent);
         }
+
+        document.getElementById('smp-versions').addEventListener('change', this._changeVersionEvent.bind(this));
     },
 
     registerDialogs: function() {
@@ -1052,6 +1138,7 @@ var generator = {
             category: new CategoryDialog(),
             smile: new SmileDialog(),
             import_userscript: new ImportUserscriptDialog(),
+            saving: new SmilepackSavingDialog(),
             smilepack: new SmilepackDialog()
         });
     },

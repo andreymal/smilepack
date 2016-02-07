@@ -41,22 +41,21 @@ body.drag-enabled * {
     z-index: 200;
 }
 
+.top a, .top a:visited {
+    color: white;
+}
+
 .header {
     padding: 0.25em 0.5em;
     height: 1.5em;
     line-height: 1.5em;
 }
 
-.header a, .header a:visited, .settings a, .settings a:visited {
-    color: white;
-}
-
-.header .logo {
-    color: white;
+.page-title {
+    color: inherit;
     text-decoration: none;
     font-weight: bold;
 }
-
 
 .container {
     position: absolute;
