@@ -63,7 +63,7 @@ msgstr "Загрузить новый смайлик"
 
 #: smilepack/templates/admin.html:48
 msgid "Suggestions and unpublished smiles"
-msgstr "Все неопубликованные смайлы"
+msgstr "Предложения и неопубликованные смайлики"
 
 #: smilepack/templates/admin.html:50
 msgid "All"

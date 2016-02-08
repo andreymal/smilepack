@@ -40,7 +40,13 @@
     line-height: 1.5em;
 }
 
-.widget-collection .collection-title {
+.widget-collection .collection-tabs-title {
+    font-size: 0.9em;
+    color: black;
+    line-height: 1.5em;
+}
+
+.widget-collection .collection-title, .widget-collection .collection-tabs-title {
     font-weight: bold;
     padding: 0.5em 0.5em 0 0.5em;
 }
@@ -235,6 +241,10 @@
 
 body.dark .widget-collection .collection-title, body.dark .widget-collection .tabs-wrapper {
     background-color: #334;
+    color: #999;
+}
+
+body.dark .widget-collection .collection-tabs-title {
     color: #999;
 }
 
