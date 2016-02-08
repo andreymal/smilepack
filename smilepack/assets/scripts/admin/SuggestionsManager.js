@@ -7,14 +7,18 @@ var SuggestionsManager = function(collection) {
     this.collection = collection;
 
     var allGroupId = collection.createGroup();
-    var sugGroupId = collection.createGroup();
+    var catGroupId = collection.createGroup();
     var nocatGroupId = collection.createGroup();
+    var nonsugGroupId = collection.createGroup();
+    var hiddenGroupId = collection.createGroup();
     this.currentTab = null;
 
     this.tabs = {
         all: {groupId: allGroupId, btn: null, older: null},
-        suggestions: {groupId: sugGroupId, btn: null, older: null},
-        nocategories: {groupId: nocatGroupId, btn: null, older: null}
+        categories: {groupId: catGroupId, btn: null, older: null},
+        nocategories: {groupId: nocatGroupId, btn: null, older: null},
+        nonsuggestions: {groupId: nonsugGroupId, btn: null, older: null},
+        hidden: {groupId: hiddenGroupId, btn: null, older: null}
     };
 
     collection.setCallback('onload', this._onload.bind(this));

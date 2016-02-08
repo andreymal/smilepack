@@ -23,17 +23,26 @@ def unpublished():
         older = int(older)
     else:
         older = None
+
     offset = request.args.get('offset')
     if offset and offset.isdigit():
         offset = int(offset)
     else:
         offset = 0
+
     count = request.args.get('count')
     if count and count.isdigit():
         count = int(count)
     else:
         count = 100
-    return {'smiles': models.Smile.bl.get_last_unpublished_as_json(filt=request.args.get('filter') or 'all', older=older, offset=offset, count=count)}
+
+    smiles = models.Smile.bl.get_last_unpublished_as_json(
+        filt=request.args.get('filter') or 'all',
+        older=older,
+        offset=offset,
+        count=count
+    )
+    return {'smiles': smiles}
 
 
 @bp.route('/<int:smile_id>', methods=['POST'])

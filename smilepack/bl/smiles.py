@@ -555,6 +555,10 @@ class SmileBL(BaseBL):
             if not smile.approved_at and smile.category:
                 # При вытаскивании смайлика из опубликованных порядок в категории тоже стоит навести
                 _normalize_order(smile.category.select_approved_smiles().order_by(Smile.order, Smile.id))
+        if 'is_suggestion' in data and data['is_suggestion'] != smile.is_suggestion:
+            smile.is_suggestion = not smile.is_suggestion
+        if 'hidden' in data and data['hidden'] != smile.hidden:
+            smile.hidden = not smile.hidden
 
         if 'tags' in data:
             try:
@@ -626,10 +630,14 @@ class SmileBL(BaseBL):
 
         if filt == 'all':
             result = Smile.select(lambda x: x.category is None or x.approved_at is None)
-        elif filt == 'suggestions':
-            result = Smile.select(lambda x: x.category is not None and x.approved_at is None)
+        elif filt == 'categories':
+            result = Smile.select(lambda x: x.category is not None and x.approved_at is None and x.is_suggestion)
         elif filt == 'nocategories':
-            result = Smile.select(lambda x: x.category is None)
+            result = Smile.select(lambda x: x.category is None and x.is_suggestion)
+        elif filt == 'nonsuggestions':
+            result = Smile.select(lambda x: (x.category is None or x.approved_at is None) and not x.is_suggestion)
+        elif filt == 'hidden':
+            result = Smile.select(lambda x: (x.category is None or x.approved_at is None) and x.hidden)
         else:
             raise ValueError('Unknown filter {}'.format(filt))
 
@@ -843,6 +851,7 @@ class SmileBL(BaseBL):
             result['created_at'] = smile.created_at.strftime('%Y-%m-%dT%H:%M:%SZ')
             result['updated_at'] = smile.updated_at.strftime('%Y-%m-%dT%H:%M:%SZ')
             result['approved_at'] = smile.approved_at.strftime('%Y-%m-%dT%H:%M:%SZ') if smile.approved_at else None
+            result['hidden'] = smile.hidden
         return result
 
     def get_system_path(self):

@@ -167,6 +167,9 @@ SMILE = {
         },
         "approved": {
             "type": "boolean"
+        },
+        "hidden": {
+            "type": "boolean"
         }
     }
 }

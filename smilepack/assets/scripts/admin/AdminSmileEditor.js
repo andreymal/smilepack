@@ -244,6 +244,9 @@ AdminSmileEditor.prototype.editManySmiles = function(options) {
     if (options.hasOwnProperty('approved')) {
         item.approved = options.approved;
     }
+    if (options.hasOwnProperty('hidden')) {
+        item.hidden = options.hidden;
+    }
 
     var items = [];
     for (var i = 0; i < smileIds.length; i++) {

@@ -9,6 +9,8 @@ var SmileDialog = function(element) {
     this.form = this.dom.querySelector('form');
     this.btn = this.form.querySelector('input[type="submit"]');
 
+    this.suggestionArea = this.form.querySelector('.smile-suggestion-area');
+
     this.progressBlock = this.dom.querySelector('.smile-progress-block');
     this.progressCurrent = this.progressBlock.querySelector('.smile-progress-current');
     this.progressCount = this.progressBlock.querySelector('.smile-progress-count');
@@ -46,6 +48,8 @@ var SmileDialog = function(element) {
         }
     }
 
+    this.form.is_suggestion.addEventListener('change', this._changeIsSuggestionEvent.bind(this));
+
     this._bindEvents();
     this.refreshFile();
 };
@@ -55,6 +59,14 @@ SmileDialog.prototype.constructor = SmileDialog;
 
 SmileDialog.prototype._setUploaderEvent = function(event) {
     this.setUploader(event.target.value);
+};
+
+
+SmileDialog.prototype.open = function(options) {
+    this._updateCategoriesList(options.collection);
+    this.form.is_suggestion.checked = false;
+    this.suggestionArea.style.display = 'none';
+    BasicDialog.prototype.open.apply(this);
 };
 
 
@@ -265,17 +277,25 @@ SmileDialog.prototype.onsubmit = function() {
         }
     }.bind(this);
 
+    var addData;
     if (this.current_uploader === 'link') {
         previewData = this.preview.get();
         if (previewData.cleaned) {
             return;
         }
-        smiles.push({
+        addData = {
             url: f.url.value,
             w: previewData.w,
             h: previewData.h,
             compress: f.compress ? f.compress.checked : false
-        });
+        };
+        if (f.is_suggestion.checked) {
+            addData.is_suggestion = true;
+            addData.suggestion_category = f.suggestion_category.value.length > 0 ? parseInt(f.suggestion_category.value) : null;
+            addData.tags = f.tags.value;
+            addData.description = f.description.value;
+        }
+        smiles.push(addData);
     } else if (this.current_uploader === 'file') {
         if (this.currentFilePreview !== -1 && this.filesData[this.currentFilePreview]) {
             previewData = this.preview.get();
@@ -291,12 +311,19 @@ SmileDialog.prototype.onsubmit = function() {
                 smiles.push({error: 'Не удалось прочитать смайлик'});
                 continue;
             }
-            smiles.push({
+            addData = {
                 file: data.file,
                 w: data.w,
                 h: data.h,
                 compress: f.compress ? f.compress.checked : false
-            });
+            };
+            if (f.is_suggestion.checked) {
+                addData.is_suggestion = true;
+                addData.suggestion_category = f.suggestion_category.value.length > 0 ? parseInt(f.suggestion_category.value) : null;
+                addData.tags = f.tags.value;
+                addData.description = f.description.value;
+            }
+            smiles.push(addData);
         }
     }
 
@@ -315,6 +342,38 @@ SmileDialog.prototype.onsubmit = function() {
     } else {
         this.error(result.error);
     }
+};
+
+
+SmileDialog.prototype._updateCategoriesList = function(collection) {
+    var categories = collection ? collection.getCategoryIdsWithSmiles() : [];
+    var options = document.createDocumentFragment();
+    var i;
+
+    var option = document.createElement('option');
+    option.value = '';
+    option.textContent = '---';
+    options.appendChild(option);
+    for (i = 0; i < categories.length; i++) {
+        var level = categories[i][0];
+        if (level !== 2) {
+            console.warn('SmileDialog: category level is not 2, ignored.', categories[i]);
+            continue;
+        }
+        option = document.createElement('option');
+        var id = categories[i][1];
+        option.value = id.toString();
+        option.textContent = collection.getCategoryInfo(level, id).name || option.value;
+        options.appendChild(option);
+    }
+
+    this.form.suggestion_category.innerHTML = '';
+    this.form.suggestion_category.appendChild(options);
+};
+
+
+SmileDialog.prototype._changeIsSuggestionEvent = function() {
+    this.suggestionArea.style.display = this.form.is_suggestion.checked ? '' : 'none';
 };
 
 

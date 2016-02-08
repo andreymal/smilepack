@@ -110,9 +110,13 @@ def create(session_id, first_visit):
             if request.form.get(key) and request.form[key].isdigit():
                 r[key] = int(request.form[key])
         r['description'] = request.form.get('description') or ''
-        r['tags'] = [x.strip() for x in (request.form.get('tags') or '').split(',') if x.strip()]
+        r['tags'] = request.form.get('tags') or ''
         r['compress'] = request.form.get('compress') in (1, True, '1', 'on')
         r['extended'] = request.form.get('extended') in (1, True, '1', 'on')
+        r['is_suggestion'] = request.form.get('is_suggestion') in (1, True, '1', 'on')
+
+    if isinstance(r.get('tags'), str):
+        r['tags'] = [x.strip() for x in r['tags'].split(',') if x.strip()]
 
     if request.files.get('file'):
         r['file'] = request.files['file']
@@ -127,11 +131,17 @@ def create(session_id, first_visit):
 
     with db_session:
         created, smile = models.Smile.bl.find_or_create(
-            dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags')),  # 'approved' key is not allowed
+            dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags', 'is_suggestion')),  # 'approved' key is not allowed
             user_addr=request.remote_addr,
             session_id=session_id,
             compress=compress
         )
+        if not created and r['is_suggestion'] and not smile.is_suggestion and not smile.hidden and not smile.approved_at:
+            edit_data = {'is_suggestion': True}
+            for key in ('category', 'tags', 'description'):
+                if key in r:
+                    edit_data[key] = r[key]
+            smile.bl.edit(edit_data)
 
         admin_info = r.get('extended') and current_user.is_authenticated and current_user.is_admin
         result = {'smile': smile.bl.as_json(full_info=admin_info, admin_info=admin_info), 'created': created}

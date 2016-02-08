@@ -27,6 +27,7 @@ SmileDialog.prototype.open = function(options) {
     this.form.tags.value = options.tags.join(', ');
     this.form.description.value = options.description;
     this.form.approved.checked = options.approvedByDefault || options.approved_at !== null;
+    this.form.hidden.checked = options.hidden;
     if (options.category) {
         this.form.category.value = options.category[0];
     } else {
@@ -122,6 +123,9 @@ SmileDialog.prototype.onsubmit = function() {
     }
     if (f.approved.checked !== (this.currentOptions.approved_at !== null)) {
         options.approved = f.approved.checked;
+    }
+    if (f.hidden.checked !== this.currentOptions.hidden) {
+        options.hidden = f.hidden.checked;
     }
 
     var result = this._submitEvent(options);

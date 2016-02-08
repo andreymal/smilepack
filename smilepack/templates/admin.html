@@ -45,10 +45,13 @@
 
 </div><div class="widget-collection container-right" id="suggestions">
     <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-tabs-sitle">{{ _('Suggestions and unpublished smiles') }}</div>
     <ul class="collection-tabs">
-        <li data-tab="all">{{ _("All unpublished smiles") }}</li>
-        <li data-tab="suggestions">{{ _("Suggestions") }}</li>
-        <li data-tab="nocategories">{{ _("With missing categories") }}</li>
+        <li data-tab="all">{{ _("All") }}</li>
+        <li data-tab="categories">{{ _("With categories") }}</li>
+        <li data-tab="nocategories">{{ _("Without categories") }}</li>
+        <li data-tab="nonsuggestions">{{ _("Non-suggestions") }}</li>
+        <li data-tab="hidden">{{ _("Hidden") }}</li>
     </ul>
     <div class="tabs-wrapper"></div>
 
@@ -196,11 +199,15 @@
         <label for="category">{{ _("Category") }}:</label><br/>
         <select class="input-width-full" name="category"></select><br/>
 
-        <label for="description">{{ "Description" }}:</label><br/>
+        <label for="description">{{ _("Description") }}:</label><br/>
         <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
 
         <label>
             <input type="checkbox" name="approved"> {{ _("Publish in collection (only if category is specified)") }}
+        </label><br/>
+
+        <label>
+            <input type="checkbox" name="hidden"> {{ _("Hide from list of unapproved smiles") }}
         </label><br/>
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
@@ -233,6 +240,11 @@
         <label><input type="radio" name="approved" value="" checked /> {{ _("Don't change") }}</label><br/>
         <label><input type="radio" name="approved" value="yes" /> {{ _("Publish in collection (only if category is specified)") }}</label><br/>
         <label><input type="radio" name="approved" value="no" /> {{ _("Don't publish") }}</label><br/>
+
+        {{ _('Hide from list of unapproved smiles') }}:<br/>
+        <label><input type="radio" name="hidden" value="" checked /> {{ _("Don't change") }}</label><br/>
+        <label><input type="radio" name="hidden" value="yes" /> {{ _("Hide") }}</label><br/>
+        <label><input type="radio" name="hidden" value="no" /> {{ _("Don't hide") }}</label><br/>
 
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>

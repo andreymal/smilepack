@@ -186,6 +186,20 @@
             </div>
         </div>
 
+        <label><input type="checkbox" name="is_suggestion"> {{ _('Suggest for publication in collection') }}</label><br/>
+        <div class="smile-suggestion-area" style="display: none;">
+            {{ _('If you wish, you can fill in the fields below, thereby helping the administration') }}:<br/>
+
+            <label for="tags">{{ _("Tags (separated by comma)") }}:</label><br/>
+            <input name="tags" class="text input-width-full" /><br/>
+
+            <label for="suggestion_category">{{ _("Category (if there is a suitable)") }}:</label><br/>
+            <select class="input-width-full" name="suggestion_category"></select><br/>
+
+            <label for="description">{{ _("Description") }}:</label><br/>
+            <textarea rows="3" class="textarea input-width-full" name="description"></textarea><br/>
+        </div>
+
         <input type="hidden" name="level" value="0" />
         <input type="hidden" name="category" value="0" />
 

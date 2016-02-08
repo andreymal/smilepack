@@ -55,6 +55,7 @@ ManySmilesDialog.prototype.open = function(options) {
     } else {
         this.form.querySelector('input[name="approved"][value=""]').checked = true;
     }
+    this.form.querySelector('input[name="hidden"][value=""]').checked = true;
 
     BasicDialog.prototype.open.apply(this);
 };
@@ -145,17 +146,19 @@ ManySmilesDialog.prototype.onsubmit = function() {
     if (f['change-description'].checked) {
         options.description = f.description.value;
     }
-    if (f.approved.length) {
-        for (i = 0; i < f.approved.length; i++) {
-            if (f.approved[i].checked) {
-                if (f.approved[i].value === 'yes') {
-                    options.approved = true;
-                } else if (f.approved[i].value === 'no') {
-                    options.approved = false;
-                }
-                break;
-            }
-        }
+
+    var approved = f.querySelector('input[name="approved"]:checked');
+    if (approved && approved.value == 'yes') {
+        options.approved = true;
+    } else if (approved && approved.value == 'no') {
+        options.approved = false;
+    }
+
+    var hidden = f.querySelector('input[name="hidden"]:checked');
+    if (hidden && hidden.value == 'yes') {
+        options.hidden = true;
+    } else if (hidden && hidden.value == 'no') {
+        options.hidden = false;
     }
 
     var result = this._submitEvent(options);

@@ -685,14 +685,22 @@ var generator = {
                 url: options.url,
                 w: options.w,
                 h: options.h,
-                compress: options.compress
+                compress: options.compress,
+                is_suggestion: options.is_suggestion ? true : false,
+                category: options.suggestion_category,
+                tags: options.tags || '',
+                description: options.description || ''
             }, onload, onerror);
         } else if (options.file) {
             ajax.upload_smile({
                 file: options.file,
                 w: options.w,
                 h: options.h,
-                compress: options.compress ? '1' : ''
+                compress: options.compress ? '1' : '',
+                is_suggestion: options.is_suggestion ? '1' : '',
+                category: options.suggestion_category,
+                tags: options.tags || '',
+                description: options.description || ''
             }, onload, onerror);
         }
 
@@ -1089,7 +1097,7 @@ var generator = {
 
         var addSmileBtn = this.smilepack.getDOM().querySelector('.additional .action-add-smile');
         addSmileBtn.addEventListener('click', function() {
-            dialogsManager.open('smile', {}, this.addCustomSmile.bind(this));
+            dialogsManager.open('smile', {collection: this.collection}, this.addCustomSmile.bind(this));
         }.bind(this));
 
         var openSavingDialog = this.openSavingDialog.bind(this);

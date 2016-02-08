@@ -137,7 +137,8 @@ class Smile(db.Entity):
     tags = orm.Set('Tag')
     tags_cache = orm.Optional(str, nullable=True)
     order = orm.Required(int, default=0)
-    is_submission = orm.Required(bool, default=False)
+    is_suggestion = orm.Required(bool, default=False)  # for admin page
+    hidden = orm.Required(bool, default=False)  # for admin page
     created_at = orm.Required(datetime, default=datetime.utcnow)
     approved_at = orm.Optional(datetime, nullable=True, index=True)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
