@@ -136,7 +136,7 @@ def create(session_id, first_visit):
             session_id=session_id,
             compress=compress
         )
-        if not created and r['is_suggestion'] and not smile.is_suggestion and not smile.hidden and not smile.approved_at:
+        if not created and r.get('is_suggestion') and not smile.is_suggestion and not smile.hidden and not smile.approved_at:
             edit_data = {'is_suggestion': True}
             for key in ('category', 'tags', 'description'):
                 if key in r:
