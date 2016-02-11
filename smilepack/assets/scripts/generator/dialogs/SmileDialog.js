@@ -48,7 +48,9 @@ var SmileDialog = function(element) {
         }
     }
 
-    this.form.is_suggestion.addEventListener('change', this._changeIsSuggestionEvent.bind(this));
+    if (this.suggestionArea) {
+        this.form.is_suggestion.addEventListener('change', this._changeIsSuggestionEvent.bind(this));
+    }
 
     this._bindEvents();
     this.refreshFile();
@@ -63,9 +65,11 @@ SmileDialog.prototype._setUploaderEvent = function(event) {
 
 
 SmileDialog.prototype.open = function(options) {
-    this._updateCategoriesList(options.collection);
-    this.form.is_suggestion.checked = false;
-    this.suggestionArea.style.display = 'none';
+    if (this.suggestionArea) {
+        this._updateCategoriesList(options.collection);
+        this.form.is_suggestion.checked = false;
+        this.suggestionArea.style.display = 'none';
+    }
     BasicDialog.prototype.open.apply(this);
 };
 
@@ -289,7 +293,7 @@ SmileDialog.prototype.onsubmit = function() {
             h: previewData.h,
             compress: f.compress ? f.compress.checked : false
         };
-        if (f.is_suggestion.checked) {
+        if (this.suggestionArea && f.is_suggestion.checked) {
             addData.is_suggestion = true;
             addData.suggestion_category = f.suggestion_category.value.length > 0 ? parseInt(f.suggestion_category.value) : null;
             addData.tags = f.tags.value;
@@ -317,7 +321,7 @@ SmileDialog.prototype.onsubmit = function() {
                 h: data.h,
                 compress: f.compress ? f.compress.checked : false
             };
-            if (f.is_suggestion.checked) {
+            if (this.suggestionArea && f.is_suggestion.checked) {
                 addData.is_suggestion = true;
                 addData.suggestion_category = f.suggestion_category.value.length > 0 ? parseInt(f.suggestion_category.value) : null;
                 addData.tags = f.tags.value;

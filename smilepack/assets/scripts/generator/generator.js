@@ -668,7 +668,11 @@ var generator = {
                 function(data) {
                     results.push(data);
                     var sleep = 350 - (Date.now() - startedAt);
-                    setTimeout(upload, sleep > 40 ? sleep : 40);
+                    if (i + 1 === count) {
+                        setTimeout(upload, 0);
+                    } else {
+                        setTimeout(upload, sleep > 40 ? sleep : 40);
+                    }
                 }
             );
             if (!result.success) {

@@ -71,6 +71,7 @@ class Config(object):
     MIN_SMILE_SIZE = (4, 4)
     MAX_SMILE_SIZE = (1024, 1024)
     SMILE_PROCESSING_MODE = 'optional'  # or 'none' or 'required'
+    ALLOW_SUGGESTIONS = True
 
     ICON_UPLOAD_METHOD = None
     ICON_COMPRESSION = True

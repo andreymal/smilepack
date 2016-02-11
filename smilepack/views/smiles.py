@@ -130,8 +130,11 @@ def create(session_id, first_visit):
         compress = current_app.config['FORCE_COMPRESSION'] or compress
 
     with db_session:
+        params = dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags', 'is_suggestion'))  # 'approved' key is not allowed
+        if not current_app.config['ALLOW_SUGGESTIONS']:
+            params['is_suggestion'] = False
         created, smile = models.Smile.bl.find_or_create(
-            dictslice(r, ('file', 'url', 'w', 'h', 'category', 'description', 'tags', 'is_suggestion')),  # 'approved' key is not allowed
+            params,
             user_addr=request.remote_addr,
             session_id=session_id,
             compress=compress
