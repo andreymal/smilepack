@@ -14,6 +14,7 @@ module.exports = {
         generator_js: root + "/scripts/generator",
         admin_js: root + "/scripts/admin",
         landing_css: root + "/styles/landing.css",
+        simplepage_css: root + "/styles/simplepage.css",
         base_css: root + "/styles/base.css",
         widget_collection_css: root + "/styles/widgets/Collection.css",
         generator_css: root + "/styles/generator.css",

@@ -1,0 +1,47 @@
+@import 'common.css';
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #1f2a4f;
+    background-image: url('../images/background.jpg');
+    background-size: cover;
+    background-position: center center;
+
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+    line-height: 2em;
+}
+
+.wrap {
+    overflow: hidden;
+    height: 50%;
+}
+
+.modal {
+    width: 30em;
+    max-width: 90%;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0.5em black;
+    border-radius: 0.5em;
+    padding: 0.5em;
+    color: black;
+    position: absolute;
+    top: 30%;
+    left: calc(50% - 15em);
+}
+
+.modal-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+}

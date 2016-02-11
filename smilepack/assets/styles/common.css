@@ -1,0 +1,66 @@
+.button {
+    background-color: #fafafa;
+    border: 1px solid #e2e2e2;
+    padding: 0.25em 0.375em;
+    font-family: inherit;
+    font-size: inherit;
+    color: black;
+    line-height: normal;
+    text-align: center;
+}
+
+.button-primary {
+    background-color: #22a;
+    border: 0;
+    color: white;
+}
+
+.button:hover{
+    background-color: #f5f5f5;
+}
+
+.button-primary:hover{
+    background-color: #44b;
+}
+
+.button:active {
+    box-shadow: 0 0 0.35em rgba(0, 0, 0, 0.2) inset;
+}
+
+.button-primary:active {
+    box-shadow: 0 0 0.35em rgba(240, 240, 255, 0.5) inset;
+}
+
+.button:disabled, .button-primary:disabled {
+    opacity: 0.5;
+}
+
+input.text, .textarea {
+    background-color: white;
+    border: 1px solid #ccc;
+    font-family: inherit;
+    font-size: inherit;
+    border-radius: 0.3em;
+    transition: box-shadow ease 0.15s, border ease 0.15s;
+    padding: 0.25em;
+    box-sizing: border-box;
+    box-shadow: 0 0 0.1em #ddd;
+}
+
+input.text {
+    height: 1.75em;
+}
+
+.input-width-full {
+    width: 100%;
+}
+
+select {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+input.text:focus, .textarea:focus {
+    border: 1px solid #aaf;
+    box-shadow: 0 0 0.2em #88f;
+}

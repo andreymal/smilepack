@@ -10,11 +10,11 @@
   {{ csrf_token_field() }}
 
   <label for="username">{{ _("Username") }}:</label><br/>
-  <input type="text" name="username" style="width: 100%" value="{{ username }}" /><br/>
+  <input type="text" name="username" class="text input-width-full" value="{{ username }}" /><br/>
 
   <label for="password">{{ _("Password") }}:</label><br/>
-  <input type="password" name="password" style="width: 100%" /><br/>
+  <input type="password" name="password" class="text input-width-full" /><br/>
 
-  <input type="submit" value="{{ _('Log In') }}" />
+  <input type="submit" class="button button-primary" value="{{ _('Log In') }}" />
 </form>
 {% endblock %}

@@ -12,11 +12,11 @@
 <form method="POST" action="{{ url_for('settings.settings_page') }}">
       {{ csrf_token_field() }}
       <label for="password">{{ _("New password") }}:</label><br/>
-      <input type="password" name="password1" style="width: 100%" /><br/>
+      <input type="password" name="password1" class="text input-width-full" /><br/>
 
       <label for="password">{{ _("Confirm new password") }}:</label><br/>
-      <input type="password" name="password2" style="width: 100%" /><br/>
+      <input type="password" name="password2" class="text input-width-full" /><br/>
 
-      <input type="submit" value="{{ _('Apply') }}" />
+      <input type="submit" class="button button-primary" value="{{ _('Apply') }}" />
 </form>
 {% endblock %}
