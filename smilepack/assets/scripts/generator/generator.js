@@ -111,13 +111,28 @@ var generator = {
             return;
         }
 
+        var beforeList = [];
+        var before = null;
+        if (action != 'delete') {
+            var itemIds = this.smilepack.getCategoryChildrenIds(0, 0);
+            for (var i = 0; i < itemIds.length; i++) {
+                var info = this.smilepack.getCategoryInfo(0, itemIds[i], {withParent: true});
+                beforeList.push([itemIds[i], info.name]);
+                if (action == 'edit' && itemIds[i] === categoryId && i < itemIds.length - 1) {
+                    before = itemIds[i + 1];
+                }
+            }
+        }
+
         if (action == 'delete' && categoryId !== undefined && categoryId !== null) {
             this.deleteSmilepackCategory(categoryId, true);
         } else if (action == 'add') {
-            dialogsManager.open('category', {edit: false}, this.modifySmilepackCategory.bind(this));
+            dialogsManager.open('category', {edit: false, beforeList: beforeList, before: before}, this.modifySmilepackCategory.bind(this));
         } else if (action == 'edit') {
             dialogsManager.open('category', {
                 edit: true,
+                beforeList: beforeList,
+                before: before,
                 category: this.smilepack.getCategoryInfo(0, options.categoryId)
             }, this.modifySmilepackCategory.bind(this));
         }
@@ -528,7 +543,18 @@ var generator = {
         }
 
         if (id === null) {
-            return {error: 'Кажется, что-то пошло не так'};
+            if (onend) {
+                onend({error: 'Кажется, что-то пошло не так'});
+            }
+            return;
+        }
+        if (options.hasOwnProperty('before')) {
+            if (!this.smilepack.moveCategory(0, id, options.before)) {
+                if (onend) {
+                    onend({error: 'Кажется, что-то пошло не так'});
+                }
+                return;
+            }
         }
         if (options.categoryId === undefined || options.categoryId === null) {
             this.smilepack.selectCategory(0, id);

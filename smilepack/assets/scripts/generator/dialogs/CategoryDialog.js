@@ -35,9 +35,11 @@ CategoryDialog.prototype.onsubmit = function() {
         }
     }.bind(this);
 
+    var edit = f.category.value.length > 0;
     var data = {
-        categoryId: f.category.value.length > 0 ? parseInt(f.category.value) : null,
+        categoryId: edit ? parseInt(f.category.value) : null,
         name: f.name.value,
+        before: f.before.value.length ? parseInt(f.before.value) : null,
         onend: onend
     };
 
@@ -88,6 +90,24 @@ CategoryDialog.prototype.open = function(options) {
     }
 
     this.form.icon_url.value = '';
+
+    var i, option;
+    this.form.before.innerHTML = '';
+    for (i = 0; i < options.beforeList.length; i++) {
+        if (options.edit && options.beforeList[i][0] === options.category.id) {
+            continue;
+        }
+        option = document.createElement('option');
+        option.value = options.beforeList[i][0];
+        option.textContent = options.beforeList[i][1];
+        this.form.before.appendChild(option);
+    }
+    option = document.createElement('option');
+    option.value = '';
+    option.textContent = '---';
+    this.form.before.appendChild(option);
+
+    this.form.before.value = options.before !== null ? options.before.toString() : '';
 
     BasicDialog.prototype.open.apply(this, arguments);
 };
