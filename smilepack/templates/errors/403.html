@@ -1,0 +1,14 @@
+{% extends 'simple_page.html' %}
+{% block title %}{{ _("403 - Access Denied") }}{% endblock %}
+{% block modal_body %}
+    <div class="modal-title">{{ _("403 - Access Denied") }}</div>
+    {% if g.locale.language == 'ru' -%}
+    <div class="modal-text">
+        Вам сюда нельзя.
+    </div>
+    {% endif -%}
+    <div>
+        <a href="{{ url_for('pages.index') }}">{{ _('Go to index page') }}</a>
+    </div>
+    <div class="error-image error-403" />
+{% endblock %}

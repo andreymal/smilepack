@@ -1,0 +1,16 @@
+{% extends 'simple_page.html' %}
+{% block title %}{{ _("404 - Page Not Found") }}{% endblock %}
+{% block modal_body %}
+    <div class="modal-title">{{ _("404 - Page Not Found") }}</div>
+    {% if g.locale.language == 'ru' -%}
+    <div class="modal-text">
+        Страницы с таким адресом не существует.
+        Возможно, вы опечатались или перешли по битой ссылке.
+        А может, страница когда-то и существовала, но потом была удалена.
+    </div>
+    {% endif -%}
+    <div>
+        <a href="{{ url_for('pages.index') }}">{{ _('Go to index page') }}</a>
+    </div>
+    <div class="error-image error-404" />
+{% endblock %}

@@ -40,6 +40,9 @@ var ajax = {
         for (var header in options.headers || {}) {
             x.setRequestHeader(header, options.headers[header]);
         }
+        if (options.format == 'json') {
+            x.setRequestHeader('Accept', 'application/json');
+        }
 
         x.onreadystatechange = function() {
             var data;

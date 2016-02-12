@@ -9,8 +9,10 @@ from datetime import datetime, timedelta
 
 import jinja2
 import jsonschema
+from pony.orm import db_session
 from werkzeug.exceptions import HTTPException, Forbidden, UnprocessableEntity
-from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort
+from flask import request, current_app, jsonify, make_response, session, send_from_directory, abort, render_template
+from flask_babel import gettext
 from flask_login import current_user
 
 from ..utils.exceptions import InternalError, BadRequestError
@@ -164,11 +166,34 @@ def _add_nocache_header(response):
     return response
 
 
+def _page403(e):
+    return render_template('errors/403.html'), 403
+
+
+def _page404(e):
+    return render_template('errors/404.html'), 404
+
+
+def _page500(e):
+    best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+    if best == 'application/json' and request.accept_mimetypes[best] > request.accept_mimetypes['text/html']:
+        error_text = str(gettext('Oops, something went wrong'))
+        error_text += ' (' + str(gettext('Internal Server Error')) + ')'
+        resp = jsonify({'error': error_text})
+        resp.status_code = 500
+        return resp
+    else:
+        return render_template('errors/500.html', is_index=request.endpoint == 'pages.index'), 500
+
+
 def configure_for_app(app, package_root):
     app.jinja_env.globals['csrf_token'] = csrf_token
     app.jinja_env.globals['csrf_token_field'] = csrf_token_field
     app.register_error_handler(BadRequestError, _handle_bad_request_error)
     app.register_error_handler(jsonschema.ValidationError, _handle_validation_error)
+    app.errorhandler(403)(db_session(_page403))  # db_session is needed for current_user object
+    app.errorhandler(404)(db_session(_page404))
+    app.errorhandler(500)(db_session(_page500))
     app.after_request(_add_nocache_header)
 
     # Webpack assets

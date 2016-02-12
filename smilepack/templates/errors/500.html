@@ -1,0 +1,25 @@
+{% extends 'simple_page.html' %}
+{% block title %}{{ _("500 - Internal Server Error") }}{% endblock %}
+{% block modal_body %}
+    <div class="modal-title">{{ _("Oops, something went wrong") }}</div>
+    {% if g.locale.language == 'ru' -%}
+    <div class="modal-text">
+        На сервере случилась какая-то ошибка, появление которой никто не ожидал.
+        {% if config['ADMINS'] %}Сообщение о ней уже отправлено технопегасам.{% endif %}
+        Если она не проходит уже долго и сильно надоела,
+        может быть полезным сообщить о ней (если ещё никто не сообщил)
+        и рассказать, когда и как она вообще появилась.
+    </div>
+    {% endif -%}
+    <div>
+    {% if config['ISSUE_REPORT_LINK'] -%}
+        <a href="{{ config['ISSUE_REPORT_LINK'] }}" target="_blank" class="report-link">{{ _("Report an issue") }}</a>
+    {% endif -%}
+    {% if not is_index -%}
+        <a href="{{ url_for('pages.index') }}">{{ _('Go to index page') }}</a>
+    {% else -%}
+        <br/><em><small>({{ _('There had to be a link to the index page, but this page is index') }})</small></em>
+    {% endif -%}
+    </div>
+    <div class="error-image error-500" />
+{% endblock %}

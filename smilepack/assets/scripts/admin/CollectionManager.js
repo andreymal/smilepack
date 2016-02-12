@@ -16,6 +16,8 @@ var CollectionManager = function(collection) {
         if (data.sections.length == 1) {
             collection.selectCategory(0, data.sections[0].id);
         }
+    }, function(data) {
+        alert(data.error || data);
     });
 };
 
