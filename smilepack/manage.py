@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+
 from pony import orm
 from pony.orm import db_session
 
@@ -22,7 +24,11 @@ def shell():
 def status():
     from smilepack.utils.status import print_status
     orm.sql_debug(False)
-    print_status(manager.app)
+    fails, warns = print_status(manager.app)
+    if fails > 0:
+        sys.exit(1)
+    if warns > 0:
+        sys.exit(2)
 
 
 @manager.command
