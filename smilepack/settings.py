@@ -82,6 +82,9 @@ class Config(object):
     ICON_PROCESSING_MODE = 'optional'
     NO_ICONS_IS_THE_NORM = False
 
+    CHMOD_DIRECTORIES = 0o755
+    CHMOD_FILES = 0o644
+
     ISSUE_REPORT_LINK = None
 
     DEFAULT_WEBSITES_MODE = 'blacklist'

@@ -65,6 +65,8 @@ class IconBL(BaseBL):
             minres=current_app.config['ICON_SIZE'],
             maxres=current_app.config['ICON_SIZE'],
             processing_mode=current_app.config['ICON_PROCESSING_MODE'],
+            dirmode=current_app.config['CHMOD_DIRECTORIES'],
+            filemode=current_app.config['CHMOD_FILES'],
         )
         try:
             upload_info = icon_uploader.upload(

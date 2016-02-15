@@ -12,6 +12,7 @@
 * The ability to create multiple categories with the same name (including empty name) in smilepacks
 * The ability to customize the list of websites that the userscript will be enabled
 * User-friendly error pages
+* More configurable: compression, chmod, validation of images etc.
 * Many bug fixes (including frontend fixes for Safari and IE11)
 
 

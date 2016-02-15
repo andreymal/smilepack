@@ -421,6 +421,8 @@ class SmileBL(BaseBL):
             minres=current_app.config['MIN_SMILE_SIZE'],
             maxres=current_app.config['MAX_SMILE_SIZE'],
             processing_mode=current_app.config['SMILE_PROCESSING_MODE'],
+            dirmode=current_app.config['CHMOD_DIRECTORIES'],
+            filemode=current_app.config['CHMOD_FILES'],
         )
         try:
             upload_info = smile_uploader.upload(

@@ -15,7 +15,7 @@ class BadImageError(Exception):
 
 
 class Uploader(object):
-    def __init__(self, method, directory, maxbytes, minres, maxres, processing_mode):
+    def __init__(self, method, directory, maxbytes, minres, maxres, processing_mode, dirmode=0o755, filemode=0o644):
         '''Параметры загрузки:
         * method — None, 'imgur' или 'directory' — куда сохранять картинку (None означает отсутствие сохранения и требует url)
         * directory — каталог, в который будет сохранена картинка, для метода directory
@@ -37,6 +37,8 @@ class Uploader(object):
         if processing_mode not in ('none', 'required', 'optional'):
             raise ValueError('Invalid processing_mode')
         self.processing_mode = processing_mode
+        self.dirmode = dirmode
+        self.filemode = filemode
 
     def upload(self, data=None, url=None, compress=False, hashsum=None, image_format=None):
         '''Проверяет, обрабатывает и сохраняет картинку согласно параметрам.
@@ -88,7 +90,14 @@ class Uploader(object):
         if self.method == 'imgur':
             result = upload_to_imgur(data, hashsum)
         elif self.method == 'directory':
-            result = upload_to_directory(self.directory, data, hashsum, image_format=image_format)
+            result = upload_to_directory(
+                self.directory,
+                data,
+                hashsum,
+                image_format=image_format,
+                dirmode=self.dirmode,
+                filemode=self.filemode
+            )
         else:
             raise NotImplementedError
 
@@ -281,7 +290,12 @@ def upload_to_imgur(data, hashsum):
     return {'filename': link[link.rfind('/') + 1:], 'url': link, 'hashsum': new_hashsum}
 
 
-def upload_to_directory(upload_dir, data, hashsum, image_format=None):
+def upload_to_directory(upload_dir, data, hashsum, image_format=None, dirmode=0o755, filemode=0o644):
+    if dirmode < 0 or dirmode > 0o777:
+        raise ValueError('Invalid dirmode')
+    if filemode < 0 or filemode > 0o777:
+        raise ValueError('Invalid filemode')
+
     subdir = os.path.join(hashsum[:2], hashsum[2:4])
     filename = hashsum[4:10]
     if image_format == 'PNG':
@@ -291,16 +305,16 @@ def upload_to_directory(upload_dir, data, hashsum, image_format=None):
     elif image_format == 'GIF':
         filename += '.gif'
     else:
-        current_app.logger.error('Saved image %s.wtf with unknown format %s', filename, image_format)
+        current_app.logger.error('Saved image %s.wtf with unknown format %s', os.path.join(subdir, filename), image_format)
         filename += '.wtf'
 
     full_filename = os.path.join(subdir, filename)  # ab/cd/ef0123.ext
     upload_dir = os.path.join(upload_dir, subdir)  # /path/to/smiles/
 
-    if not os.path.isdir(upload_dir):
-        os.makedirs(upload_dir)
+    os.makedirs(upload_dir, mode=dirmode, exist_ok=True)
 
     full_path = os.path.join(upload_dir, filename)  # /path/to/smiles/ab/cd/ef0123.ext
     with open(full_path, 'wb') as fp:
         fp.write(data)
+    os.chmod(full_path, filemode)
     return {'filename': full_filename.replace(os.path.sep, '/'), 'url': None, 'hashsum': hashsum}
