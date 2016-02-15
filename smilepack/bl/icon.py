@@ -57,6 +57,9 @@ class IconBL(BaseBL):
         if icon_by_hashsum:
             return False, icon_by_hashsum
 
+        if current_app.config['DISABLE_THE_CREATION_OF_IMAGES']:
+            raise BadRequestError('Creation of images is disabled')
+
         # Раз ничего не нашлось, сохраняем иконку себе
         icon_uploader = uploader.Uploader(
             method=current_app.config['ICON_UPLOAD_METHOD'],
