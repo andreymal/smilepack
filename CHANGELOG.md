@@ -10,6 +10,7 @@
 * Suggestions: user can offer to add a smile to the collection
 * Editing and forking of smilepacks
 * The ability to create multiple categories with the same name (including empty name) in smilepacks
+* The ability to customize the list of websites that the userscript will be enabled
 * User-friendly error pages
 * Many bug fixes (including frontend fixes for Safari and IE11)
 

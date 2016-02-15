@@ -1,27 +1,20 @@
-{% raw %}// ==UserScript==
-// @name         Smile-O-Pack
+// ==UserScript==
+// @name         Смайлопак «{{ pack_name }}»
 // @version      1.21
-// @description  Смайлопак «{% endraw %}{{ pack_name }}{% raw %}»
-// @include      http://*/*
-// @include      https://*/*
+// @description  Создан {{ pack.created_at.strftime('%Y-%m-%d') }}
+{% if websites_mode == 'blacklist' -%}
 // @match        http://*/*
 // @match        https://*/*
-// @include      http://tabun.everypony.ru/*
-// @include      https://tabun.everypony.ru/*
+{% endif -%}
+{% for site in websites_list -%}
+    // @{{ 'match        ' if websites_mode == 'whitelist' else 'exclude      ' }}{{ site }}
+{% endfor -%}
 // @exclude      http://*.google.*
 // @exclude      https://*.google.*
-// @exclude      http://*.vk.com/*
-// @exclude      http://*.vkontakte.ru/*
-// @exclude      http://vk.com/*
-// @exclude      http://vkontakte.ru/*
-// @exclude      https://*.vk.com/*
-// @exclude      https://*.vkontakte.ru/*
-// @exclude      https://vk.com/*
-// @exclude      https://vkontakte.ru/*
 
 // @author       Код: EeyupBrony, Dark_XSM, Dotterian; адаптировал andreymal
 // ==/UserScript==
-
+{% raw %}
 (function(document, fn) {
     var script = document.createElement('script');
     script.setAttribute('type', 'text/javascript');

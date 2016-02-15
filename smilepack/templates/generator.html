@@ -46,13 +46,15 @@
         </span>
     </div>
 
-    <div id="settings-new" class="settings settings-new"{{ ' style="display: none;"'|safe if pack else '' }}>
-        <button class="button button-primary action-create">{{ _('Save and download smilepack!') }}</button>
-    </div>
-    <div id="settings-edit" class="settings settings-edit"{{ ' style="display: none;"'|safe if not pack else '' }}>
-        <button class="button button-primary action-edit"{{ ' style="display: none;"'|safe if not can_edit else '' }}>{{ _('Save changes') }}</button>
-        <button class="button button-primary action-fork">{{ _('Save as new smilepack') }}</button>
-        <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) if pack else '#' }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
+    <div class="settings">
+        <span id="settings-new" class="settings-new"{{ ' style="display: none;"'|safe if pack else '' }}>
+            <button class="button button-primary action-create">{{ _('Save and download smilepack!') }}</button>
+        </span>
+        <span id="settings-edit" class="settings-edit"{{ ' style="display: none;"'|safe if not pack else '' }}>
+            <button class="button button-primary action-edit"{{ ' style="display: none;"'|safe if not can_edit else '' }}>{{ _('Save changes') }}</button>
+            <button class="button button-primary action-fork">{{ _('Save as new smilepack') }}</button>
+            <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) if pack else '#' }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
+        </span>
     </div>
 </div>
 
@@ -141,7 +143,7 @@
         <label><input type="radio" name="icon" value="url" />{{ _('Upload icon from link') }}:</label><br/>
         <input type="text" name="icon_url" class="text input-width-full" placeholder="{{ _('Link to icon') }}" /><br/>
 
-        <span class="dialog-notice">{{ _('Icon resolution must be {w}x{h} pixels').format(w=icon_size[0], h=icon_size[1]) }}</span><br/>
+        <div class="dialog-notice">{{ _('Icon resolution must be {w}x{h} pixels').format(w=icon_size[0], h=icon_size[1]) }}</div>
 
         <input type="hidden" name="category" value="" />
 
@@ -252,9 +254,35 @@
                 <option{{ ' selected' if not lifetime else '' }} value="0">{{ _("Keep forever") }}</option>
             {%- endif %}
         </select><br/>
-        <span class="dialog-notice">{{ _('You can download userscript after saving; in the userscript smilepack will be always available') }}</span><br/>
+        <div class="dialog-notice">{{ _('You can download userscript after saving; in the userscript smilepack will be always available') }}</div>
         {%- endif %}
-        <br/>
+
+        <div class="smp-websites-container">
+            {{ _('Configure websites that the userscript will be enabled (one per line)') }}:<br/>
+
+            <label><input type="radio" name="websitesmode" value="blacklist"
+                {{- ' checked ' if config['DEFAULT_WEBSITES_MODE'] == 'blacklist' else ' ' -}}
+            /> {{ _('At all other than those listed') }}</label><br/>
+            <label><input type="radio" name="websitesmode" value="whitelist"
+                {{- ' checked ' if config['DEFAULT_WEBSITES_MODE'] == 'whitelist' else ' ' -}}
+            /> {{ _('Only listed') }}</label><br/>
+
+            <textarea name="websitesblacklist" class="textarea input-width-full" rows="5"
+                {{- ' style="display: none;" '|safe if config['DEFAULT_WEBSITES_MODE'] != 'blacklist' else ' ' -}}
+            >
+                {%- if config['DEFAULT_WEBSITES_BLACKLIST'] %}{{ '\n'.join(config['DEFAULT_WEBSITES_BLACKLIST']) }}{% endif -%}
+            </textarea>
+            <textarea name="websiteswhitelist" class="textarea input-width-full" rows="5"
+                {{- ' style="display: none;" '|safe if config['DEFAULT_WEBSITES_MODE'] != 'whitelist' else ' ' -}}
+            >
+                {%- if config['DEFAULT_WEBSITES_WHITELIST'] %}{{ '\n'.join(config['DEFAULT_WEBSITES_WHITELIST']) }}{% endif -%}
+            </textarea>
+            <div class="dialog-notice">
+                {{ _("This list will be stored in your browser's cookies and in userscript; other users will not see it.") }}<br/>
+                {{ _('You can use * for mask; for example, *.example.com') }}
+            </div>
+        </div>
+
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>
 </div>

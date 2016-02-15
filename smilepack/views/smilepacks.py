@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import zlib
+from hashlib import md5
 from pony.orm import db_session
 from flask import Blueprint, Response, abort, render_template, current_app, request, url_for
 from flask_babel import format_datetime
@@ -46,31 +47,36 @@ def show_category(smp_hid, version, category_id):
 @user_session
 @db_session
 def download_compat(session_id, first_visit, smp_hid):
-    ckey = 'compat_js_{}'.format(smp_hid)
-    result = current_app.cache.get(ckey)
+    mode, websites = _load_websites(request.cookies)
+
+    websites_hash = '{}:{}'.format(mode, '\x00'.join(websites))
+    websites_hash = md5(websites_hash.encode('utf-8')).hexdigest()
 
     smp = SmilePack.bl.get_by_hid(smp_hid)
     if not smp:
         abort(404)
     smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
 
+    ckey = 'compat_js_{}_{}'.format(smp_hid, websites_hash)
+    result = current_app.cache.get(ckey)
+
     if result:
         # У memcached ограничение на размер данных, перестраховываемся
-        result = zlib.decompress(result['zlib_data'])
+        result = zlib.decompress(result)
     else:
         result = render_template(
             'smilepack_classic.js',
+            pack=smp,
             pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
             pack_json_compat=smp.bl.as_json_compat(),
             host=request.host,
             generator_url=url_for('pages.generator', smp_hid=None, _external=True),
             pack_ico_url=Icon.select().first().url,
+            websites_mode=mode,
+            websites_list=websites,
         ).encode('utf-8')
 
-        current_app.cache.set(ckey, {
-            'updated_at': smp.updated_at,
-            'zlib_data': zlib.compress(result)
-        }, timeout=60)  # TODO: cache invalidation?
+        current_app.cache.set(ckey, zlib.compress(result), timeout=3600)
 
     return Response(result, mimetype='text/javascript; charset=utf-8')
 
@@ -130,3 +136,44 @@ def import_userscript():
         'ids': ([cat_id], sm_id),
         'notice': 'Missing smiles count: {}'.format(missing) if missing > 0 else None
     }
+
+
+def _load_websites(data):
+    if data.get('websitesmode') == 'blacklist':
+        mode = 'blacklist'
+    elif data.get('websitesmode') == 'whitelist':
+        mode = 'whitelist'
+    else:
+        mode = current_app.config['DEFAULT_WEBSITES_MODE']
+
+    if mode =='blacklist':
+        if data.get('websitesblacklist'):
+            websites = data['websitesblacklist'].split('|')
+        else:
+            websites = current_app.config['DEFAULT_WEBSITES_BLACKLIST']
+    elif mode == 'whitelist':
+        mode = 'whitelist'
+        if data.get('websiteswhitelist'):
+            websites = data['websiteswhitelist'].split('|')
+        else:
+            websites = current_app.config['DEFAULT_WEBSITES_WHITELIST']
+    else:
+        raise RuntimeError('Looks like invalid configuration; please check DEFAULT_WEBSITES_MODE')
+
+    result = []
+    for site in websites:
+        if not site:
+            continue
+        site = site.strip()
+        if not site:
+            continue
+
+        if '/' not in site:
+            site += '/*'
+        if '://' in site:
+            result.append(site)
+        else:
+            result.append('http://' + site)
+            result.append('https://' + site)
+    result.sort()  # normalize for md5
+    return mode, result

@@ -160,7 +160,7 @@ body.drag-enabled * {
 .dialog-notice {
     color: #aaa;
     font-size: 0.75em;
-    line-height: 1em;
+    line-height: 1.25em;
     margin-bottom: 0.25em;
     font-style: italic;
 }

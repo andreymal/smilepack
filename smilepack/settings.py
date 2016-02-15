@@ -84,6 +84,10 @@ class Config(object):
 
     ISSUE_REPORT_LINK = None
 
+    DEFAULT_WEBSITES_MODE = 'blacklist'
+    DEFAULT_WEBSITES_BLACKLIST = []
+    DEFAULT_WEBSITES_WHITELIST = []
+
 
 class Development(Config):
     DEBUG = True
