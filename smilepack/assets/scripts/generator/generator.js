@@ -787,15 +787,23 @@ var generator = {
 
     _finishCustomSmile: function(results, onend) {
         var msg = '';
+        var success = false;
         for (var i = 0; i < results.length; i++) {
             if (results[i].error) {
                 msg += (i + 1).toString() + ': ' + results[i].error + '\n';
-            } else if (results[i].notice) {
+            } else {
+                success = true;
+            }
+            if (results[i].notice) {
                 msg += (i + 1).toString() + ': ' + results[i].notice + '\n';
             }
         }
         if (onend) {
-            onend({success: true, notice: msg.length > 0 ? msg : null});
+            if (success) {
+                onend({success: true, notice: msg.length > 0 ? msg : null});
+            } else {
+                onend({success: false, error: msg.length > 0 ? msg : 'Кажется, что-то пошло не так'});
+            }
         }
     },
 
