@@ -26,7 +26,7 @@ def login_page():
         return render_template('login.html')
 
     user = User.bl.authenticate_by_username(request.form.get('username'), request.form.get('password'))
-    if user and login_user(user):
+    if user and login_user(user, remember=request.form.get('remember') == '1'):
         csrf_token(reset=True)
         user.last_login_at = datetime.utcnow()
         return redirect(url_for('pages.index'))

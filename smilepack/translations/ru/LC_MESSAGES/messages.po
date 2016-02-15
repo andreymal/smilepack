@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.2.0\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2016-02-15 20:54+0300\n"
+"POT-Creation-Date: 2016-02-16 00:46+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -540,7 +540,9 @@ msgstr ""
 
 #: smilepack/templates/generator.html:261
 msgid "Configure websites that the userscript will be enabled (one per line)"
-msgstr "Настройка сайтов, на которых юзерскрипт будет включен (по одному на строку)"
+msgstr ""
+"Настройка сайтов, на которых юзерскрипт будет включен (по одному на "
+"строку)"
 
 #: smilepack/templates/generator.html:265
 msgid "At all other than those listed"
@@ -651,6 +653,10 @@ msgid "Password"
 msgstr "Пароль"
 
 #: smilepack/templates/login.html:18
+msgid "Remember Me"
+msgstr "Запомнить меня"
+
+#: smilepack/templates/login.html:20
 msgid "Log In"
 msgstr "Войти"
 
