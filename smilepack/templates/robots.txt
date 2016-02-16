@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: {{ url_for('pages.view', smp_hid='') }}
+Disallow: {{ url_for('pages.generator', smp_hid='') }}
+Allow: {{ url_for('pages.generator') }}$
+Sitemap: {{ url_for('pages.sitemap', _external=True) }}

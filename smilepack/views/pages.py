@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from hashlib import md5
+
 from pony.orm import db_session
 
-from flask import Blueprint, render_template, abort, current_app, request, redirect, url_for
+from flask import Blueprint, Response, render_template, abort, current_app, request, redirect, url_for
 from flask_babel import format_datetime
 
 from smilepack.models import Section, SmilePack, Smile, Icon
@@ -142,3 +144,28 @@ def setlocale():
     response = current_app.make_response(redirect(url_for('.index')))
     response.set_cookie('locale', locale, max_age=3600 * 24 * 365 * 10)
     return response
+
+
+@bp.route('/robots.txt', methods=['GET'])
+def robots():
+    hosthash = md5(request.url_root.encode('utf-8')).hexdigest()
+    data = current_app.cache.get('robots_' + hosthash)
+    if not data:
+        with db_session:
+            data = render_template('robots.txt')
+        current_app.cache.set('robots_' + hosthash, data, timeout=3600 * 24)
+    return Response(data, mimetype='text/plain; charset=utf-8')
+
+
+@bp.route('/sitemap.xml', methods=['GET'])
+@db_session
+def sitemap():
+    hosthash = md5(request.url_root.encode('utf-8')).hexdigest()
+    data = current_app.cache.get('sitemap_' + hosthash)
+    if not data:
+        with db_session:
+            last_smile = Smile.bl.get_last_approved(count=1)
+            last_smile = last_smile[0] if last_smile else None
+            data = render_template('sitemap.xml', last_modified=last_smile.updated_at if last_smile else None)
+        current_app.cache.set('sitemap_' + hosthash, data, timeout=300)
+    return Response(data, mimetype='text/xml; charset=utf-8')
