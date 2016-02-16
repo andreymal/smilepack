@@ -89,8 +89,8 @@ SmilepackSavingDialog.prototype._getCookies = function() {
     if (v === 0) {
         c.split(/[,;]/).map(function(cookie) {
             var parts = cookie.split(/=/, 2),
-                name = decodeURIComponent(parts[0].trimLeft()),
-                value = parts.length > 1 ? decodeURIComponent(parts[1].trimRight()) : null;
+                name = decodeURIComponent(parts[0].replace(/^\s+/, "")),
+                value = parts.length > 1 ? decodeURIComponent(parts[1].replace(/\s+$/, "")) : null;
             cookies[name] = value;
         });
     } else {

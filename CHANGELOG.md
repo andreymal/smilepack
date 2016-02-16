@@ -13,7 +13,7 @@
 * The ability to customize the list of websites that the userscript will be enabled
 * User-friendly error pages
 * More configurable: compression, chmod, validation of images etc.
-* Many bug fixes (including frontend fixes for Safari and IE11)
+* Many bug fixes (including frontend fixes for Safari, Opera 12 and IE11)
 
 
 ## 0.1.1 (2015-12-14)

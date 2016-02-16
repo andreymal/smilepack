@@ -47,7 +47,7 @@ var dragdrop = {
 
         overlay.addEventListener('click', this._eventPrevent);
         overlay.addEventListener('mousedown', this._eventPrevent);
-        overlay.addEventListener('mouseup', this._eventPrevent);
+        // mouseup not prevented for Opera 12
 
         /* FIXME: optimize this */
         // var t1 = new Date().getTime();
@@ -175,6 +175,10 @@ var dragdrop = {
         this._overlay.style.left = newX + 'px';
         this._overlay.style.top = newY + 'px';
 
+        if (navigator.userAgent.indexOf('Presto') >= 0) {
+            this._overlay.style.display = 'none';
+        }
+
         var oldMouseOver = this._mouseOver;
         this._mouseOver = document.elementFromPoint(event.clientX, event.clientY);
 
@@ -204,6 +208,9 @@ var dragdrop = {
                 mouseOver: this._mouseOver,
                 overlay: this._overlay
             });
+        }
+        if (navigator.userAgent.indexOf('Presto') >= 0) {
+            this._overlay.style.display = '';
         }
 
         return false;
