@@ -112,6 +112,7 @@ def create(session_id, first_visit):
         'version': pack.version,
         'download_url': url_for('.download_compat', smp_hid=pack.hid, _external=True),
         'view_url': url_for('pages.generator', smp_hid=pack.hid, _external=True),
+        'mini_view_url': url_for('pages.view', smp_hid=pack.hid, _external=True),
         'path': url_for('pages.generator', smp_hid=pack.hid),
         'extended_path': url_for('pages.generator', smp_hid=pack.hid, version=pack.version),
         'created_at': pack.created_at.strftime('%Y-%m-%dT%H:%M:%SZ'),

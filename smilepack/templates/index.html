@@ -3,12 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <title>{{ _("Smilepack") }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
     {{ stylesheet_tag("landing_css") | safe }}
 </head>
 <body>
 
 <div class="main">
-    <h1>{{ _("Yes, it is smilepack!") }}</h1>
+    <h1 class="sitename">{{ _("Yes, it is smilepack!") }}</h1>
     <div class="stat">
         {{ ngettext("%(num)d smile in collection,", "%(num)d smiles in collection,", smiles_count) }}
         {{ ngettext("%(num)d smilepack created", "%(num)d smilepacks created", smilepacks_count) }}
@@ -44,7 +45,7 @@
     {%- if new_smiles_json|length >= 20 %}
     <div class="new-smiles-container">
         <div class="new-smiles-title">{{ _("New smiles:") }}</div>
-        <div id="new-smiles">{% for smile in new_smiles_json %}
+        <div id="new-smiles" class="new-smiles">{% for smile in new_smiles_json %}
             <a href="{{ url_for('pages.generator') }}#{{ smile['category'][0] }}"><img src="{{ smile['url'] }}" alt="" title="{{ smile['category'][1] }}" /></a>
         {%- endfor %}</div>
     </div>

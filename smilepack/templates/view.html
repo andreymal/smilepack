@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>{{ pack.name or pack.hid }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    {{ stylesheet_tag("base_css") | safe }}
+    {{ stylesheet_tag("widget_collection_css") | safe }}
+</head>
+<body>
+
+<div class="top">
+    <div class="header">
+        <span class="page-title">
+            <a href="{{ url_for('pages.index') }}" id="index_link">{{ _("Smilepack") }}</a>
+            <span id="smp-name">"{{ (pack.name or pack.hid) }}"</span>
+        </span>
+    </div>
+</div>
+
+<div class="container widget-collection" id="smilepack">
+    <div style="text-align: center" class="temporary"><img src="{{ asset_url_for('images/loading.gif') }}" alt="" /></div>
+    <div class="collection-title">{{ _("Smilepack") }}</div>
+    <div class="tabs-wrapper"></div>
+
+    <div class="collection-message">{{ _("Choice a category of smilepack to view smiles") }}</div>
+    <div class="collection-smiles"></div>
+</div><!-- /container -->
+
+
+{{ javascript_tag("viewer_js") | safe }}
+<script>
+viewer.smilepackData = {{ pack.bl.as_json(with_smiles=True)|tojson|safe }};
+</script>
+</body>
+</html>

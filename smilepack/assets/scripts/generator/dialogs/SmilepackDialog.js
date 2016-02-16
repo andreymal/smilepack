@@ -42,6 +42,8 @@ SmilepackDialog.prototype.open = function(options) {
         this.savedElement.querySelector('.smp-url').href = options.savedData.download_url;
         this.savedElement.querySelector('.smp-view-url').href = options.savedData.view_url;
         this.savedElement.querySelector('.smp-view-url').textContent = options.savedData.view_url;
+        this.savedElement.querySelector('.smp-mini-view-url').href = options.savedData.mini_view_url;
+        this.savedElement.querySelector('.smp-mini-view-url').textContent = options.savedData.mini_view_url;
     }
 
     BasicDialog.prototype.open.apply(this, arguments);

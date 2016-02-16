@@ -12,6 +12,7 @@ module.exports = {
     entry: {
         landing_js: root + "/scripts/landing.js",
         generator_js: root + "/scripts/generator",
+        viewer_js: root + "/scripts/viewer",
         admin_js: root + "/scripts/admin",
         landing_css: root + "/styles/landing.css",
         simplepage_css: root + "/styles/simplepage.css",

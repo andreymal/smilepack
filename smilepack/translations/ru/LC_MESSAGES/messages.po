@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.2.0\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2016-02-16 17:39+0300\n"
+"POT-Creation-Date: 2016-02-16 18:49+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -18,7 +18,7 @@ msgstr ""
 "Generated-By: Babel 2.2.0\n"
 
 #: smilepack/templates/admin.html:5 smilepack/templates/admin.html:30
-#: smilepack/templates/index.html:25
+#: smilepack/templates/index.html:26
 msgid "Smilepack administration"
 msgstr "Администрирование смайлопака"
 
@@ -35,7 +35,7 @@ msgstr "Управление иконками"
 msgid "User management"
 msgstr "Управление пользователями"
 
-#: smilepack/templates/admin.html:21 smilepack/templates/index.html:26
+#: smilepack/templates/admin.html:21 smilepack/templates/index.html:27
 #: smilepack/templates/settings.html:3
 msgid "Profile settings"
 msgstr "Настройки профиля"
@@ -45,7 +45,7 @@ msgid "Change background"
 msgstr "Поменять фон"
 
 #: smilepack/templates/admin.html:27 smilepack/templates/generator.html:25
-#: smilepack/templates/index.html:56 smilepack/templates/errors/500.html:16
+#: smilepack/templates/index.html:57 smilepack/templates/errors/500.html:16
 msgid "Report an issue"
 msgstr "Сообщить о проблеме"
 
@@ -364,7 +364,7 @@ msgstr "Подтвердите новый пароль"
 msgid "Apply"
 msgstr "Применить"
 
-#: smilepack/templates/generator.html:5 smilepack/templates/index.html:31
+#: smilepack/templates/generator.html:5 smilepack/templates/index.html:32
 msgid "Create smilepack"
 msgstr "Создать смайлопак"
 
@@ -381,7 +381,8 @@ msgid "Import userscript"
 msgstr "Импортировать юзерскрипт"
 
 #: smilepack/templates/generator.html:29 smilepack/templates/index.html:5
-#: smilepack/templates/simple_page.html:6
+#: smilepack/templates/simple_page.html:6 smilepack/templates/view.html:15
+#: smilepack/templates/view.html:23
 msgid "Smilepack"
 msgstr "Смайлопак"
 
@@ -429,7 +430,7 @@ msgstr "Скопировать категорию с названием и ик�
 msgid "Your smilepack"
 msgstr "Ваш смайлопак"
 
-#: smilepack/templates/generator.html:85
+#: smilepack/templates/generator.html:85 smilepack/templates/view.html:26
 msgid "Choice a category of smilepack to view smiles"
 msgstr "Выберите категорию смайлопака для просмотра смайликов"
 
@@ -596,6 +597,10 @@ msgstr ""
 msgid "Give a look to someone your smilepack by sharing this link:"
 msgstr "Дать посмотреть кому-нибудь ваш смайлопак, поделившись ссылкой:"
 
+#: smilepack/templates/generator.html:303
+msgid "or more compact version:"
+msgstr "или более компактная версия:"
+
 #: smilepack/templates/generator.html:305
 msgid ""
 "Close this message and continue editing to create another smilepack "
@@ -608,11 +613,11 @@ msgstr ""
 msgid "Back to editing"
 msgstr "Вернуться к редактированию"
 
-#: smilepack/templates/index.html:11
+#: smilepack/templates/index.html:12
 msgid "Yes, it is smilepack!"
 msgstr "Да, это смайлопак!"
 
-#: smilepack/templates/index.html:13
+#: smilepack/templates/index.html:14
 #, python-format
 msgid "%(num)d smile in collection,"
 msgid_plural "%(num)d smiles in collection,"
@@ -620,7 +625,7 @@ msgstr[0] "%(num)d смайлик в коллекции,"
 msgstr[1] "%(num)d смайлика в коллекции,"
 msgstr[2] "%(num)d смайликов в коллекции,"
 
-#: smilepack/templates/index.html:14
+#: smilepack/templates/index.html:15
 #, python-format
 msgid "%(num)d smilepack created"
 msgid_plural "%(num)d smilepacks created"
@@ -628,19 +633,19 @@ msgstr[0] "%(num)d смайлопак создан"
 msgstr[1] "%(num)d смайлопака создано"
 msgstr[2] "%(num)d смайлопаков создано"
 
-#: smilepack/templates/index.html:19
+#: smilepack/templates/index.html:20
 msgid "Logged in as {username}"
 msgstr "Вы вошли как {username}"
 
-#: smilepack/templates/index.html:22
+#: smilepack/templates/index.html:23
 msgid "Log out"
 msgstr "Выйти"
 
-#: smilepack/templates/index.html:34
+#: smilepack/templates/index.html:35
 msgid "Or open existing:"
 msgstr "Или открыть существующий:"
 
-#: smilepack/templates/index.html:46
+#: smilepack/templates/index.html:47
 msgid "New smiles:"
 msgstr "Новые смайлы:"
 
