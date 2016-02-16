@@ -29,6 +29,8 @@ def settings_page():
     if request.form.get('password1'):
         if request.form.get('password1') != request.form.get('password2'):
             errors.append(gettext('Passwords do not match'))
+        elif not current_user.bl.authenticate(request.form.get('current_password')):
+            errors.append(gettext('Current password is incorrect'))
         else:
             try:
                 # User.bl.set_password() has no validation

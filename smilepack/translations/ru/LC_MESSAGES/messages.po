@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: smilepack 0.2.0\n"
 "Report-Msgid-Bugs-To: andriyano-31@mail.ru\n"
-"POT-Creation-Date: 2016-02-16 00:46+0300\n"
+"POT-Creation-Date: 2016-02-16 17:39+0300\n"
 "Last-Translator: andreymal <andriyano-31@mail.ru>\n"
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
@@ -352,15 +352,15 @@ msgstr "Администратор"
 msgid "Is superadmin"
 msgstr "Суперадмин"
 
-#: smilepack/templates/admin.html:314 smilepack/templates/settings.html:14
+#: smilepack/templates/admin.html:314 smilepack/templates/settings.html:17
 msgid "New password"
 msgstr "Новый пароль"
 
-#: smilepack/templates/admin.html:317 smilepack/templates/settings.html:17
+#: smilepack/templates/admin.html:317 smilepack/templates/settings.html:20
 msgid "Confirm new password"
 msgstr "Подтвердите новый пароль"
 
-#: smilepack/templates/admin.html:320 smilepack/templates/settings.html:20
+#: smilepack/templates/admin.html:320 smilepack/templates/settings.html:23
 msgid "Apply"
 msgstr "Применить"
 
@@ -664,6 +664,10 @@ msgstr "Войти"
 msgid "Saved!"
 msgstr "Сохранено!"
 
+#: smilepack/templates/settings.html:14
+msgid "Current password"
+msgstr "Текущий пароль"
+
 #: smilepack/templates/errors/403.html:2 smilepack/templates/errors/403.html:4
 msgid "403 - Access Denied"
 msgstr "403 - Доступ запрещён"
@@ -705,6 +709,10 @@ msgstr "Неверные имя пользователя или пароль"
 #: smilepack/views/settings.py:31
 msgid "Passwords do not match"
 msgstr "Пароли не совпадают"
+
+#: smilepack/views/settings.py:33
+msgid "Current password is incorrect"
+msgstr "Текущий пароль неверный"
 
 #: smilepack/views/utils.py:181
 msgid "Internal Server Error"
