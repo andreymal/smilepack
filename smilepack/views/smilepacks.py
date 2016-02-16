@@ -21,14 +21,17 @@ bp = Blueprint('smilepacks', __name__)
 @user_session
 @default_crossdomain()
 @json_answer
-@db_session
 def show_version(session_id, first_visit, smp_hid, version):
-    smp = SmilePack.bl.get_by_hid(smp_hid, version=version)
-    if not smp:
-        abort(404)
+    with db_session:  # workaround for add_view (TODO: recheck this)
+        smp = SmilePack.bl.get_by_hid(smp_hid, version=version)
+        if not smp:
+            abort(404)
+        smp.bl.add_view(request.remote_addr, session_id)
+        smp_id = smp.id
 
-    smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
-    return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
+    with db_session:
+        smp = SmilePack.get(id=smp_id)
+        return smp.bl.as_json(with_smiles=request.args.get('full') == '1')
 
 
 @bp.route('/<smp_hid>/<int:version>/<int:category_id>')
@@ -45,17 +48,18 @@ def show_category(smp_hid, version, category_id):
 
 @bp.route('/<smp_hid>.compat.user.js')
 @user_session
-@db_session
 def download_compat(session_id, first_visit, smp_hid):
+    with db_session:
+        smp = SmilePack.bl.get_by_hid(smp_hid)
+        if not smp:
+            abort(404)
+        smp.bl.add_view(request.remote_addr, session_id)
+        smp_id = smp.id
+
     mode, websites = _load_websites(request.cookies)
 
     websites_hash = '{}:{}'.format(mode, '\x00'.join(websites))
     websites_hash = md5(websites_hash.encode('utf-8')).hexdigest()
-
-    smp = SmilePack.bl.get_by_hid(smp_hid)
-    if not smp:
-        abort(404)
-    smp.bl.add_view(request.remote_addr, session_id if not first_visit else None)
 
     ckey = 'compat_js_{}_{}'.format(smp_hid, websites_hash)
     result = current_app.cache.get(ckey)
@@ -64,17 +68,19 @@ def download_compat(session_id, first_visit, smp_hid):
         # У memcached ограничение на размер данных, перестраховываемся
         result = zlib.decompress(result)
     else:
-        result = render_template(
-            'smilepack_classic.js',
-            pack=smp,
-            pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
-            pack_json_compat=smp.bl.as_json_compat(),
-            host=request.host,
-            generator_url=url_for('pages.generator', smp_hid=None, _external=True),
-            pack_ico_url=Icon.select().first().url,
-            websites_mode=mode,
-            websites_list=websites,
-        ).encode('utf-8')
+        with db_session:
+            smp = SmilePack.get(id=smp_id)
+            result = render_template(
+                'smilepack_classic.js',
+                pack=smp,
+                pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
+                pack_json_compat=smp.bl.as_json_compat(),
+                host=request.host,
+                generator_url=url_for('pages.generator', smp_hid=None, _external=True),
+                pack_ico_url=Icon.select().first().url,
+                websites_mode=mode,
+                websites_list=websites,
+            ).encode('utf-8')
 
         current_app.cache.set(ckey, zlib.compress(result), timeout=3600)
 

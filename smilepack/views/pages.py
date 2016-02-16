@@ -41,39 +41,45 @@ def index(session_id, first_visit):
 @bp.route('/generate/<smp_hid>', defaults={'version': None})
 @bp.route('/generate/<smp_hid>/<int:version>')
 @user_session
-@db_session
 def generator(session_id, first_visit, smp_hid, version):
     if smp_hid:
-        packs = SmilePack.bl.get_versions(smp_hid)
-        if not packs:
-            abort(404)
-        pack = None
-        for x in packs:
-            if version is not None and x.version == version:
-                pack = x
-                break
-            elif not version and (not pack or x.version > pack.version):
-                pack = x
-        if not pack:
-            abort(404)
-        pack.bl.add_view(request.remote_addr, session_id if not first_visit else None)
+        with db_session:  # workaround for add_view (TODO: recheck this)
+            packs = SmilePack.bl.get_versions(smp_hid)
+            if not packs:
+                abort(404)
+            pack = None
+            for x in packs:
+                if version is not None and x.version == version:
+                    pack = x
+                    break
+                elif not version and (not pack or x.version > pack.version):
+                    pack = x
+            if not pack:
+                abort(404)
+            pack.bl.add_view(request.remote_addr, session_id)
+            pack_id = pack.id
+            packs = [x.id for x in packs]
     else:
         pack = None
+        pack_id = None
         packs = []
 
-    return render_template(
-        'generator.html',
-        session_id=session_id,
-        can_edit=pack and pack.user_cookie == session_id,
-        first_visit=first_visit,
-        pack=pack,
-        versions=packs,
-        pack_deletion_date=format_datetime(pack.delete_at) if pack and pack.delete_at else None,
-        lifetime=(pack.delete_at - pack.created_at).total_seconds() if pack and pack.delete_at else None,
-        icons=Icon.bl.select_published()[:],
-        icon_size=current_app.config['ICON_SIZE'],
-        collection_data={"sections": Section.bl.get_all_with_categories()},
-    )
+    with db_session:
+        pack = SmilePack.get(id=pack_id) if pack_id is not None else None
+        packs = SmilePack.select(lambda x: x.id in packs).order_by(SmilePack.version) if packs else []
+        return render_template(
+            'generator.html',
+            session_id=session_id,
+            can_edit=pack and pack.user_cookie == session_id,
+            first_visit=first_visit,
+            pack=pack,
+            versions=packs,
+            pack_deletion_date=format_datetime(pack.delete_at) if pack and pack.delete_at else None,
+            lifetime=(pack.delete_at - pack.created_at).total_seconds() if pack and pack.delete_at else None,
+            icons=Icon.bl.select_published()[:],
+            icon_size=current_app.config['ICON_SIZE'],
+            collection_data={"sections": Section.bl.get_all_with_categories()},
+        )
 
 
 @bp.route('/admin/')

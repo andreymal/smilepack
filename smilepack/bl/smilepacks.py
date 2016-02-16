@@ -161,16 +161,27 @@ class SmilePackBL(BaseBL):
         if session_id and session_id == smp.user_cookie:
             return smp.views_count
 
-        h = str(session_id or remote_addr).encode('utf-8') + b'\x00' + smp.hid.encode('utf-8')
-        key = 'smp_view_' + md5(h).hexdigest()
+        ip_view_id = str(remote_addr).encode('utf-8') + b'\x00' + smp.hid.encode('utf-8')
+        ip_key = 'smp_view_' + md5(ip_view_id).hexdigest()
+        if session_id:
+            session_view_id = (str(session_id).encode('utf-8') + b'\x00' + smp.hid.encode('utf-8'))
+            session_key = 'smp_view_' + md5(session_view_id).hexdigest()
+        else:
+            session_view_id = None
+            session_key = None
 
-        if current_app.cache.get(key) is not None:
+        if current_app.cache.get(ip_key) or (session_key and current_app.cache.get(session_key)):
+            # already viewed
             return smp.views_count
 
-        # FIXME: sometimes optimistic check fails here
-        smp.views_count += 1
-        smp.last_viewed_at = datetime.utcnow()
-        current_app.cache.set(key, str(smp.last_viewed_at), timeout=600)
+        # Avoid optimistic check of Pony ORM
+        smp_id = smp.id  # pylint: disable=W0612
+        db.execute('update ' + smp._table_ + ' set views_count = views_count + 1 where id = $smp_id')  # pylint: disable=W0212
+
+        current_app.cache.set(ip_key, str(smp.last_viewed_at), timeout=3600)
+        if session_key:
+            current_app.cache.set(session_key, str(smp.last_viewed_at), timeout=3600)
+
         return smp.views_count
 
     def get_by_hid(self, hid, version=None):
