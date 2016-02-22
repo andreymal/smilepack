@@ -86,6 +86,14 @@
     text-decoration: none;
 }
 
+.widget-collection .tab-btn-empty {
+    opacity: 0.2;
+}
+
+.widget-collection .tab-btn-empty:hover {
+    opacity: 0.8;
+}
+
 .widget-collection .tab-btn img {
     border: 0;
 }

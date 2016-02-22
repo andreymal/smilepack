@@ -353,6 +353,7 @@ Collection.prototype.addCategory = function(level, parentId, item) {
         level: level,
         name: item.name,
         description: item.description,
+        empty: item.empty ? true : false,
         dom: null,
         childrenDom: null,
         iconId: item.icon ? item.icon.id : -1,
@@ -387,6 +388,9 @@ Collection.prototype.editCategory = function(level, categoryId, item) {
     }
     if (item.hasOwnProperty('description')) {
         category.description = item.description;
+    }
+    if (item.hasOwnProperty('empty')) {
+        category.empty = item.empty ? true : false;
     }
     if (item.hasOwnProperty('icon')) {
         category.iconId = item.icon ? item.icon.id : -1;
@@ -1205,6 +1209,9 @@ Collection.prototype.addSmileToGroup = function(smileId, groupId, nolazy) {
     if (group.categoryId !== null) {
         smile.categoryLevel = group.categoryLevel;
         smile.categoryId = group.categoryId;
+        if (this._categories[group.categoryLevel][group.categoryId].empty) {
+            this.editCategory(group.categoryLevel, group.categoryId, {empty: false});
+        }
     }
     if (group.dom) {
         this._addSmileDom(smile.id, group.id, nolazy);
@@ -1333,6 +1340,9 @@ Collection.prototype.removeSmileFromGroup = function(id, groupId) {
     }
 
     if (smile.categoryId !== null && this._categories[smile.categoryLevel][smile.categoryId].groupId === group.id) {
+        if (group.smileIds.length === 0 && !this._categories[smile.categoryLevel][smile.categoryId].empty) {
+            this.editCategory(smile.categoryLevel, smile.categoryId, {empty: true});
+        }
         smile.categoryLevel = null;
         smile.categoryId = null;
     }
@@ -1812,6 +1822,9 @@ Collection.prototype._buildCategoryDom = function(level, categoryId, save) {
         icon.dataset.id = item.iconId;
         btn.appendChild(icon);
     }
+    if (item.empty) {
+        btn.classList.add('tab-btn-empty');
+    }
     btn.appendChild(document.createTextNode(item.name));
 
     if (this.options.editable) {
@@ -1973,6 +1986,9 @@ Collection.prototype._removeSmileRaw = function(id) {
         i = group.smileIds.indexOf(smile.id);
         if (i >= 0) {
             group.smileIds.splice(i, 1);
+            if (group.smileIds.length === 0 && group.categoryId !== null) {
+                this.editCategory(group.categoryLevel, group.categoryId, {empty: true});
+            }
         }
     }
     delete this._smiles[id];
@@ -2039,7 +2055,18 @@ Collection.prototype._loadDataLevel = function(items, level, parent_id) {
     var item_id;
 
     for (var i = 0; i < items.length; i++) {
-        item_id = this.addCategory(level, parent_id, items[i]);
+        var item = {};
+        for (var prop in items[i]) {
+            if (!items[i].hasOwnProperty(prop)) {
+                continue;
+            }
+            if (prop == 'smiles_count' && !item.hasOwnProperty('empty')) {
+                item.empty = items[i].smiles_count === 0;
+            } else {
+                item[prop] = items[i][prop];
+            }
+        }
+        item_id = this.addCategory(level, parent_id, item);
 
         /* Загружаем следующий уровень при его наличии */
         if (level + 1 < this._depth && items[i][this.hierarchy[level + 1][0]]) {
