@@ -48,6 +48,70 @@ def rehash_smiles(store=None):
 
 
 @manager.command
+def recalc_counts():
+    from smilepack.models import Category
+    orm.sql_debug(False)
+    with db_session:
+        for cat in Category.select().order_by(Category.subsection, Category.order, Category.id):
+            new_count = cat.select_approved_smiles().count()
+            print('{} ({}): {} -> {}'.format(cat.id, cat.name, cat.smiles_count, new_count))
+            cat.smiles_count = new_count
+
+
+@manager.option('-t', '--type', dest='typ', help='Type of object for recalc childrens (root, section, subsection, category)')
+@manager.option('-i', '--id', dest='target_id', help='ID of object for recalc childrens (only with --type) (all except root type)')
+def recalc_orders(typ=None, target_id=None):
+    if typ not in (None, 'root', 'section', 'subsection', 'category'):
+        raise ValueError('Invalid type')
+    if target_id is not None and (not typ or typ == 'root'):
+        raise ValueError('ID can be used only with type')
+    target_id = int(target_id) if target_id is not None else None
+
+    from smilepack import models
+
+    orm.sql_debug(False)
+
+    if typ is None or typ == 'root':
+        with db_session:
+            for new_order, item in enumerate(models.Section.select().order_by(models.Section.order, models.Section.id)):
+                print('Section {} ({}): {} -> {}'.format(item.id, item.name, item.order, new_order))
+                item.order = new_order
+
+    if typ is None or typ == 'section':
+        with db_session:
+            parents = models.Section.select()
+            if target_id is not None:
+                parents = parents.filter(lambda x: x.id == target_id)
+            for parent in parents[:]:
+                items = parent.subsections.select().order_by(models.SubSection.order, models.SubSection.id)
+                for new_order, item in enumerate(items):
+                    print('SubSection {} ({}): {} -> {}'.format(item.id, item.name, item.order, new_order))
+                    item.order = new_order
+
+    if typ is None or typ == 'subsection':
+        with db_session:
+            parents = models.SubSection.select()
+            if target_id is not None:
+                parents = parents.filter(lambda x: x.id == target_id)
+            for parent in parents[:]:
+                items = parent.categories.select().order_by(models.Category.order, models.Category.id)
+                for new_order, item in enumerate(items):
+                    print('Category {} ({}): {} -> {}'.format(item.id, item.name, item.order, new_order))
+                    item.order = new_order
+
+    if typ is None or typ == 'category':
+        with db_session:
+            parents = models.Category.select()
+            if target_id is not None:
+                parents = parents.filter(lambda x: x.id == target_id)
+            for parent in parents[:]:
+                items = parent.select_approved_smiles().order_by(models.Smile.order, models.Smile.id)
+                for new_order, item in enumerate(items):
+                    print('Smile {} ({}): {} -> {}'.format(item.id, item.filename, item.order, new_order))
+                    item.order = new_order
+
+
+@manager.command
 def createsuperuser():
     from getpass import getpass
     import jsonschema
