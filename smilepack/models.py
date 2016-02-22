@@ -112,10 +112,12 @@ class Category(db.Entity):
     name = orm.Required(str, 128, autostrip=False)
     icon = orm.Required(Icon)
     description = orm.Optional(str, 16000)
-    smiles = orm.Set('Smile')
+    smiles_count = orm.Required(int, default=0)
     order = orm.Required(int, default=0)
     created_at = orm.Required(datetime, default=datetime.utcnow)
     updated_at = orm.Required(datetime, default=datetime.utcnow)
+
+    smiles = orm.Set('Smile')
 
     bl = Resource('bl.category')
 

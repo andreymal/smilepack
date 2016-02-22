@@ -354,7 +354,8 @@ class CategoryBL(BaseBL):
                 'id': c.icon.id,
                 'url': c.icon.url,
             },
-            'description': c.description
+            'description': c.description,
+            'smiles_count': c.smiles_count,
         }
         if with_parent:
             result['subsection'] = [c.subsection.id, c.subsection.name]
@@ -539,29 +540,42 @@ class SmileBL(BaseBL):
 
         # Редактируем смайлик
 
-        # При публикации добавляем смайлик в конец категории
-        if category and (data.get('approved') and not smile.approved_at or not smile.category or category.id != smile.category.id):
+        # Для последующих манипуляций с smiles_count
+        old_category = smile.category
+        old_published = smile.is_published
+
+        if data.get('approved') and not smile.approved_at and (category or smile.category):
+            # При публикации добавляем смайлик в конец категории
+            smile.order = (category or smile.category).select_approved_smiles().count()
+        elif category and (not smile.category or smile.category.id != category.id):
+            # При перемещении в другую категорию тоже
             smile.order = category.select_approved_smiles().count()
 
         if 'w' in data:
             smile.width = data['w']
+
         if 'h' in data:
             smile.height = data['h']
+
         if 'category' in data:
             old_category = smile.category
             smile.category = category
             if old_category and (not category or category.id != old_category.id):
                 # При вытаскивании смайлика из категории стоит привести порядок в порядок (простите за каламбур)
                 _normalize_order(old_category.select_approved_smiles().order_by(Smile.order, Smile.id))
+
         if 'description' in data:
             smile.description = data.get('description', '')
+
         if 'approved' in data and data['approved'] != (smile.approved_at is not None):
             smile.approved_at = (smile.approved_at or datetime.utcnow()) if data['approved'] else None
             if not smile.approved_at and smile.category:
                 # При вытаскивании смайлика из опубликованных порядок в категории тоже стоит навести
                 _normalize_order(smile.category.select_approved_smiles().order_by(Smile.order, Smile.id))
+
         if 'is_suggestion' in data and data['is_suggestion'] != smile.is_suggestion:
             smile.is_suggestion = not smile.is_suggestion
+
         if 'hidden' in data and data['hidden'] != smile.hidden:
             smile.hidden = not smile.hidden
 
@@ -589,6 +603,12 @@ class SmileBL(BaseBL):
                 except ValueError as exc:
                     raise BadRequestError(str(exc))
             del norm_tags
+
+        # В зависимости от того, что натворили выше, считаем, что нам делать с smiles_count
+        if old_category and old_published:
+            old_category.smiles_count -= 1
+        if smile.category and smile.is_published:
+            smile.category.smiles_count += 1
 
         return smile
 
