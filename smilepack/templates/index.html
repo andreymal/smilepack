@@ -32,7 +32,7 @@
         <a href="{{ url_for('pages.generator') }}" class="landing-button generate-button">{{ _("Create smilepack") }}</a>
     </div>
     {% if smilepacks %}
-    {{ _("Or open existing:") }}
+    {{ _("Or open an existing one:") }}
     <ul class="smilepacks-list">
     {%- for pack in smilepacks %}
         <li><a href="{{ url_for('pages.generator', smp_hid=pack.hid) }}">{{pack.name or pack.hid}}</a> <time class="smp-date" datetime="{{ pack.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">({{ pack.created_at|datetimeformat }})</time></li>

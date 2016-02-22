@@ -642,7 +642,7 @@ msgid "Log out"
 msgstr "Выйти"
 
 #: smilepack/templates/index.html:35
-msgid "Or open existing:"
+msgid "Or open an existing one:"
 msgstr "Или открыть существующий:"
 
 #: smilepack/templates/index.html:47
