@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <title>{% if pack %}{{ pack.name or pack.hid }}{% else %}{{ _("Create smilepack") }}{% endif %}</title>
+    {{ favicon_link_tag() }}
     {{ stylesheet_tag("base_css") | safe }}
     {{ stylesheet_tag("widget_collection_css") | safe }}
     {{ stylesheet_tag("generator_css") | safe }}

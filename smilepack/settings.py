@@ -43,6 +43,8 @@ class Config(object):
     API_ORIGINS = ['*']
     API_ALLOW_CREDENTIALS_FOR = []
 
+    FAVICON_URL = None
+
     SYMBOLS_FOR_HID = '0123456789abcdefghijklmnopqrstuvwxyz'
     HID_LENGTH = 6
     MAX_LIFETIME = 0

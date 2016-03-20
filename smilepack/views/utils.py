@@ -153,6 +153,15 @@ def csrf_token_field():
     return jinja2.Markup(field)
 
 
+def favicon_link_tag():
+    url = current_app.config.get('FAVICON_URL')
+    if not url:
+        return ''
+    url = jinja2.escape(url)
+    meta = '<link href="{url}" rel="shortcut icon" />'.format(url=url)
+    return jinja2.Markup(meta)
+
+
 def _handle_bad_request_error(error):
     return UnprocessableEntity(str(error))
 
@@ -189,6 +198,7 @@ def _page500(e):
 def configure_for_app(app, package_root):
     app.jinja_env.globals['csrf_token'] = csrf_token
     app.jinja_env.globals['csrf_token_field'] = csrf_token_field
+    app.jinja_env.globals['favicon_link_tag'] = favicon_link_tag
     app.register_error_handler(BadRequestError, _handle_bad_request_error)
     app.register_error_handler(jsonschema.ValidationError, _handle_validation_error)
     app.errorhandler(403)(db_session(_page403))  # db_session is needed for current_user object
