@@ -72,14 +72,21 @@ ManySmilesDialog.prototype._updateCategoriesList = function(collection) {
     options.appendChild(option);
     for (i = 0; i < categories.length; i++) {
         var level = categories[i][0];
+        var id = categories[i][1];
         if (level !== 2) {
             console.warn('ManySmilesDialog: category level is not 2, ignored.', categories[i]);
             continue;
         }
+        var catInfo = collection.getCategoryInfo(level, id, {withParent: true});
+        var catTitle = catInfo.name || id.toString();
+        if (catInfo.parentId !== null) {
+            var parentInfo = collection.getCategoryInfo(level - 1, catInfo.parentId);
+            catTitle = (parentInfo.name || catInfo.parentId.toString()) + ' -> ' + catTitle;
+        }
+
         option = document.createElement('option');
-        var id = categories[i][1];
         option.value = id.toString();
-        option.textContent = collection.getCategoryInfo(level, id).name || option.value;
+        option.textContent = catTitle;
         options.appendChild(option);
     }
 
