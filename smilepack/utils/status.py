@@ -148,7 +148,9 @@ def smiles_status(app):
         items.append({'key': 'count', 'name': 'Count', 'value': str(models.Smile.select().count()), 'status': 'ok'})
         items.append({'key': 'published_count', 'name': 'Published', 'value': str(models.Smile.select(lambda x: x.category is not None and x.approved_at is not None).count()), 'status': 'ok'})
         items.append({'key': 'user_count', 'name': 'User smiles', 'value': str(models.Smile.select(lambda x: x.user_cookie is not None).count()), 'status': 'ok'})
-        items.append({'key': 'nohash_count', 'name': 'Without hashsums', 'value': str(models.Smile.select(lambda x: not x.hashsum).count()), 'status': 'ok'})
+
+        without_hashsums = models.Smile.select(lambda x: not x.hashsum).count()
+        items.append({'key': 'nohash_count', 'name': 'Without hashsums', 'value': str(without_hashsums), 'status': 'warn' if without_hashsums > 0 else 'ok'})
 
         item = {'key': 'duplicates_count', 'name': 'Duplicates', 'value': '0', 'status': 'ok'}
         duplicates = orm.select((x.hashsum, orm.count(x.id)) for x in models.Smile if x.hashsum and orm.count(x.id) > 1)[:]
@@ -210,7 +212,9 @@ def icons_status(app):
         items.append({'key': 'count', 'name': 'Count', 'value': imsg, 'status': istatus})
         items.append({'key': 'published_count', 'name': 'Published', 'value': str(models.Icon.select(lambda x: x.approved_at is not None).count()), 'status': 'ok'})
         items.append({'key': 'user_count', 'name': 'User icons', 'value': str(models.Icon.select(lambda x: x.user_cookie is not None).count()), 'status': 'ok'})
-        items.append({'key': 'nohash_count', 'name': 'Without hashsums', 'value': str(models.Icon.select(lambda x: not x.hashsum).count()), 'status': 'ok'})
+
+        without_hashsums = models.Icon.select(lambda x: not x.hashsum).count()
+        items.append({'key': 'nohash_count', 'name': 'Without hashsums', 'value': str(without_hashsums), 'status': 'warn' if without_hashsums > 0 else 'ok'})
 
         item = {'key': 'duplicates_count', 'name': 'Duplicates', 'value': '0', 'status': 'ok'}
         duplicates = orm.select((x.hashsum, orm.count(x.id)) for x in models.Icon if x.hashsum and orm.count(x.id) > 1)[:]
