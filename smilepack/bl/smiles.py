@@ -465,11 +465,13 @@ class SmileBL(BaseBL):
 
         # Если загружен новый смайлик по урлу
         if data.get('url'):
+            url_hash = hash_url(data['url'])
             SmileUrl(
                 url=data['url'],
                 smile=smile,
-                url_hash=hash_url(data['url']),
+                url_hash=url_hash,
             ).flush()
+            current_app.cache.set('smile_by_url_{}'.format(url_hash), None, timeout=1)
 
         # Если смайлик перезалит на имгур
         if upload_info['url'] and upload_info['url'] != data.get('url'):
@@ -685,7 +687,38 @@ class SmileBL(BaseBL):
         from smilepack.models import SmileHash
         return orm.select(x.smile for x in SmileHash if x.hashsum == hashsum).first()
 
+    def full_search_by_url(self, url):
+        if not url:
+            return
+        smile = self.search_by_url(url)
+        if smile:
+            return smile
+
+        from smilepack.models import SmileUrl
+        from smilepack.utils import uploader
+
+        try:
+            print('try download')
+            data = uploader.download(url)
+        except IOError as exc:
+            print('IOError', exc)
+            smile = None
+        else:
+            hashsum = uploader.calc_hashsum(data)
+            smile = self.search_by_hashsum(hashsum)
+
+        if smile:
+            SmileUrl(
+                url=url,
+                smile=smile,
+                url_hash=hash_url(url),
+            ).flush()
+
+        return smile
+
     def search_by_url(self, url):
+        if not url:
+            return
         return self.search_by_urls((url,))[0]
 
     def search_by_urls(self, urls):

@@ -10,6 +10,8 @@ from flask_login import current_user
 from smilepack import models
 from smilepack.views.utils import user_session, json_answer, default_crossdomain, dictslice
 from smilepack.utils.exceptions import BadRequestError
+from smilepack.utils import uploader
+from smilepack.utils.urls import hash_url
 
 
 bp = Blueprint('smiles', __name__)
@@ -77,13 +79,26 @@ def search(section_id):
 @json_answer
 @db_session
 def by_url():
-    if not request.args.get('url'):
+    url = request.args.get('url')
+    if not url:
         return {'id': None}
-    smile = models.Smile.bl.search_by_url(request.args['url'])
+
+    cache_key = 'smile_by_url_{}'.format(hash_url(url))
+    result = current_app.cache.get(cache_key)
+    if result:
+        return result
+
+    smile = models.Smile.bl.full_search_by_url(url)
+
     if not smile:
-        return {'id': None}
-    smile_category_id = smile.category.id if smile.category else None
-    return {'id': smile.id, 'url': smile.url, 'w': smile.width, 'h': smile.height, 'category': smile_category_id}
+        result = {'id': None}
+    else:
+        smile_category_id = smile.category.id if smile.category else None
+        result = smile.bl.as_json()
+        result['category'] = smile_category_id
+
+    current_app.cache.set(cache_key, result, timeout=60)
+    return result
 
 
 @bp.route('/<int:category>')
