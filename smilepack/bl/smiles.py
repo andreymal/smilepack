@@ -453,6 +453,7 @@ class SmileBL(BaseBL):
             tags_cache='',
             hashsum=upload_info['hashsum'],
             approved_at=datetime.utcnow() if data.get('approved') else None,
+            is_suggestion=bool(data.get('is_suggestion')),
         )
         smile.flush()
         if data.get('tags'):
