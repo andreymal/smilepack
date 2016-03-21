@@ -156,6 +156,10 @@ def runserver(host, port=None, threaded=False):
 
 
 def run():
+    print(' * Started smilepack with database {engine} at {host}'.format(
+        engine=manager.app.config['DATABASE_ENGINE'],
+        host=manager.app.config['DATABASE'].get('filename' if manager.app.config['DATABASE_ENGINE'] == 'sqlite3' else 'host'),
+    ))
     manager.run()
 
 if __name__ == "__main__":
