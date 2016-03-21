@@ -46,22 +46,24 @@ def show_category(smp_hid, version, category_id):
     return cat.bl.as_json(with_smiles=True)
 
 
-@bp.route('/<smp_hid>.compat.user.js')
+@bp.route('/<smp_hid>.compat.user.js', defaults={'version': None})
+@bp.route('/<smp_hid>_<int:version>.compat.user.js')
 @user_session
-def download_compat(session_id, first_visit, smp_hid):
+def download_compat(session_id, first_visit, smp_hid, version):
     with db_session:
-        smp = SmilePack.bl.get_by_hid(smp_hid)
+        smp = SmilePack.bl.get_by_hid(smp_hid, version=version)
         if not smp:
             abort(404)
         smp.bl.add_view(request.remote_addr, session_id)
         smp_id = smp.id
+        smp_version = smp.version
 
     mode, websites = _load_websites(request.cookies)
 
     websites_hash = '{}:{}'.format(mode, '\x00'.join(websites))
     websites_hash = md5(websites_hash.encode('utf-8')).hexdigest()
 
-    ckey = 'compat_js_{}_{}'.format(smp_hid, websites_hash)
+    ckey = 'compat_js_{}_v{}_{}'.format(smp_hid, smp_version, websites_hash)
     result = current_app.cache.get(ckey)
 
     if result:
