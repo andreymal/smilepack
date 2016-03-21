@@ -149,7 +149,7 @@ def download(url, maxlen=None, timeout=10, chunksize=16384):
         raise IOError('Invalid URL protocol')
 
     req = Request(url)
-    req.add_header('User-Agent', 'smilepack/0.2.0')
+    req.add_header('User-Agent', 'smilepack/0.2.1')
     resp = urlopen(req, timeout=timeout)
 
     buf = []
