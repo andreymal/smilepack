@@ -149,6 +149,10 @@ var generator = {
 
             this.collection.deselectAll();
             this.moveSmiles(smpId, smiles, false);
+        } else if (action == 'gotocategory') {
+            var smileInfo = this.collection.getSmileInfo(smiles[0], {withRaw: true});
+            this.changeTab('collection');
+            this.collection.selectCategory(2, smileInfo.raw.category[0]);
         }
     },
 
@@ -1083,7 +1087,14 @@ var generator = {
         this.collectionPanel = new ActionPanel(
             this.collection,
             [
-                {action: 'add'}
+                {action: 'add'},
+                {
+                    action: 'gotocategory', options: {
+                        filter: function(collection, smiles) {
+                            return collection.getCurrentGroupId() == this.newSmilesGroup && smiles.length == 1;
+                        }.bind(this)
+                    }
+                }
             ],
             {
                 container: document.getElementById('collection-action-panel'),

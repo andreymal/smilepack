@@ -7,7 +7,7 @@ var ActionPanel = function(collection, actions, options) {
     this.collection = collection;
     this.options = options;
     this._dom = {categorySelectors: {}, buttons: {}};
-    this._actions = [];
+    this._actions = {};
 
     /* Основной контейнер, в котором всё лежит */
     if (options.container) {
@@ -31,25 +31,26 @@ var ActionPanel = function(collection, actions, options) {
     var action, btn;
     for (var i = 0; i < actions.length; i++) {
         action = actions[i];
-        if (!action || !action.action || this._actions.indexOf(action.action) >= 0) {
+        if (!action || !action.action || this._actions.hasOwnProperty(action.action)) {
             continue;
         }
 
+        var elems = []; // for show/hide
         var categorySelector = null;
         if (action.categorySelect) {
             categorySelector = this._dom.actions.getElementsByClassName('smiles-action-select-' + action.action)[0];
             if (!categorySelector) {
                 categorySelector = document.createElement('select');
                 categorySelector.className = 'smiles-actions-selector smiles-action-select-' + action.action;
-                this._dom.actions.appendChild(action.title || action.action);
+                this._dom.actions.appendChild(document.createTextNode(action.title || action.action));
                 this._dom.actions.appendChild(categorySelector);
             } else {
                 categorySelector.innerHTML = '';
             }
             this._dom.categorySelectors[action.action] = categorySelector;
+            elems.push(categorySelector);
         }
 
-        this._actions.push(action.action);
         btn = this._dom.actions.getElementsByClassName('smiles-action-' + action.action)[0];
         if (!btn) {
             btn = document.createElement('button');
@@ -64,6 +65,8 @@ var ActionPanel = function(collection, actions, options) {
         btn.dataset.action = action.action;
         btn.addEventListener('click', this._onclick.bind(this));
         this._dom.buttons[action] = btn;
+        elems.push(btn);
+        this._actions[action.action] = {elems: elems, options: action.options || {}};
     }
 
     /* Подписываемся на события выделения и изменений в коллекции */
@@ -93,6 +96,16 @@ ActionPanel.prototype.repaint = function() {
     this._dom.actions.style.display = this._smiles.length > 0 ? '' : 'none';
     if (this._dom.smilesCount) {
         this._dom.smilesCount.textContent = this._smiles.length.toString();
+    }
+    for (var name in this._actions) {
+        if (!this._actions.hasOwnProperty(name)) {
+            continue;
+        }
+        var action = this._actions[name];
+        var display = (!action.options.filter || action.options.filter(this.collection, this._smiles)) ? '' : 'none';
+        for (var i = 0; i < action.elems.length; i++) {
+            action.elems[i].style.display = display;
+        }
     }
 };
 
@@ -127,7 +140,7 @@ ActionPanel.prototype._onclick = function(event) {
     var action = btn.dataset.action;
     var options = {};
 
-    if (this._actions.indexOf(action) < 0) {
+    if (!this._actions.hasOwnProperty(action)) {
         return;
     }
 
