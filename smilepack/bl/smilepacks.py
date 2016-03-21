@@ -92,7 +92,7 @@ class SmilePackBL(BaseBL):
         del icon_ids
 
         if fork or not parent:
-            # Если новый пак или форк, а не редактирование, то hid будет hid родителя
+            # Если новый пак или форк, а не редактирование, то hid будет новый рандомный
             hid = ''.join(
                 random.choice(current_app.config['SYMBOLS_FOR_HID'])
                 for _
