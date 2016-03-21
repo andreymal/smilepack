@@ -54,7 +54,7 @@
         <span id="settings-edit" class="settings-edit"{{ ' style="display: none;"'|safe if not pack else '' }}>
             <button class="button button-primary action-edit"{{ ' style="display: none;"'|safe if not can_edit else '' }}>{{ _('Save changes') }}</button>
             <button class="button button-primary action-fork">{{ _('Save as new smilepack') }}</button>
-            <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid) if pack else '#' }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
+            <a href="{{ url_for('smilepacks.download_compat', smp_hid=pack.hid, mode='user') if pack else '#' }}" target="_blank" id="smp-last-url">{{ _("Download last saved version") }}</a>
         </span>
     </div>
 </div>

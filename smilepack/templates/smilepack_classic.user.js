@@ -1,19 +1,4 @@
-// ==UserScript==
-// @name         Смайлопак «{{ pack_name }}»
-// @version      1.21
-// @description  Создан {{ pack.created_at.strftime('%Y-%m-%d') }}
-{% if websites_mode == 'blacklist' -%}
-// @match        http://*/*
-// @match        https://*/*
-{% endif -%}
-{% for site in websites_list -%}
-    // @{{ 'match        ' if websites_mode == 'whitelist' else 'exclude      ' }}{{ site }}
-{% endfor -%}
-// @exclude      http://*.google.*
-// @exclude      https://*.google.*
-
-// @author       Код: EeyupBrony, Dark_XSM, Dotterian; адаптировал andreymal
-// ==/UserScript==
+{% include 'smilepack_classic.meta.js' %}
 {% raw %}
 (function(document, fn) {
     var script = document.createElement('script');
@@ -31,7 +16,7 @@ if (window.top !== window.self) {
 {% endraw %}
 // Генерируемые данные
 var data = {
-    version: '1.21',
+    version: '1.22',
     timestamp: 'optional',
     sections: {{ pack_json_compat|tojson|safe }},
     sites: []

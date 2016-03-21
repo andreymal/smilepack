@@ -46,10 +46,12 @@ def show_category(smp_hid, version, category_id):
     return cat.bl.as_json(with_smiles=True)
 
 
-@bp.route('/<smp_hid>.compat.user.js', defaults={'version': None})
-@bp.route('/<smp_hid>_<int:version>.compat.user.js')
+@bp.route('/<smp_hid>.compat.meta.js', defaults={'version': None, 'mode': 'meta'})
+@bp.route('/<smp_hid>_<int:version>.compat.meta.js', defaults={'mode': 'meta'})
+@bp.route('/<smp_hid>.compat.user.js', defaults={'version': None, 'mode': 'user'})
+@bp.route('/<smp_hid>_<int:version>.compat.user.js', defaults={'mode': 'user'})
 @user_session
-def download_compat(session_id, first_visit, smp_hid, version):
+def download_compat(session_id, first_visit, smp_hid, version, mode):
     with db_session:
         smp = SmilePack.bl.get_by_hid(smp_hid, version=version)
         if not smp:
@@ -58,12 +60,13 @@ def download_compat(session_id, first_visit, smp_hid, version):
         smp_id = smp.id
         smp_version = smp.version
 
-    mode, websites = _load_websites(request.cookies)
+    webmode, websites = _load_websites(request.cookies)
 
-    websites_hash = '{}:{}'.format(mode, '\x00'.join(websites))
+    websites_hash = '{}:{}'.format(webmode, '\x00'.join(websites))
     websites_hash = md5(websites_hash.encode('utf-8')).hexdigest()
 
-    ckey = 'compat_js_{}_v{}_{}'.format(smp_hid, smp_version, websites_hash)
+    show_update_urls = version is None
+    ckey = 'compat_js_{}_{}_v{}{}_{}'.format(smp_hid, mode, smp_version, 'u' if show_update_urls else '', websites_hash)
     result = current_app.cache.get(ckey)
 
     if result:
@@ -73,15 +76,16 @@ def download_compat(session_id, first_visit, smp_hid, version):
         with db_session:
             smp = SmilePack.get(id=smp_id)
             result = render_template(
-                'smilepack_classic.js',
+                'smilepack_classic.{}.js'.format(mode),
                 pack=smp,
                 pack_name=(smp.name or smp.hid).replace('\r', '').replace('\n', '').strip(),
                 pack_json_compat=smp.bl.as_json_compat(),
                 host=request.host,
                 generator_url=url_for('pages.generator', smp_hid=None, _external=True),
                 pack_ico_url=Icon.select().first().url,
-                websites_mode=mode,
+                websites_mode=webmode,
                 websites_list=websites,
+                show_update_urls=show_update_urls,
             ).encode('utf-8')
 
         current_app.cache.set(ckey, zlib.compress(result), timeout=3600)
@@ -112,7 +116,7 @@ def create(session_id, first_visit):
         'can_edit': True,
         'smilepack_id': pack.hid,
         'version': pack.version,
-        'download_url': url_for('.download_compat', smp_hid=pack.hid, _external=True),
+        'download_url': url_for('.download_compat', smp_hid=pack.hid, mode='user', _external=True),
         'view_url': url_for('pages.generator', smp_hid=pack.hid, _external=True),
         'mini_view_url': url_for('pages.view', smp_hid=pack.hid, _external=True),
         'path': url_for('pages.generator', smp_hid=pack.hid),
