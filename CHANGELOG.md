@@ -1,6 +1,14 @@
 # Changelog
 
 
+## 0.2.1 (unreleased)
+
+* The ability to download userscripts of older versions of smilepack
+* Icons for smilepacks
+* Updated meta block in userscripts (autoupdate should work now)
+* Small bug fixes (`Smile.is_suggestion`, caching of userscripts etc.)
+
+
 ## 0.2.0 (2016-03-20)
 
 * New smiles tab
