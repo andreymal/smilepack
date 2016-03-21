@@ -70,6 +70,14 @@ class SmilePackBL(BaseBL):
 
         from ..models import SmilePackCategory, Smile, Icon
 
+        # Получаем иконку смайлопака
+        if 'icon' in data:
+            icon = Icon.get(id=data['icon'])
+        else:
+            icon = Icon.select().order_by(Icon.id).first()
+        if not icon:
+            raise BadRequestError('Icon not found')
+
         # Проверяем валидность категорий
         for s in data['smiles']:
             if s['category'] >= len(data['categories']):
@@ -108,6 +116,7 @@ class SmilePackBL(BaseBL):
         pack = self._model()(
             hid=hid,
             version=version,
+            icon=icon,
             parent=parent,
             user_cookie=session_id,
             name=data.get('name') or '',

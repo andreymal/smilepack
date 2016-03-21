@@ -82,7 +82,7 @@ def download_compat(session_id, first_visit, smp_hid, version, mode):
                 pack_json_compat=smp.bl.as_json_compat(),
                 host=request.host,
                 generator_url=url_for('pages.generator', smp_hid=None, _external=True),
-                pack_ico_url=Icon.select().first().url,
+                pack_ico_url=smp.icon.url,
                 websites_mode=webmode,
                 websites_list=websites,
                 show_update_urls=show_update_urls,

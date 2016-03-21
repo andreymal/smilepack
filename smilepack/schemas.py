@@ -238,7 +238,10 @@ SMILEPACK = {
         },
         "lifetime": {
             "type": "integer"
-        }
+        },
+        "icon": {
+            "type": "integer"
+        },
     },
     "required": ["categories", "smiles"]
 }

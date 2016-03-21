@@ -42,6 +42,7 @@ class Icon(db.Entity):
     sections = orm.Set('Section')
     subsections = orm.Set('SubSection')
     categories = orm.Set('Category')
+    smilepacks = orm.Set('SmilePack')
     pack_categories = orm.Set('SmilePackCategory')
     tags = orm.Set('Tag')
 
@@ -223,6 +224,7 @@ class SmilePack(db.Entity):
     """Смайлопак"""
     hid = orm.Required(str, 16, index=True)
     version = orm.Required(int, default=1)
+    icon = orm.Required(Icon)
     parent = orm.Optional('SmilePack')
     user_addr = orm.Optional(str, 255, nullable=True, default=None)
     user_cookie = orm.Required(str, 64, index=True)

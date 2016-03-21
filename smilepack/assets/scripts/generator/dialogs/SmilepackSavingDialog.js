@@ -34,10 +34,15 @@ SmilepackSavingDialog.prototype.onsubmit = function() {
 
     var f = this.form;
 
+    // Safari не умеет в f.[radio].value
+    var checkedIcon = f.querySelector('input[name="icon"]:checked');
+    var iconValue = checkedIcon ? checkedIcon.value : null;
+
     var result = this._submitEvent({
         mode: f.mode.value,
         hid: f.hid.value,
         version: f.version.value,
+        icon: parseInt(iconValue),
         name: f.name.value,
         lifetime: parseInt(f.lifetime.value)
     });

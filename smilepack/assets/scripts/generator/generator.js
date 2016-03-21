@@ -338,6 +338,7 @@ var generator = {
         this.saveStatus = {
             name: options.name || '',
             lifetime: options.lifetime || 0,
+            icon: options.icon,
             categories: categories,
             smiles: smiles,
             smilesToCreate: smilesToCreate,
@@ -387,6 +388,7 @@ var generator = {
         ajax.create_smilepack(
             this.saveStatus.mode,
             this.saveStatus.parent,
+            this.saveStatus.icon,
             this.saveStatus.name,
             this.saveStatus.lifetime,
             this.saveStatus.categories,

@@ -139,10 +139,11 @@ var ajax = {
         });
     },
 
-    create_smilepack: function(mode, parent, name, lifetime, categories, smiles, onload, onerror, onend) {
+    create_smilepack: function(mode, parent, icon, name, lifetime, categories, smiles, onload, onerror, onend) {
         var data = {
             name: name,
-            lifetime: lifetime,
+            lifetime: parseInt(lifetime),
+            icon: parseInt(icon),
             categories: categories,
             smiles: smiles
         };

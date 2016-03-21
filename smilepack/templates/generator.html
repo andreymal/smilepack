@@ -284,6 +284,20 @@
             </div>
         </div>
 
+        <label>{{ _("Icon") }}:</label><br/>
+        {% if icons %}
+        <div class="icon-container">
+        {%- for icon in icons %}
+            <label>
+                <input type="radio" name="icon" data-value-url="{{ icon.url }}" value="{{ icon.id }}"{{ ' checked' if ((not pack and loop.first) or (pack and pack.icon.id == icon.id)) else '' }} />
+                <img src="{{ icon.url }}" alt="" class="dialog-category-icon" />
+            </label>
+        {%- endfor %}
+        {%- elif not config['NO_ICONS_IS_THE_NORM'] %}
+        <em>{{ _('Database has no icons, please contact the administrator of a website.') }}</em><br/>
+        {%- endif %}
+        </div>
+
         <input type="submit" class="button button-primary" value="{{ _('Save') }}" />
     </form>
 </div>
