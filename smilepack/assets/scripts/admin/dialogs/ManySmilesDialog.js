@@ -1,6 +1,7 @@
 'use strict';
 
-var BasicDialog = require('../../common/BasicDialog.js');
+var utils = require('../../common/utils.js'),
+    BasicDialog = require('../../common/BasicDialog.js');
 
 
 var ManySmilesDialog = function(element) {
@@ -62,34 +63,7 @@ ManySmilesDialog.prototype.open = function(options) {
 
 
 ManySmilesDialog.prototype._updateCategoriesList = function(collection) {
-    var categories = collection ? collection.getCategoryIdsWithSmiles() : [];
-    var options = document.createDocumentFragment();
-    var i;
-
-    var option = document.createElement('option');
-    option.value = '';
-    option.textContent = '---';
-    options.appendChild(option);
-    for (i = 0; i < categories.length; i++) {
-        var level = categories[i][0];
-        var id = categories[i][1];
-        if (level !== 2) {
-            console.warn('ManySmilesDialog: category level is not 2, ignored.', categories[i]);
-            continue;
-        }
-        var catInfo = collection.getCategoryInfo(level, id, {withParent: true});
-        var catTitle = catInfo.name || id.toString();
-        if (catInfo.parentId !== null) {
-            var parentInfo = collection.getCategoryInfo(level - 1, catInfo.parentId);
-            catTitle = (parentInfo.name || catInfo.parentId.toString()) + ' -> ' + catTitle;
-        }
-
-        option = document.createElement('option');
-        option.value = id.toString();
-        option.textContent = catTitle;
-        options.appendChild(option);
-    }
-
+    var options = utils.genCategoryOptionsDOM(collection);
     this.form.category.innerHTML = '';
     this.form.category.appendChild(options);
 };

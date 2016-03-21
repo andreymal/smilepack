@@ -1,6 +1,7 @@
 'use strict';
 
-var BasicDialog = require('../../common/BasicDialog.js'),
+var utils = require('../../common/utils.js'),
+    BasicDialog = require('../../common/BasicDialog.js'),
     SmilePreview = require('../../common/widgets/SmilePreview.js');
 
 
@@ -350,27 +351,7 @@ SmileDialog.prototype.onsubmit = function() {
 
 
 SmileDialog.prototype._updateCategoriesList = function(collection) {
-    var categories = collection ? collection.getCategoryIdsWithSmiles() : [];
-    var options = document.createDocumentFragment();
-    var i;
-
-    var option = document.createElement('option');
-    option.value = '';
-    option.textContent = '---';
-    options.appendChild(option);
-    for (i = 0; i < categories.length; i++) {
-        var level = categories[i][0];
-        if (level !== 2) {
-            console.warn('SmileDialog: category level is not 2, ignored.', categories[i]);
-            continue;
-        }
-        option = document.createElement('option');
-        var id = categories[i][1];
-        option.value = id.toString();
-        option.textContent = collection.getCategoryInfo(level, id).name || option.value;
-        options.appendChild(option);
-    }
-
+    var options = utils.genCategoryOptionsDOM(collection);
     this.form.suggestion_category.innerHTML = '';
     this.form.suggestion_category.appendChild(options);
 };
