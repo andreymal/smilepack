@@ -58,7 +58,7 @@ var shuffle = {
 
     fetch: function(callback){
         var x = new XMLHttpRequest();
-        x.open('GET', '/smiles/new');
+        x.open('GET', '/smiles/new?count=200');
 
         x.onreadystatechange = function(){
             if(x.readyState != 4) return;
