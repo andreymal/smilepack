@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build clean-test clean-frontend clean-translations clean lint test test-all docs
+.PHONY: all
 
 help:
 	@echo "Smilepack"
@@ -14,9 +14,13 @@ help:
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
+	@echo "release-sign - package and upload a release with PGP sign"
 	@echo "dist - package"
 	@echo "install - install the package to the active Python's site-packages"
 	@echo "develop - install the package for development as editable"
+	@echo "babel-extract - create messages.pot translation template"
+	@echo "babel-update - update .po translation files"
+	@echo "babel-compile - compile .po translation files to .mo"
 
 clean: clean-build clean-pyc clean-test clean-frontend clean-translations
 
@@ -24,8 +28,8 @@ clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
-	find . -name '*.egg-info' -exec rm -fr {} +
-	find . -name '*.egg' -exec rm -rf {} +
+	rm -fr *.egg-info
+	rm -fr *.egg
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -70,6 +74,12 @@ release: clean
 	pybabel compile -d smilepack/translations
 	python setup.py bdist_wheel upload
 
+release-sign: clean
+	python setup.py sdist upload --sign
+	npm run-script webpack:production
+	pybabel compile -d smilepack/translations
+	python setup.py bdist_wheel upload --sign
+
 dist: clean
 	python setup.py sdist
 	npm run-script webpack:production
@@ -85,4 +95,20 @@ develop:
 	npm run-script webpack:trunk
 	pip install -r requirements.development.txt
 	python setup.py develop
+	pybabel compile -d smilepack/translations
+
+babel-extract:
+	pybabel extract \
+		-F babel.cfg \
+		-o messages.pot \
+		--project smilepack \
+		--copyright-holder andreymal \
+		--version 0.2.1 \
+		--msgid-bugs-address andriyano-31@mail.ru \
+		smilepack
+
+babel-update: babel-extract
+	pybabel update -i messages.pot -d smilepack/translations
+
+babel-compile:
 	pybabel compile -d smilepack/translations
