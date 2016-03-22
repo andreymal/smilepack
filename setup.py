@@ -36,6 +36,7 @@ setup(
     extras_require={
         'imgur': extra_requirements,
     },
+    setup_requires=['pytest-runner'],
     include_package_data=True,
     zip_safe=False,
     entry_points={

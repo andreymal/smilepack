@@ -1,3 +1,6 @@
-coveralls
-flake8
+factory-boy
+pytest-selenium
+pytest-flask
+pytest-cov
+pytest
 tox

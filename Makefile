@@ -9,9 +9,9 @@ help:
 	@echo "clean-test - remove test and coverage artifacts"
 	@echo "clean-frontend - remove webpack frontend artifacts"
 	@echo "lint - check style with pylint"
-	@echo "test - run tests quickly with the default Python"
+	@echo "test - run tests quickly with the default Python with pytest"
 	@echo "test-all - run tests on every Python version with tox"
-	@echo "coverage - check code coverage quickly with the default Python"
+	@echo "coverage - check code coverage quickly with the default Python and pytest"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
 	@echo "release-sign - package and upload a release with PGP sign"
@@ -60,10 +60,9 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source smilepack setup.py test
-	coverage report -m
-	coverage html
-	x-www-browser htmlcov/index.html
+	pip install -r requirements.testing.txt
+	py.test --cov=smilepack --cov-report=html tests
+	ls -lh htmlcov/index.html
 
 docs:
 	@echo "Docs doesn't yet exists"

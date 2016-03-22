@@ -103,3 +103,16 @@ class Development(Config):
     SQL_DEBUG = True
     RATELIMIT_HEADERS_ENABLED = True
     X_RUNTIME_HEADER = True
+
+
+class Test(Config):
+    LOCALES = {'en': 'English'}
+    DATABASE_ENGINE = 'sqlite'
+    DATABASE = {
+        'filename': os.path.join(os.getcwd(), 'testdb.sqlite3'),  # ':memory:' breaks with connection pool
+        'create_db': True,
+    }
+    DATABASE_CLEANER = {'provider': 'sqlite3'}
+    TESTING = True
+    SQL_DEBUG = False
+    MEMCACHE_SERVERS = None

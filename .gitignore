@@ -6,6 +6,12 @@ __pycache__/
 # virtualenv
 /env/
 
+# Tests
+/.tox/
+/.cache/
+/htmlcov/
+/.coverage
+
 # Distribution / packaging
 .Python
 build/
@@ -60,4 +66,4 @@ node_modules
 /media/
 /smilepack/manifest.json
 /smilepack/public
-/database.sqlite3
+/*.sqlite3
