@@ -9,8 +9,14 @@ from smilepack.models import Smile, SmileUrl
 
 
 def check_and_normalize(url):
-    if not url or not isinstance(url, str):
-        raise ValueError('Invalid url')
+    if not isinstance(url, str):
+        raise ValueError('Invalid url type')
+    f = url.find('#')
+    if f >= 0:
+        url = url[:f]
+    url = url.strip()
+    if not url or url.strip('/').strip() in ('', 'http:', 'https:'):
+        raise ValueError('Empty url')
     if url.startswith('//'):
         url = 'http:' + url
     if not url.startswith('http://') and not url.startswith('https://'):
